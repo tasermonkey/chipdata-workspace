@@ -1,3 +1,4 @@
 Climate Control
 ------------
-[Venus Climate Control](./VC-Coolant-Setup.md)
+[Vulcan Climate Control](./VC-Coolant-Setup.md)
+
