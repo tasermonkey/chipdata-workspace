@@ -1,0 +1,48 @@
+define LightName HASH("Manufacturing Room - Light")
+define LightType1 HASH("StructureLightLongWide")
+define LightType2 HASH("StructureLightLong")
+define LightType3 HASH("StructureDiode")
+alias Sensor d0
+alias machineHash r14
+alias personDetected r15
+
+#move sp 1 #Enter tank or pipe analyzer names and prefabs below.
+push 0
+
+push $1486 # authlathe1
+push $1488 # authlathe2
+push $2217 # pipe bender 1
+push $2235 # pipe bender 2
+push $482A # Toolbench
+push $6E4F # Recycle
+push $2736 # Electronics printer 1
+push $279C # Electronics printer 2
+poke 0 sp #Save TOS
+
+
+start:
+yield
+l personDetected Sensor Activate
+snez personDetected personDetected
+sbn LightType1 LightName On personDetected
+sbn LightType2 LightName On personDetected
+sbn LightType3 LightName On personDetected
+get sp db 0 #Reload SP from saved value at bottom
+loop:
+beq sp 1 restart
+jal setMachineState
+j loop
+
+restart:
+s db Setting -6969
+sleep 1
+j start
+
+setMachineState:
+pop machineHash
+alias machineActive r0
+s db Setting sp
+l machineActive machineHash Activate # if the machine is producing something
+max machineActive machineActive personDetected
+sd machineHash On machineActive
+j ra

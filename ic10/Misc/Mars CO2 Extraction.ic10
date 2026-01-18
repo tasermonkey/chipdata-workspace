@@ -1,0 +1,5 @@
+define VENT_T HASH("StructureActiveVent")
+define VENT_N HASH("Vent KeepCO2Cool")
+define VENT_O HASH("Vent EjectCooledAir")
+sbn VENT_T VENT_N PressureInternal 250
+sbn VENT_T VENT_O PressureInternal 200

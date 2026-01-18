@@ -1,0 +1,111 @@
+
+alias fabSpTop r1
+alias stackSize r2
+alias productionMode r3
+alias amountProduced r5
+alias DialAmount r6
+alias Fabricator r6
+alias Stacker r7
+
+alias SRa r12
+alias TmpDevice r13
+alias Tmp r14
+alias Param1 r15
+define Debug1 $C3611
+define FabVarCount 12
+programLoop:
+  get Tmp db 0 # FabricatorCount
+  mul Tmp FabVarCount Tmp
+  add Tmp Tmp 1
+  # sd $B0D98 Setting Tmp
+  move sp Tmp
+  fabLoopStart:
+    ble sp 1 programLoop
+    yield
+    move fabSpTop sp
+    jal checkOff
+    j updateFabricator
+    fabLoopMid:
+    j monitorFabricator
+    fabLoopNearEnd:
+    sub sp sp FabVarCount
+    j fabLoopStart
+
+checkOff:
+    move SRa ra
+    move Param1 8 # Power Input
+    jal getDeviceAt
+    ld Tmp Param1 On
+    select TmpDevice Tmp Color.Green Color.Red
+    sd Param1 Color TmpDevice
+    bnez Tmp SRa
+    j fabLoopNearEnd
+    
+
+updateFabricator:
+  move Param1 3 # Input Amount
+  jal getDeviceAt
+  move DialAmount Param1
+  ld stackSize DialAmount Setting
+  brgtz stackSize 3
+  move stackSize 10
+  #sd $B208B Setting sp
+  sub sp sp 3 # position for Minus and plus
+  #sd $B0D98 Setting sp
+  move Param1 -10
+  jal modifyStackSize
+  move Param1 10
+  jal modifyStackSize
+  move Param1 6
+  jal getDeviceAt # ProductionMode
+  ld productionMode Param1 On
+  move Param1 9
+  jal getDeviceAt # DisplayAmount
+  breqz productionMode 4
+  sd Param1 Setting STR("STACK")
+  sd Param1 Mode 10 # Text
+  jr 3
+  sd Param1 Setting stackSize
+  sd Param1 Mode 0 # Number
+  sd DialAmount Setting stackSize
+  sub Param1 fabSpTop 1
+  poke Param1 productionMode
+  sub Param1 fabSpTop 2
+  poke Param1 stackSize
+  move sp fabSpTop
+  j fabLoopMid
+
+monitorFabricator:
+  move Param1 12
+  jal getDeviceAt
+  move Fabricator Param1
+  ld amountProduced Fabricator ExportCount
+  move Param1 11
+  jal getDeviceAt
+  move Stacker Param1
+  breqz productionMode 3 # if not stackMode
+  ls stackSize Stacker 2 MaxQuantity
+  select stackSize stackSize stackSize 500
+  sd Stacker Setting stackSize
+  slt Tmp amountProduced stackSize
+  brnez Tmp 3
+  sd Fabricator Activate 0
+  sd Fabricator ClearMemory 1
+  move Param1 10
+  jal getDeviceAt
+  ld Tmp Fabricator CompletionRatio
+  sd Param1 Setting Tmp
+  j fabLoopNearEnd
+
+modifyStackSize:
+  pop TmpDevice
+  ld Tmp TmpDevice Activate
+  snez Tmp Tmp
+  mul Tmp Tmp Param1
+  add stackSize stackSize Tmp
+  j ra
+
+getDeviceAt:
+  sub Param1 fabSpTop Param1
+  get Param1 db Param1
+  j ra

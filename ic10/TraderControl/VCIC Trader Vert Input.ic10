@@ -1,0 +1,103 @@
+define DELTA_BUTTON_TYPE HASH("ModularDeviceRoundButton")
+define CONF_BUTTON_TYPE HASH("ModularDeviceSquareButton")
+define NP_TYPE HASH("ModularDeviceNumpad")
+define NUM_DISPLAY_TYPE HASH("ModularDeviceLEDdisplay3")
+
+push 0 # end stack pointer (0)
+
+push  1 # (1)
+push  5 # (2)
+push 10 # (3)
+
+push HASH("VC Num Pad")
+push HASH("VC Num Pad Confirm")
+push HASH("VC Add 1")
+push HASH("VC Add 5")
+push HASH("VC Add 10")
+push HASH("VC Sub 1")
+push HASH("VC Sub 5")
+push HASH("VC Sub 10")
+push HASH("VC Current Value")
+
+
+# push HASH("VC Num Pad")s
+# push HASH("VC Num Pad Confirm")
+# push HASH("VC Add 1")
+# push HASH("VC Add 5")
+# push HASH("VC Add 10")
+# push HASH("VC Sub 1")
+# push HASH("VC Sub 5")
+# push HASH("VC Sub 10")
+# push HASH("VC Current Value")
+poke 0 sp #Save TOS
+
+alias CurrentValueName r1
+alias CurrentValue r2
+alias NumPadValue r3
+
+alias LogicNumPad r15
+alias LogicNumPadConfirmButton r14
+alias NumPadCurrentPress r13
+alias LoopControl r15
+alias CurrentButton r14
+alias Multiplier r13
+alias Delta r12
+
+sbn NUM_DISPLAY_TYPE HASH("HC Current Value") Setting 0
+#sbn NUM_DISPLAY_TYPE HASH("VC Current Value") Setting 0
+
+programLoop:
+yield
+get sp db 0 #Reload SP from saved value at bottom
+pop CurrentValueName
+lbn CurrentValue NUM_DISPLAY_TYPE CurrentValueName Setting Maximum
+jal buttonsEventHandler
+jal keypadUpdate
+jal saveToDisplay
+j programLoop
+
+buttonsEventHandler:
+    move Multiplier -1
+    move LoopControl 3
+    buttonsEventHandlerLoop:
+        pop CurrentButton
+        lbn CurrentButton DELTA_BUTTON_TYPE CurrentButton Activate Maximum
+        add Delta LoopControl 0 # our first offset is 1 ... we loop between 3,2,1
+        get Delta db Delta # Fetch how much to change by (look at stack)
+        mul Delta Delta Multiplier # negative or postive button (-1 || 1)
+        mul Delta Delta CurrentButton # Button Pressed = 1, unpressed = 0
+        add CurrentValue CurrentValue Delta # Add the delta to current value 
+        sub LoopControl LoopControl 1 # go to the next value
+        bnez LoopControl buttonsEventHandlerLoop # loop to top to get next button
+        beq Multiplier 1 ra # we do postive values last, so this means we are done, return
+        move Multiplier 1 # if we haven't done positive yet, switch mult to 1 and restart loop
+        move LoopControl 3 # reset loop control back to 3 to do 3 more buttons
+        j buttonsEventHandlerLoop # and jump back to top
+
+keypadUpdate:
+    pop LogicNumPadConfirmButton
+    pop LogicNumPad 
+    lbn NumPadCurrentPress NP_TYPE LogicNumPad Mode Maximum
+    s db Setting NumPadCurrentPress
+    bnez NumPadCurrentPress skip0
+    lbn NumPadCurrentPress NP_TYPE LogicNumPad Setting Maximum
+    s db Setting NumPadCurrentPress
+    mul NumPadValue NumPadValue 10
+    add NumPadValue NumPadValue NumPadCurrentPress
+    sbn NP_TYPE LogicNumPad Mode 1
+    sbn NP_TYPE LogicNumPad Setting NumPadValue
+    skip0:
+    lbn NumPadCurrentPress CONF_BUTTON_TYPE LogicNumPadConfirmButton Activate Maximum
+    beqz NumPadCurrentPress ra
+    move CurrentValue NumPadValue
+    sbn NP_TYPE LogicNumPad Setting 0
+    move NumPadValue 0
+    j ra
+
+saveToDisplay:
+    sgt r15 CurrentValue 90
+    select CurrentValue r15 90 CurrentValue
+    sltz r15 CurrentValue
+    select CurrentValue r15 0 CurrentValue
+    sbn NUM_DISPLAY_TYPE CurrentValueName Setting CurrentValue
+    j ra

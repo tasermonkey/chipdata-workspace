@@ -1,0 +1,12 @@
+alias LightSensor d0
+start:
+alias lightSensorValue r1
+alias activateLights r2
+
+l lightSensorValue LightSensor Vertical
+sle activateLights lightSensorValue 100
+
+sb HASH("StructureGrowLight") On activateLights
+sleep 1
+yield
+j start

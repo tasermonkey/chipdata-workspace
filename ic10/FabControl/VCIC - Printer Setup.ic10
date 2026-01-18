@@ -1,0 +1,101 @@
+alias Memory d0
+
+put Memory 0 3 # number of fabricators
+
+# Faboricator 1 (Autolathe1)
+put Memory 1 $1488 # Printer
+put Memory 2 $3606 # Stacker
+put Memory 3 $AE16A # Progress display
+put Memory 4 $AE19B # Amount display
+put Memory 5 $AE87A # Power input
+put Memory 6 $AEF03 # Input amount
+put Memory 7 $AE0D8 # Input stack toggle
+put Memory 8 $AEEEA # Plus 10 button
+put Memory 9 $AEEF9 # Minus 10 button
+put Memory 10 $AEF03  # Input amount
+put Memory 11 0     # Selected Amount
+put Memory 12 0     # Reserve for productionMode
+######
+# Faboricator 2 (Autolathe2)
+#put Memory 13 $AB000 # Printer
+#put Memory 14 $AB001 # Stacker
+#put Memory 15 $AB002 # Progress display
+#put Memory 16 $AB003 # Amount display
+#put Memory 17 $AB004 # Power input
+#put Memory 18 $AB005 # Input amount
+#put Memory 19 $AB006 # Input stack toggle
+#put Memory 20 $AB007 # Plus 10 button
+#put Memory 21 $AB008 # Minus 10 button
+#put Memory 22 $AB005 # Input amount
+#put Memory 23 0     # Selected Amount
+#put Memory 24 0     # Reserve for productionMode
+######
+# Faboricator 3 (Pipe 1)
+put Memory 25 $2217 # Printer
+put Memory 26 $3607 # Stacker
+put Memory 27 $C3D42 # Progress display
+put Memory 28 $C5295 # Amount display
+put Memory 29 802081 # Power input
+put Memory 30 $C3D17 # Input amount
+put Memory 31 $C3D27 # Input stack toggle
+put Memory 32 $C3CF5 # Plus 10 button
+put Memory 33 $C3CFA # Minus 10 button
+put Memory 34 $C3D17 # Input amount
+put Memory 35 0     # Selected Amount
+put Memory 36 0     # Reserve for productionMode
+######
+# Faboricator 4 (Pipe 2)
+#put Memory 37 $AD000 # Printer
+#put Memory 38 $AD001 # Stacker
+#put Memory 39 $AD002 # Progress display
+#put Memory 40 $AD003 # Amount display
+#put Memory 41 $AD004 # Power input
+#put Memory 42 $AD005 # Input amount
+#put Memory 43 $AD006 # Input stack toggle
+#put Memory 44 $AD007 # Plus 10 button
+#put Memory 45 $AD008 # Minus 10 button
+#put Memory 46 $AD005 # Input amount
+#put Memory 47 0     # Selected Amount
+#put Memory 48 0     # Reserve for productionMode
+######
+# Faboricator 5 (Electronics 1)
+put Memory 13 $2736 # Printer
+put Memory 14 $360F # Stacker
+put Memory 15 $C3042 # Progress display
+put Memory 16 $C3007 # Amount display
+put Memory 17 797452 # Power input
+put Memory 18 $C2AB1 # Input amount
+put Memory 19 $C2AF0 # Input stack toggle
+put Memory 20 $C2A6A # Plus 10 button
+put Memory 21 $C2A6F # Minus 10 button
+put Memory 22 $C2AB1 # Input amount
+put Memory 23 0     # Selected Amount
+put Memory 24 0     # Reserve for productionMode
+######
+# Faboricator 7 (Electronics 1)
+#put Memory 61 $AF000 # Printer
+#put Memory 62 $AF001 # Stacker
+#put Memory 63 $AF002 # Progress display
+#put Memory 64 $AF003 # Amount display
+#put Memory 65 $AF004 # Power input
+#put Memory 66 $AF005 # Input amount
+#put Memory 67 $AF006 # Input stack toggle
+#put Memory 68 $AF007 # Plus 10 button
+#put Memory 69 $AF008 # Minus 10 button
+#put Memory 70 $AF005 # Input amount
+#put Memory 71 0     # Selected Amount
+#put Memory 72 0     # Reserve for productionMode
+######
+# Faboricator 8 (Electronics 2)
+#put Memory 73 $B0000 # Printer (11)
+#put Memory 74 $B0001 # Stacker (10)
+#put Memory 75 $B0002 # Progress display (9)
+#put Memory 76 $B0003 # Amount display (8)
+#put Memory 77 $B0004 # Power input (7)
+#put Memory 78 $B0005 # Input amount (3)
+#put Memory 79 $B0006 # Input stack toggle (6)
+#put Memory 80 $B0007 # Plus 10 button (5)
+#put Memory 81 $B0008 # Minus 10 button (4)
+#put Memory 82 $B0005 # Input amount (3)
+#put Memory 83 0     # Selected Amount
+#put Memory 84 0     # Reserve for productionMode (1)

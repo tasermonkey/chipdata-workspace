@@ -1,0 +1,162 @@
+define BATTERY_T HASH("StationBatteryNuclear")
+define PowerUsage_NAME HASH("Power Usage")
+define BatteryPer_NAME HASH("Battery Charge Per")
+define PowerTotalGen HASH("Total Power Generation")
+define CableAnaylizer_NAME HASH("Base CA")
+define GEN_T HASH("StructureSolidFuelGenerator")
+define WINDTURB_T HASH("StructureWindTurbine")
+define UPRIGHT_WIND_TURB_T HASH("StructureUprightWindTurbine")
+define CABLE_CA_TYPE HASH("StructureCableAnalysizer")
+define OUTPUT_T HASH("ModularDeviceLEDdisplay3")
+define CHARGE_LEVEL_T HASH("ModularDeviceSliderDiode2")
+define PowerDeltaGauge_T HASH("ModularDeviceGauge3x3")
+define PowerDeltaGauge HASH("Power Delta")
+define WarningDioid HASH("ModularDeviceLabelDiode3")
+define LowCoalWarning HASH("Low Coal")
+define LowCoalDigitalValveName HASH("Coal Chute Low Marker")
+define LowCoalDigitalValveType HASH("StructureChuteDigitalValveRight")
+define LightDiod HASH("ModularDeviceLightLarge")
+define TransformerLight HASH("TransformerPoweredUp Light")
+define TransformerPowerThrottle HASH("Transformer Throttle")
+define ThrottleT HASH("ModularDeviceThrottle3x2")
+define StoredPowerDisplay HASH("Stored Power Display")
+define TransformerMain HASH("Primary Transformer")
+define Transformer_T HASH("StructureTransformer")
+define TransformerOutputValue HASH("Transformer Output Value")
+define TransformerDisplayT HASH("ModularDeviceLEDdisplay2")
+define BatteryStorageGuage HASH("Battery Storage Gauge")
+
+alias totalPowerUsage r8
+alias powerTotalOutputSum r9
+alias powerOutputAvg r10
+alias powerOutputSum r11
+alias outputNameAvg r12
+alias outputNameSum r13
+alias generatorType r14
+
+# State = 0 => Charge, State = 1 => Wait Till need to charge
+alias State r15
+move sp 1
+
+push HASH("Coal Power Generation Avg")
+push HASH("Coal Power Generation Sum")
+push GEN_T
+
+push HASH("Wind Turbine Generation Avg")
+push HASH("Wind Turbine Generation Sum")
+push WINDTURB_T
+
+poke 0 sp #Save TOS
+
+define MIN_CHARGE 0.20
+define MAX_CHARGE 0.80
+
+sbn OUTPUT_T PowerTotalGen Mode 2 # Power
+sbn OUTPUT_T StoredPowerDisplay Mode 2 # Power
+
+sbn PowerDeltaGauge_T PowerDeltaGauge Setting 0.5
+sbn WarningDioid LowCoalWarning Color 5
+sbn LightDiod TransformerLight Color 5
+sbn TransformerDisplayT TransformerOutputValue Mode 2 # Power
+
+start:
+yield
+move powerTotalOutputSum 0
+get sp db 0 #Reload SP from saved value at bottom
+jal coalGeneratorRunLoop
+jal checkGeneration
+yield
+jal powerOutput
+jal batteryPowerOutput
+jal updatePowerDelta
+sbn OUTPUT_T PowerTotalGen Setting powerTotalOutputSum
+jal lowCoalWarningLoop
+jal transformerLever
+j start
+
+coalGeneratorRunLoop:
+lb r0 BATTERY_T Ratio Average
+bnez State checkCharge # check to see if too low, and need charge
+blt r0 MAX_CHARGE ra # check if done charging
+move State 1
+sb GEN_T On 0
+
+checkCharge:
+bgt r0 MIN_CHARGE ra
+move State 0
+sb GEN_T On 1
+j ra
+
+powerOutput:
+lb totalPowerUsage CABLE_CA_TYPE PowerRequired Sum
+sbn OUTPUT_T PowerUsage_NAME Mode 2
+sbn OUTPUT_T PowerUsage_NAME Setting totalPowerUsage
+j ra
+
+batteryPowerOutput:
+lb r1 HASH("StationBatteryNuclear") Ratio Average
+sbn CHARGE_LEVEL_T BatteryPer_NAME Setting r1
+sbn PowerDeltaGauge_T BatteryStorageGuage Setting r1
+move r3 5
+sgt r2 r1 0.75
+select r3 r2 2 r3
+slt r2 r1 0.33
+select r3 r2 4 r3
+sbn CHARGE_LEVEL_T BatteryPer_NAME Color r3
+lb r1 HASH("StationBatteryNuclear") Charge Sum
+sbn OUTPUT_T StoredPowerDisplay Setting r1
+sbn OUTPUT_T StoredPowerDisplay Color r3
+sbn PowerDeltaGauge_T BatteryStorageGuage Color r3
+j ra
+
+checkGeneration:
+  beq sp 1 ra
+  pop generatorType
+  pop outputNameSum
+  pop outputNameAvg
+  lb powerOutputSum generatorType  PowerGeneration Sum
+  lb powerOutputAvg generatorType PowerGeneration Average
+  sbn OUTPUT_T outputNameSum Mode 2 # Power
+  sbn OUTPUT_T outputNameSum Setting powerOutputSum
+  sbn OUTPUT_T outputNameAvg Mode 2 # Power
+  sbn OUTPUT_T outputNameAvg Setting powerOutputAvg
+  add powerTotalOutputSum powerTotalOutputSum powerOutputSum
+  j checkGeneration
+
+
+updatePowerDelta:
+  beqz r0 zeroGen
+  div r0 totalPowerUsage powerTotalOutputSum
+  add r0 r0 1
+  div r0 1 r0
+  sbn PowerDeltaGauge_T PowerDeltaGauge Setting r0
+  sgt r0 r0 0.5
+  select r0 r0 2 4
+  sbn PowerDeltaGauge_T PowerDeltaGauge Color r0
+  j ra
+  zeroGen:
+    sbn PowerDeltaGauge_T PowerDeltaGauge Setting 0
+    j ra
+
+
+lowCoalWarningLoop:
+  lbns r0 LowCoalDigitalValveType LowCoalDigitalValveName 0 Quantity Average
+  seqz r0 r0
+  lbn r1 WarningDioid LowCoalWarning On Minimum
+  seqz r1 r1
+  and r1 r0 r1
+  sbn WarningDioid LowCoalWarning On r1
+  j ra
+
+transformerLever:
+  lbn r0 ThrottleT TransformerPowerThrottle Setting Minimum
+  mul r0 r0 50000
+  slt r1 r0 totalPowerUsage
+  s db Setting r0
+  lbn r2 LightDiod TransformerLight On Minimum
+  seqz r2 r2
+  and r1 r2 r1
+  sbn LightDiod TransformerLight On r1
+  sbn Transformer_T TransformerMain Setting r0
+  sbn TransformerDisplayT TransformerOutputValue Setting r0
+  j ra

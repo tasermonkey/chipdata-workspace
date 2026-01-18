@@ -1,0 +1,19 @@
+alias ExpelGasExchangeVent d0
+define MAX_PIPE_TEMP 419.15 # 146C
+define MIN_PRESSURE 500
+loop:
+yield
+jal expelVentCheck
+sleep 5
+j loop
+
+expelVentCheck:
+l r0 ExpelGasExchangeVent TemperatureOutput
+l r1 ExpelGasExchangeVent PressureInternal
+sgt r2 r0 MAX_PIPE_TEMP
+slt r3 r1 MIN_PRESSURE
+min r2 r2 r3 
+
+s ExpelGasExchangeVent Mode 0
+s ExpelGasExchangeVent On r2
+j ra

@@ -1,0 +1,43 @@
+alias Sensor d0
+alias Sensor2 d1
+alias deviceHash r14
+alias personDetected r15
+alias personDetected2 r13
+
+push 0
+push HASH("StructureLightLongWide")
+push HASH("StructureLightLong")
+push HASH("StructureDiode")
+push HASH("StructureLightRound")
+push HASH("StructureLightRoundSmall")
+push HASH("StructureLightRoundAngled")
+push HASH("StructureWallLight")
+push HASH("StructureWallLightBattery")
+push HASH("StructureLightLongAngled")
+push HASH("StructureLightLongWide")
+push HASH("StructureLightLong")
+poke 0 sp #Save TOS
+
+start:
+yield
+l personDetected Sensor Activate
+l personDetected2 Sensor2 Activate
+snez personDetected personDetected
+snez personDetected2 personDetected2
+max personDetected personDetected personDetected2
+get sp db 0 #Reload SP from saved value at bottom
+loop:
+    beq sp 1 restart
+    jal performForDevice
+j loop
+
+restart:
+    s db Setting -6969
+    sleep 1
+j start
+
+performForDevice:
+    pop deviceHash
+    s db Setting sp
+    sb deviceHash On personDetected
+j ra

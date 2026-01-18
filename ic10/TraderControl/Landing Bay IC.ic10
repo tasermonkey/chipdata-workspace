@@ -1,0 +1,109 @@
+define DISH HASH("Large Satillite Dish")
+define LPV_EXT HASH("EjectVent")
+define LPV_HANG HASH("GoodVent")
+define GS_HANGER HASH("GSHangerBay")
+define INSIDE_KPA 100
+define EXT_KPA 0
+
+define DISH_HASH HASH("StructureLargeSatelliteDish")
+define LHD_T HASH("StructureLargeHangerDoor")
+define LPV_T HASH("StructurePoweredVentLarge")
+define GS_T HASH("StructureGasSensor")
+
+
+alias SwitchPosition r15
+alias CurrentStage r14
+lb r0 LHD_T Open Minimum
+breq r0 1 2
+s db Setting 4
+jr 2
+s db Setting 7
+
+start:
+yield
+sbn LPV_T LPV_HANG On 0
+lbn r0 HASH("StructureLogicDial") HASH("Dial-Tilt") Setting Maximum
+sbn DISH_HASH DISH Vertical r0
+
+lbn r0 HASH("StructureLogicDial") HASH("Dial-Rotate") Setting Maximum
+sbn DISH_HASH DISH Horizontal r0
+
+lbn SwitchPosition HASH("StructureLogicSwitch") HASH("AirLockControlSwitch") Open Maximum
+l CurrentStage db Setting
+beqal SwitchPosition 1 DesireClosedStaged
+beqal SwitchPosition 0 DesireOpenedStaged
+
+beqal CurrentStage 1 CloseDoorStart
+beqal CurrentStage 2 EvacAirExternal
+beqal CurrentStage 3 AddBreathableAtmo
+beqal CurrentStage 5 OpenDoorStart
+beqal CurrentStage 6 EvacAirInternal
+beqal CurrentStage 7 AddOutsideAir
+j start
+
+DesireClosedStaged:
+blt CurrentStage 5 ra
+s db Setting 1
+j ra
+
+DesireOpenedStaged:
+bgt CurrentStage 4 ra
+s db Setting 5
+j ra
+
+CloseDoorStart: # stage = 1
+sb LHD_T Open 0
+sleep 1
+s db Setting 2
+j ra
+
+EvacAirExternal: # stage = 2
+sbn LPV_T LPV_EXT Mode 1
+yield
+sbn LPV_T LPV_EXT On 1
+sbn LPV_T LPV_HANG On 0
+lbn r0 GS_T GS_HANGER Pressure Maximum
+bnez r0 ra
+s db Setting 3
+sbn LPV_T LPV_EXT On 0
+j ra
+
+AddBreathableAtmo: # stage = 3
+sbn LPV_T LPV_HANG Mode 0
+yield
+sbn LPV_T LPV_HANG On 1
+sbn LPV_T LPV_EXT On 0
+lbn r0 GS_T GS_HANGER Pressure Minimum
+blt r0 INSIDE_KPA ra
+sbn LPV_T LPV_HANG On 0
+s db Setting 4 # Inside Air
+j ra
+### End Close Door
+# stage = 4 === idle while door closed
+OpenDoorStart: # stage = 5
+sbn LPV_T LPV_HANG Mode 1 # suck out good air
+yield
+sbn LPV_T LPV_HANG On 1
+s db Setting 6
+j ra
+
+EvacAirInternal: # stage = 6
+lbn r0 GS_T GS_HANGER Pressure Maximum
+bnez r0 ra
+s db Setting 7
+j ra
+
+AddOutsideAir: # stage = 7
+sbn LPV_T LPV_HANG On 0
+sbn LPV_T LPV_EXT Mode 0
+yield
+sbn LPV_T LPV_EXT On 1
+lbn r0 GS_T GS_HANGER Pressure Minimum
+blt r0 EXT_KPA ra
+s db Setting 8
+sbn LPV_T LPV_EXT On 0
+sb LHD_T Open 1
+sleep 1
+j ra
+### End Open Door
+# stage = 8 === idle while door opened

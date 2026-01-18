@@ -1,0 +1,79 @@
+# Ok, I don't remember when I first wrote this.
+# This IC code is for a chip that would go into an AC Unit to maintain the waste gas coolant temp
+# Sucks in ambient air to act as the coolant, then switches the vent to blow out the air when it gets to hot.
+# It will disable the AC unit when the waste gas pressure is too low to operate well.
+# Required Hardware:
+#  - 1x Active Vent (CoolantVent) - to bring in ambient air
+#  - 1x AC Unit - The device this chip is installed in
+define AV_CoolantVent HASH("CoolantVent")
+
+define MAX_COOLANT_TEMP_K 288 # 15c
+define MAX_COOLANT_PRESSURE 2500 # low enough where CO2 won't liquidify
+define MIN_OPERATING_COOLANT_PRESSURE 200
+define MAX_OPERATING_COOLANT_TEMP_K 293 # 20c 
+
+define AV_HASH HASH("StructureActiveVent")
+
+alias CoolantStage r15 # 0 => Pressurize, 1 => Maintain, 2 => Drain
+alias GasCoolingStage r14 # 0 => waiting to warm up, 1 => Cooling
+alias DesiredTempK r13
+
+start:
+yield
+l DesiredTempK db Setting
+jal checkcoolantLevel
+jal tempControl
+j start
+
+checkcoolantLevel:
+#sbn AV_HASH AV_CoolantVent PressureInternal MAX_COOLANT_PRESSURE
+lbn r1 AV_HASH AV_CoolantVent PressureOutput Maximum
+lbn r2 AV_HASH AV_CoolantVent TemperatureOutput Maximum
+beqz CoolantStage pressurizeCoolant
+beq CoolantStage 1 maintaintCoolant
+beq CoolantStage 2 drainCoolant
+move CoolantStage 0
+j ra
+pressurizeCoolant:
+sbn AV_HASH AV_CoolantVent Mode 1 # pump in new atm
+sbn AV_HASH AV_CoolantVent On 1
+blt r1 MAX_COOLANT_PRESSURE ra
+move CoolantStage 1
+j ra
+maintaintCoolant:
+sbn AV_HASH AV_CoolantVent On 0
+blt r2 MAX_COOLANT_TEMP_K ra
+move CoolantStage 2
+j ra
+drainCoolant:
+sbn AV_HASH AV_CoolantVent Mode 0 # pump out hot air
+#sbn AV_HASH AV_CoolantVent PressureExternal 2000
+sbn AV_HASH AV_CoolantVent On 1
+bgtz r1 ra
+move CoolantStage 0
+j ra
+
+tempControl:
+l r1 db PressureOutput2 # waste pressure too low disable
+blt r1 MIN_OPERATING_COOLANT_PRESSURE disableDevice
+l r1 db TemperatureOutput2 # waste temp too hot disable
+bgt r1 MAX_OPERATING_COOLANT_TEMP_K disableDevice
+beqz GasCoolingStage waitForWarmInp
+beq GasCoolingStage 1 coolingInp
+move GasCoolingStage 0
+j ra
+waitForWarmInp:
+l r1 db TemperatureInput
+sgt r2 r1 DesiredTempK
+s db Mode r2
+beqz r2 ra
+move GasCoolingStage 1
+j ra
+coolingInp:
+l r1 db TemperatureInput
+sne r2 r1 DesiredTempK
+s db Mode r2
+j ra
+disableDevice:
+s db Mode 0
+j ra

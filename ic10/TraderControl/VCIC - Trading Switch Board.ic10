@@ -1,0 +1,107 @@
+# Trading gas/liquid control board pt 1
+
+# local vars
+alias tdDockSlot r0
+alias lastDockedSlot r1
+alias isActive r2
+alias newActiveSlot r3
+alias idx r4
+alias currentMode r0
+alias inputSw r1
+alias outputSw r2
+alias tmp r3
+
+# persistent vars
+alias spSwitches r15
+
+define SW_T HASH("StructureLogicSwitch2")
+define GasInputSwitch $A287A
+define GasOutputSwitch $A288C
+define LiqInputSwitch $A2885
+define LiqOutputSwitch $A2891
+define gasSwitchIdx 1
+define liqSwitchIdx 2
+
+# the first 3 values here will be read by sister chip(s)
+push 0 # active dock (1 based 1 = orange,... 5 = black)
+push 0 # gas mode: 0 = off, 1 = input, 2 = output
+push 0 # liq mode: 0 = off, 1 = input, 2 = output
+push 0 # end of dock reference
+sub spSwitches sp 1
+push $A2509  # Orange "switch"
+push $A250D # Khaki "switch"
+push $A2512 # Green "switch"
+push $A251D # Blue "switch"
+push $A2524 # Black "switch"
+poke spSwitches sp
+
+programStart:
+  yield
+  jal activetdDockSlot
+  jal activeGasDirection
+  jal activeLiqDirection
+  j programStart
+
+activetdDockSlot:
+  get sp db spSwitches
+  get lastDockedSlot db 0
+  add lastDockedSlot lastDockedSlot spSwitches
+  get lastDockedSlot db lastDockedSlot
+  move newActiveSlot 0
+  adLoopStart:
+    pop tdDockSlot
+    beq spSwitches sp adLoopEnd
+    beq tdDockSlot lastDockedSlot adLoopStart
+    ld isActive tdDockSlot On
+    beqz isActive adLoopStart
+    move newActiveSlot sp
+  adLoopEnd:
+  get sp db spSwitches
+  beqz newActiveSlot ra
+  ad2LoopStart:   
+    pop tdDockSlot
+    beq spSwitches sp ad2LoopEnd
+    beq sp newActiveSlot ad2LoopStart
+    s db Setting tdDockSlot
+    sd tdDockSlot On 0
+    j ad2LoopStart
+  ad2LoopEnd:
+  sub idx newActiveSlot spSwitches
+  poke 0 idx
+  j ra
+
+activeGasDirection:
+  get currentMode db gasSwitchIdx 
+  ld inputSw GasInputSwitch On
+  ld outputSw GasOutputSwitch On
+  mul outputSw outputSw 2
+  add tmp inputSw outputSw
+  breq tmp 3 3
+  put db gasSwitchIdx tmp
+  j ra # else tmp = 3 which means toggle
+  seq currentMode currentMode 2
+  select tmp currentMode 1 2
+  put db gasSwitchIdx tmp
+  seq tmp tmp 1
+  sd GasInputSwitch On tmp
+  seqz tmp tmp
+  sd GasOutputSwitch On tmp
+  j ra
+
+activeLiqDirection:
+  get currentMode db liqSwitchIdx 
+  ld inputSw LiqInputSwitch On
+  ld outputSw LiqOutputSwitch On
+  mul outputSw outputSw 2
+  add tmp inputSw outputSw
+  breq tmp 3 3
+  put db liqSwitchIdx tmp
+  j ra # else tmp = 3 which means toggle
+  seq currentMode currentMode 2
+  select tmp currentMode 1 2
+  put db liqSwitchIdx tmp
+  seq tmp tmp 1
+  sd LiqInputSwitch On tmp
+  seqz tmp tmp
+  sd LiqOutputSwitch On tmp
+  j ra

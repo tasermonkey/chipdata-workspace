@@ -1,0 +1,59 @@
+# Alaska was the name of the save for a Europa run
+# This IC controls the ability to cool gases from our 'waste' gasses from power generation, ore smelting, etc
+# We needed CO2.  But the CO2 was HOT.  So Europa being cold, made a pipe system that would pass it through differing
+# radiators (the pipe ones, and at some point the medium radiators).
+# This will monitor the temperature of the CO2 being controlled, and keep it within a range (MIN/MAX TEMP) by sucking
+# in cold air from outside, until the CO2 is below the MIN temp.  Then would turn off the vents until the CO2 got above MAX TEMP.
+# Required Hardware:
+#  - 1x Pipe Analyzer (PA_SRC/d0) - to measure the temperature of the gas beint temp controled
+#  - 1x Pipe Analyzer (PA_ATMO/d1) - to measure the outside air.  (I didn't realize at the time the Vents can measure the internal pipe temp)
+#  - 1x Vent (VP_ATMO/d2) - to bring in cold air from outside to cool the gas in the PA_SRC pipe
+
+alias PA_SRC d0
+alias PA_ATMO d1
+alias VP_ATMO d2
+
+define MIN_TEMP 19
+define MAX_TEMP 28
+
+alias Stage r15 
+
+start:
+yield
+l r0 PA_SRC Temperature
+beqz Stage stopCooling
+beq Stage 1 waitForWarm
+beq Stage 2 startCooling
+j start
+
+stopCooling:
+l r0 PA_ATMO Pressure
+beqz r0 doneStopping
+s VP_ATMO Mode 1
+yield
+s VP_ATMO On 1
+j start
+
+doneStopping:
+move Stage 1
+s VP_ATMO Mode 0
+yield
+s VP_ATMO On 0
+sleep 5
+j start
+
+waitForWarm:
+sleep 2
+blt r0 303 start
+move Stage 2
+
+startCooling:
+blt r0 290 finishCooling 
+s VP_ATMO Mode 0
+yield
+s VP_ATMO On 1
+j start
+
+finishCooling:
+move stage 0
+j start

@@ -1,0 +1,41 @@
+alias WeatherStation d0
+alias Flash d1
+alias LEDcounter d3
+
+alias CountDown r0
+alias Storm r1
+alias CurrentState r2
+alias Status r3
+alias StatusColor r4
+define StormSoon 120
+
+s LEDcounter Mode 7
+
+programLoop:
+  yield
+  l CountDown WeatherStation NextWeatherEventTime
+  l Status WeatherStation Mode
+  or Storm Status CountDown
+  beqz Storm switchoff
+  s db Setting 1
+  slt Storm CountDown StormSoon
+  seq StatusColor Status 1 # 1 = incoming
+  select StatusColor Storm 5 4
+  s Flash Color StatusColor
+  s LEDcounter Color StatusColor
+  l CurrentState Flash On
+  xor CurrentState CurrentState 1
+  s Flash On CurrentState
+  round CountDown CountDown
+  s LEDcounter On 1
+  s LEDcounter Setting CountDown
+  j programLoop
+
+switchoff:
+  s Flash On 0
+  s LEDcounter Setting 0
+  s LEDcounter On 0
+  s Flash Color 6 # white
+  s LEDcounter Color 6 # white
+  s db Setting 0
+  j programLoop

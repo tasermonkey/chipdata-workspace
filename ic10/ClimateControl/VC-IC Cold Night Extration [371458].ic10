@@ -1,0 +1,33 @@
+alias Vent d0 
+alias Sensor d1
+
+alias OutsideTemp r0
+alias PipeTemp r1
+alias PipePressure r2
+
+define MAX_TEMP_IN_PIPE 453 #180C
+define NIGHT_TEMP_MAX 408 #127C
+define PIPE_MAX_PRESSURE 41000
+
+start:
+yield
+l OutsideTemp Sensor Temperature
+l PipeTemp Vent TemperatureOutput
+l PipePressure Vent PressureOutput
+s db Setting PipeTemp
+
+ble OutsideTemp NIGHT_TEMP_MAX nightTempMode
+bgt OutsideTemp NIGHT_TEMP_MAX dayTempMode 
+nightTempMode:
+s Vent Mode 1
+yield
+slt r3 PipePressure PIPE_MAX_PRESSURE
+s Vent On r3
+j start
+
+dayTempMode:
+sgt r3 PipeTemp MAX_TEMP_IN_PIPE
+s Vent Mode 0
+yield
+s Vent On r3
+j start

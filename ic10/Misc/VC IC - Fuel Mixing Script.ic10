@@ -1,0 +1,90 @@
+define AutoEnableAnalyzers 1 # 0 to keep script from turning on pipe analyzers.
+define MinMoles 5 #Minimum content of input;
+define MinPressure 100 #and minimum kPa. Don't set both to zero. Increase values if
+# you read data from tanks and pipe network volume is small!
+move sp 1 #Enter tank or pipe analyzer names and prefabs below.
+#If you want to control the mixing of additional gases, you'll need the low-comment
+# version of this script from the workshop. Not enough free bytes in this version.
+#To make ONE gas mix FASTER, just build additional mixers connected to the same pipes!
+push HASH("Fuel Mixer") #Gas Mixer name
+push HASH("StructurePipeAnalysizer") #Gas Input 1 prefab
+push HASH("Volatiles PA") #Gas Input 1 name
+push HASH("StructurePipeAnalysizer") #Gas Input 2 prefab
+push HASH("Oxygen PA") #Gas Input 2 name
+push HASH("StructurePipeAnalysizer") #Gas Output prefab
+push HASH("Fuel Output PA") #Gas Output name
+push 0.3333333 #Mix Ratio: Fraction of Gas1 (back input), from 0 to 1
+push 40000 #Output Pressure shutoff, kPa.
+# More groups would go here, BUT this highly commented version is too long for that!
+
+poke 0 sp #Save TOS
+alias Run r15
+alias Status r14
+alias OutLimit r13
+alias MixRatio r12
+alias Name r11
+alias Prefab r10
+alias Gas1Temp r9
+alias Gas2Temp r8
+loop:
+yield
+brgt sp 9 2
+get sp db 0 #Reload SP from saved value at bottom
+move Run 1
+move Status 1
+pop OutLimit
+pop MixRatio
+select Run OutLimit Run 0 #Like boolean 'set' + AND in one line, any nonzero as 'true'
+jal readGas #Get Output pressure
+snan r3 r0 #NaN here means an input device was missing
+select Status r3 r0 Status #Save any NaN in Status
+#Caution: NaN counts as nonzero condition in a select!
+#But NaN fails comparisons except "not equals" and "is NaN" so this catches it:
+sle r0 r0 OutLimit #Low enough to add more?
+select Run r0 Run 0
+jal readGas #Get Input 2
+move Gas2Temp r1
+jal readGas #Get Input 1
+move Gas1Temp r1
+pop Name #Get mixer's name for use below
+mul r1 Gas1Temp MixRatio #Gas formula: Y = (T1*X) / (T1*X + T2*(1-X))
+sub r2 1 MixRatio #MixRatio = X, 0...1
+mul r2 Gas2Temp r2 #Gas1Temp = T1, Gas2Temp = T2, in Kelvin
+select Run r1 Run 0 #A zero means garbage input!
+select Run r2 Run 0
+add r2 r2 r1
+div r0 r1 r2 #Result here = Y, 0...1
+mul r0 r0 100 #Convert to mixer setting
+snan r3 r0 #NaN here means an input device was missing
+select Run r3 0 Run #If NaN, turn off mixer,
+select Status r3 r0 Status #put NaN in Status,
+brnan r0 2 #and don't write NaN to mixer setting!
+sbn HASH("StructureGasMixer") Name Setting r0
+sbn HASH("StructureGasMixer") Name On Run
+lbn r0 HASH("StructureGasMixer") Name On Average
+mul Status Status r0 #Status now holds either mixer power (0, 1) or NaN.
+s db Setting r0 #Display status on IC housing. NaN means missing devices!
+j loop
+
+readGas: #Returns Pressure in r0, Temperature in r1
+pop Name
+pop Prefab
+bne Prefab HASH("StructurePipeAnalysizer") read #Tanks skip this mess
+lbn r0 Prefab Name On Minimum #analyzer:
+beq r0 1 read
+snan r4 r0 #Distinguish between no devices or unpowered analyzer:
+select r1 r4 r0 0 #copy NaN or 0 to r1 (temperature return)
+select Status r4 r0 Status #copy a NaN to Status
+move Run 0 #Can't run this tick, no data
+beqz AutoEnableAnalyzers ra #Power up analyzers?
+sbn Prefab Name On 1
+j ra
+read:
+lbn r0 Prefab Name Pressure Average #If no device, returns NaN
+lbn r1 Prefab Name TotalMoles Average
+sgt r1 r1 MinMoles
+beqz r1 ra #r1 doubles as return value
+sgt r1 r0 MinPressure
+beqz r1 ra #same
+lbn r1 Prefab Name Temperature Average #If no device, returns NaN
+j ra
