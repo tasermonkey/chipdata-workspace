@@ -1,0 +1,57 @@
+alias Sorter d0
+alias Button d1
+alias SelectorDial d2
+alias HashMemory d3
+alias SelectorSwitch d4
+alias FlipFlop d5
+
+define LED_T HASH("StructureConsoleLED5")
+define LED_COUNT HASH("LED Count")
+
+alias ItemHash r1
+alias ItemDir r2
+alias CommandOp r14
+alias Command r15
+
+push 0
+
+push 0
+push HASH("ItemWheat")
+push 1
+push HASH("ItemPotato")
+push 2
+push HASH("ItemSoybean")
+
+poke 0 sp
+
+start:
+  get sp db 0
+  waitForButton:
+    yield
+    l r0 SelectorDial Setting
+    add r0 r0 1
+    mul r0 r0 2
+    get ItemHash db r0
+    s HashMemory Setting ItemHash
+    l r15 Button Activate
+    beqz r15 waitForButton
+  sub r0 r0 1
+  get ItemDir db r0
+  l r15 SelectorSwitch Setting
+  seq r14 ItemDir 2
+  select ItemDir r14 r15 ItemDir 
+  sbn LED_T LED_COUNT Setting ItemDir
+
+  s FlipFlop Setting 0
+  s FlipFlop Mode ItemDir
+
+  clr Sorter
+  s Sorter Mode 1
+  move Command ItemHash
+  sll Command Command 8
+  select CommandOp ItemDir 1 2 # PrefabHashEquals / NotPrefabHashEquals
+  or Command Command CommandOp
+  put Sorter 0 Command
+
+  yield
+  j start

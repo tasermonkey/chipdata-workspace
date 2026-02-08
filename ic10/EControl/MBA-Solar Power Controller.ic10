@@ -1,0 +1,72 @@
+define SolarHorizontalAngle 0
+
+define Sensor HASH("StructureDaylightSensor")
+define SolarPanelT HASH("StructureSolarPanel")
+define SolarPanelDualT HASH("StructureSolarPanelDual")
+define SolarPanelHeavyT HASH("StructureSolarPanelReinforced")
+define SolarPanelHeavyDualT HASH("StructureSolarPanelDualReinforced")
+
+alias DaySensor d0
+alias Dial d1
+move r0 0
+
+fMain:
+jal calcVert
+jal calcHorz
+yield
+j fMain
+
+calcHorz:
+move r10 ra
+jal offsetValue
+pop r14
+brltz r14 3
+mul r14 90 r14
+jr 2
+mul r14 90 SolarHorizontalAngle
+brdse DaySensor 3
+lb r15 Sensor Horizontal 0
+jr 2
+l r15 DaySensor Horizontal
+add r15 r15 r14
+breqz r0 2
+add r15 r14 270
+sb SolarPanelT Horizontal r15
+sb SolarPanelDualT Horizontal r15
+sb SolarPanelHeavyT Horizontal r15
+sb SolarPanelHeavyDualT Horizontal r15
+move ra r10
+j ra
+
+calcVert:
+brdse DaySensor 3
+lb r15 Sensor Vertical 0
+jr 2
+l r15 DaySensor Vertical
+brgt r15 95 3
+move r0 0
+jr 2
+move r0 1
+brgt r15 75 4
+sub r15 r15 90
+abs r15 r15
+jr 2
+move r15 15
+sb SolarPanelT Vertical r15
+sb SolarPanelDualT Vertical r15
+sb SolarPanelHeavyT Vertical r15
+sb SolarPanelHeavyDualT Vertical r15
+j ra
+
+offsetValue:
+brdse Dial 3
+push -1
+j ra
+l r15 Dial PrefabHash
+breq r15 HASH("StructureLogicDial") 3
+push -1
+j ra
+s Dial Mode 3
+l r15 Dial Setting
+push r15
+j ra

@@ -1,0 +1,117 @@
+define MIN_TEMP 280 # 7C
+define MAX_TEMP 313 # 40C
+define MIN_PRESSURE 40
+define MAX_PRESSURE 150
+define MIN_OXY_RATIO 0.19
+
+define TempDelta 5
+define O2PartialPressureMinKpa 30
+
+alias dSuit db
+alias dHelmet d0
+alias rCoolingState r15
+alias rFiltrationState r14
+alias rIntTemp r13
+alias rIntTempLow r12
+alias rIntTempHigh r11
+alias rHelmetOpen r10
+alias rExternal r9
+
+# set initial state
+move rIntTempHigh 0
+move rCoolingState coolingOff
+move rFiltrationState filtrationOff
+s db SoundAlert 0
+main:
+  yield
+  l rHelmetOpen dHelmet Open
+  jal helmetCheck
+  breqz rHelmetOpen 5
+  s dSuit AirRelease 0
+  s dSuit Filtration 0
+  s dSuit On 0
+  j main
+
+  jal getCoolingSetpoints
+  jal rCoolingState
+  jal rFiltrationState
+  jal airToggle
+  j main
+
+helmetCheck:
+    l rExternal dSuit PressureExternal
+    beqz rHelmetOpen checkClosedHelmet
+    j checkOpenedHelmet
+    checkOpenedHelmet:
+        sgt r1 rExternal MIN_PRESSURE
+        #s db SoundAlert 1
+        bnez r1 ra
+        s dHelmet Open 0
+        j ra
+    checkClosedHelmet:
+        slt r1 rExternal MIN_PRESSURE
+        #s db SoundAlert 1
+        bnez r1 ra
+        sleep 5
+        l rExternal dSuit PressureExternal
+        slt r1 rExternal MIN_PRESSURE
+        bnez r1 ra
+        s dHelmet Open 1
+        j ra
+
+getCoolingSetpoints:
+  l r0 dSuit TemperatureSetting
+  sub rIntTempLow r0 TempDelta
+  add r0 r0 TempDelta
+  breq r0 rIntTempHigh 2
+  move rCoolingState coolingOff
+  move rIntTempHigh r0
+  l rIntTemp dHelmet Temperature
+  j ra
+
+coolingOff:
+  s dSuit On 0
+  brlt rIntTemp rIntTempHigh 2
+  move rCoolingState coolingDown
+  brgt rIntTemp rIntTempLow 2
+  move rCoolingState coolingUp
+  j ra
+
+coolingDown:
+  s dSuit On 1
+  brgt rIntTemp rIntTempLow 2
+  move rCoolingState coolingOff
+  j ra
+
+coolingUp:
+  s dSuit On 1
+  brlt rIntTemp rIntTempHigh 2
+  move rCoolingState coolingOff
+  j ra
+
+filtrationOff:
+  s dSuit Filtration 0
+  l r0 dHelmet RatioOxygen
+  l r1 dHelmet RatioLiquidOxygen
+  add r0 r0 r1
+  l r1 dHelmet Pressure
+  mul r0 r0 r1
+  brge r0 O2PartialPressureMinKpa 2
+  move rFiltrationState filtrationOn
+  j ra
+
+filtrationOn:
+  s dSuit Filtration 1
+  l r0 dHelmet Pressure
+  l r1 dSuit PressureSetting
+  mul r1 r1 0.80
+  brlt r0 r1 4
+  move rFiltrationState filtrationOff
+  j ra
+
+airToggle:
+  l r0 dSuit On
+  l r1 dSuit Filtration
+  or r0 r0 r1
+  s dSuit AirRelease r0
+  j ra

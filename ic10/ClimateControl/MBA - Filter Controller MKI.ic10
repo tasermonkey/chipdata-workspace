@@ -1,0 +1,25 @@
+define WasteGasT HASH("StructureGasPipeAnalyzer")
+define WasteGasName HASH("Cooling PA")
+
+define MIN_WASTE_TEMP 296 # 23C
+define MAX_WASTE_TEMP 300 # 27C
+define MIN_WASTE_PRESSURE 5000
+define MAX_FILTERED_PRESSURE 40000
+
+alias AllGood r15
+alias Value r0
+
+main:
+    l Value db TemperatureInput
+    slt AllGood Value MAX_WASTE_TEMP
+    sgt Value Value MIN_WASTE_TEMP
+    and AllGood AllGood Value
+    l Value db PressureInput
+    sgt Value Value MIN_WASTE_PRESSURE
+    and AllGood AllGood Value
+    l Value db PressureOutput
+    slt Value Value MAX_FILTERED_PRESSURE
+    and AllGood AllGood Value
+    s db Mode AllGood
+    sleep 5
+    j main

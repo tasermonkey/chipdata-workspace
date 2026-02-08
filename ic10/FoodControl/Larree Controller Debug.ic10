@@ -1,0 +1,24 @@
+alias larre d0
+alias positionDial d1
+define DropOff 15
+define DEBUG_1 $4D655
+define DEBUG_2 $4D61F
+define DEBUG_3 $4D775
+
+start:
+    l r0 positionDial Setting
+    s larre Setting r0
+    jal check
+    yield
+    j start
+
+check:
+  beq r0 DropOff ra
+  beqz r0 ra
+  ls r1 larre 255 Mature          
+  sd DEBUG_1 Setting r1
+  ls r1 larre 255 Seeding # -1 not yet seeded, 0=Seeded+picked, 1=Seeded+not picked    
+  sd DEBUG_2 Setting r1
+  ls r1 larre 255 Quantity
+  sd DEBUG_3 Setting r1
+  j ra

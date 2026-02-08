@@ -1,0 +1,38 @@
+define MIN_TEMP 280 # 7C
+define MAX_TEMP 313 # 40C
+define MIN_PRESSURE 40
+define MAX_PRESSURE 150
+
+alias dSuit db
+alias dHelmet d0
+alias rHelmetOpen r10
+alias rExternal r9
+
+# set initial state
+s db SoundAlert 0
+main:
+  yield
+  l rHelmetOpen dHelmet Open
+  jal helmetCheck
+  j main
+
+helmetCheck:
+    l rExternal dSuit PressureExternal
+    beqz rHelmetOpen checkClosedHelmet
+    j checkOpenedHelmet
+    checkOpenedHelmet:
+        sgt r1 rExternal MIN_PRESSURE
+        #s db SoundAlert 1
+        bnez r1 ra
+        s dHelmet Open 0
+        j ra
+    checkClosedHelmet:
+        slt r1 rExternal MIN_PRESSURE
+        #s db SoundAlert 1
+        bnez r1 ra
+        sleep 5
+        l rExternal dSuit PressureExternal
+        slt r1 rExternal MIN_PRESSURE
+        bnez r1 ra
+        s dHelmet Open 1
+        j ra

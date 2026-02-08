@@ -1,0 +1,67 @@
+alias larre d0
+alias positionDial d1
+alias counter r10
+define DropOff 15 # Change this number to the station where you have the input chute
+#define DEBUG_1 $4D655
+#define DEBUG_2 $4D61F
+#define DEBUG_3 $4D775
+define PlantClass 11
+
+
+reset:
+move counter 0
+
+start:
+  ls r0 larre 0 Occupied
+  beqz r0 check
+  s larre Setting DropOff
+  jal waitlarre
+  s larre Activate 1
+  jal waitlarre
+  j start
+
+check:
+  add counter counter 1
+  breq counter DropOff -1
+  s larre Setting counter
+  jal waitlarre
+  l r0 larre Setting
+  bne r0 counter reset
+  s db Setting r0
+  beqz r0 reset
+  ls r0 larre 255 Class
+  bne r0 PlantClass start
+  ls r0 larre 255 Mature
+  #sd DEBUG_1 Setting r0
+  ls r0 larre 255 Seeding
+  #sd DEBUG_2 Setting r0
+  beq r0 -1 start
+
+harvest:
+  s larre Activate 1
+  jal waitlarre
+  ls r0 larre 255 Occupied
+  #sd DEBUG_3 Setting r0
+  seqz r0 r0
+  ls r1 larre 255 Seeding
+  seq r1 r1 -1
+  or r0 r0 r1
+  beqz r0 harvest
+
+  s larre Setting DropOff
+  jal waitlarre
+  s larre Activate 1
+  jal waitlarre
+  s larre Setting counter
+  jal waitlarre
+  ls r0 larre 255 Occupied
+  bnez r0 start
+  s larre Activate 1
+  jal waitlarre
+  j start
+
+waitlarre:
+  yield
+  l r0 larre Idle
+  breqz r0 -2
+  j ra

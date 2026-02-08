@@ -1,0 +1,26 @@
+# The point of this IC is to prevent liquid N20 from over pressure.
+# A real one would take in temp into effect, but this is quick and
+# simple
+alias IceCrusher d0
+define MAX_PRESSURE 1500 #kPa
+define MIN_PRESSURE 500 #kPa
+alias State r15 # 0=fine, 1=lowering pressure
+
+programStart:
+yield
+l r0 db PressureInput
+
+sgt r1 r0 MAX_PRESSURE
+select State r1 1 State
+slt r1 r0 MIN_PRESSURE
+select State r1 0 State
+
+beqz State AllowEnabled
+s IceCrusher On 0
+
+j programStart
+AllowEnabled:
+ls r2 IceCrusher 0 Occupied
+s IceCrusher On r2
+s IceCrusher Activate 1
+j programStart

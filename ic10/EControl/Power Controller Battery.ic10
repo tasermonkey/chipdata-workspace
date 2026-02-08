@@ -1,0 +1,69 @@
+define BATTERY_T HASH("StationBatteryNuclear")
+define CHARGE_LEVEL_T HASH("ModularDeviceSliderDiode2")
+define GEN_T HASH("StructureSolidFuelGenerator")
+
+define LowCoalDigitalValveName HASH("Coal Chute Low Marker")
+define LowCoalDigitalValveType HASH("StructureChuteDigitalValveRight")
+
+define WarningDioid HASH("ModularDeviceLabelDiode3")
+define LowCoalWarning HASH("Low Coal")
+
+define BatteryPer_NAME HASH("Battery Charge Per")
+define PowerDeltaGauge_T HASH("ModularDeviceGauge3x3")
+define PowerDeltaGauge HASH("Power Delta")
+define BatteryStorageGuage HASH("Battery Storage Gauge")
+define StoredPowerDisplay HASH("Stored Power Display")
+define OUTPUT_T HASH("ModularDeviceLEDdisplay3")
+
+alias batteryRatio r14
+# State = 0 => Charge, State = 1 => Wait Till need to charge
+alias State r15
+define MIN_CHARGE 0.20
+define MAX_CHARGE 0.80
+
+move State 0
+sbn WarningDioid LowCoalWarning Color 5
+sbn OUTPUT_T StoredPowerDisplay Mode 2 # Power
+start:
+yield
+jal coalGeneratorRunLoop
+jal lowCoalWarningLoop
+jal batteryPowerOutput
+j start
+
+coalGeneratorRunLoop:
+  lb r0 BATTERY_T Ratio Average
+  bnez State checkCharge # check to see if too low, and need charge
+  blt r0 MAX_CHARGE ra # check if done charging
+  move State 1
+  sb GEN_T On 0
+  checkCharge:
+    bgt r0 MIN_CHARGE ra
+    move State 0
+    sb GEN_T On 1
+    j ra
+
+lowCoalWarningLoop:
+  lbns r0 LowCoalDigitalValveType LowCoalDigitalValveName 0 Quantity Average
+  seqz r0 r0
+  lbn r1 WarningDioid LowCoalWarning On Minimum
+  seqz r1 r1
+  and r1 r0 r1
+  sbn WarningDioid LowCoalWarning On r1
+  j ra
+
+batteryPowerOutput:
+  lb batteryRatio BATTERY_T Ratio Average
+  sbn CHARGE_LEVEL_T BatteryPer_NAME Setting batteryRatio
+  sbn PowerDeltaGauge_T BatteryStorageGuage Setting batteryRatio
+  move r3 5
+  sgt r2 batteryRatio 0.75
+  select r3 r2 2 r3
+  slt r2 batteryRatio 0.33
+  select r3 r2 4 r3
+  sbn CHARGE_LEVEL_T BatteryPer_NAME Color r3
+  lb r1 BATTERY_T Charge Sum
+  sbn OUTPUT_T StoredPowerDisplay Setting r1
+  sbn OUTPUT_T StoredPowerDisplay Color r3
+  sbn PowerDeltaGauge_T BatteryStorageGuage Color r3
+  j ra

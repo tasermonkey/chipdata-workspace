@@ -55,7 +55,6 @@ put Memory 12 0     # Reserve for productionMode (1)
 
 - This could change as the code changes ... but when you get errors on the controller chip if it errors on these line numbers it means the follow device wasn't configured properly in the setup.  You can fix the setup, rerun the setup, and then maybe have to take out the controller chip and it back in.
 
-|----------------|-----------------|
 | Line Number    |   Device        |
 |----------------|-----------------|
 | Line 37        | Power Input     |
