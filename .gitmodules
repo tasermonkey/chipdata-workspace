@@ -1,0 +1,4 @@
+[submodule "vendor/ic10"]
+	path = vendor/ic10
+	url = https://github.com/tasermonkey/ic10.git
+	branch = node-esm
