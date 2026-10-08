@@ -31,11 +31,11 @@ scripts on 2026-10-07 (see the Appendix).
 
 | Capability | Evidence |
 |---|---|
-| Parses and executes IC10 | 37 of your 38 scripts pass its validator. The exception is Solar, because of the `define X 0` bug (G6). |
+| Parses and executes IC10 | Before the Phase 1 fixes, 31 of your 38 scripts passed its validator: G6 failed 2 and G10 failed 4. (The earlier spike counted 37, because it ran the older published build.) With G6 and G10 fixed, 37 pass. The one failure is Alaska's real `move stage 0` bug, and `tests/scripts-load.test.ts` checks this. |
 | Device catalogue | 300+ prefabs generated from game data, each with its logic types, Read/Write permissions, slots, connections and modes. |
 | Networks and pins | `d0`–`d5`, `db`, and networks of type data, power, pipe, chute and others. Devices have typed ports (`Pipe Input`, `Pipe Input 2`, `Pipe Output`, `Pipe Waste` and so on). |
 | `l`/`s`, `lb`/`sb`, `lbn`/`sbn` | Your VCCR script ran correctly in night and day modes. `sbn` updated only the named vents. |
-| Environment file | JSON with `chips`, `devices` (`props`, `slots`, `reagents`, `pins`) and `networks`. Loaded by `Builer.from(json)` (upstream's spelling). |
+| Environment file | JSON with `chips`, `devices` (`props`, `slots`, `reagents`, `pins`) and `networks`. Loaded by `Builder.from(json)` (upstream spells it `Builer`; renamed in the fork). |
 | Stepping and events | `Ic10Runner.step()`, with events for line, register, stack and device reads/writes, and errors. |
 | Built-in constants | `Color.*`, `LogicBatchMethod.*`, `GasType.*` and others (about 680). |
 | Game-exact math | Uses `exact-ic10-math`, a port of the game's C# math. |
@@ -49,10 +49,10 @@ scripts on 2026-10-07 (see the Appendix).
 | G3 | A cumulative 1000-jump limit. | Every `j start` loop dies with a critical error. The spike was killed after about 3,000 lines. | Harness creates runners with no jump limit and uses its own budgets (§4.3) |
 | G4 | Strong runtime errors don't halt. | `move stage 0` logs an error and keeps going, but in game the chip stops. | Harness halts the chip and records it, so tests can assert on it (§4.5) |
 | G5 | The validator misses undefined identifiers. | `move stage 0` validates cleanly. | Fork (sandbox check) or harness lint |
-| G6 | `define X 0` is rejected. | `DefineInstruction` checks `if (value)`, so 0 is treated as missing. Solar fails to load. | Fork (one line) |
-| G7 | Packaging and initialisation. | The ESM build has extensionless imports and won't load in Node. `Builer.init()` sandbox pass throws `no_network_for_port`. i18n is never initialised. | Fork (§3) |
+| G6 | `define X 0` is rejected. | `DefineInstruction` checks `if (value)`, so 0 is treated as missing. Solar and Landing Bay fail to load. | **Fixed in fork** (`value !== false`, plus `tests/ic10/fork-fixes.test.ts`) |
+| G7 | Packaging and initialisation. | The ESM build has extensionless imports and won't load in Node. `Builder.init()` sandbox pass throws `no_network_for_port`. i18n is never initialised. | Fork (§3) |
 | G8 | Devices are property bags with no behaviour. | Turning a vent on doesn't move any gas. | Harness world model (§5) |
-| G10 | **`ld` and `sd` don't work at all.** `calculateDevicePinOrId` turns a failed pin parse into error code `0`, then treats that as pin 0, so it never tries the ID lookup. `ld r3 $1488 On` and `ld r3 r1 On` both fail with `pin_not_allowed_in_instruction`. | Printer Control can't run (line 38 `ld Tmp Param1 On`), nor can anything else using reference IDs. | Fork (small fix in `ArgumentCalculators.ts`, plus tests) |
+| G10 | **`ld` and `sd` don't work at all.** `calculateDevicePinOrId` turns a failed pin parse into error code `0`, then treats that as pin 0, so it never tries the ID lookup. `ld r3 $1488 On` and `ld r3 r1 On` both fail with `pin_not_allowed_in_instruction`. | Printer Control can't run (line 38 `ld Tmp Param1 On`), nor can anything else using reference IDs. Device-ID arguments also rejected `define`d IDs (`define DEBUG_1 $4D655` / `sd DEBUG_1 …`). | **Fixed in fork**: a failed pin parse falls through to the ID lookup, and device-ID arguments accept defines. Covered by instruction tests and `fork-fixes.test.ts`. |
 | G12 | No **Logic Mirror** in the emulator or its game data. | Scripts that read another network through a mirror can't be tested. | Fork extension point (proxy device) + harness (§5.4) |
 | G11 | Instruction errors can **throw out of `step()`** instead of being recorded. | One bad line crashes the test with a JS stack trace instead of halting the chip. | Fork (catch in `step()`); the harness also catches as a safety net |
 | G9 | Toolchain is Bun-only. | Tests import `bun:test`, scripts run with `bun tools/*.ts`, there's a `bunfig.toml`, and CI uses Bun. | Fork conversion (§3) |
@@ -76,11 +76,13 @@ The fork then gets the engine fixes:
 
 1. **Suspend signal (G1, G2).** `yield` and `sleep(s)` record a pending suspend instead of doing
    nothing or calling `setTimeout`. `step()` exposes it, and the harness scheduler acts on it.
-2. **`define` zero (G6).** Use `value !== undefined && !Number.isNaN(value)`.
+2. **`define` zero (G6).** Done: `parseArgumentAnyNumber` returns `false` on failure, so the check is `value !== false`.
 3. **Initialisation (G7).** Fix the sandbox network lookup and default i18n to English.
 4. **`ld` / `sd` by reference ID (G10).** Only treat the argument as a pin when `getDevicePin`
    succeeds, otherwise resolve it as an ID (a literal like `$1488` or `5256`, or a register holding
-   one). Add tests for literal, hex, register, and an unknown ID.
+   one). Add tests for literal, hex, register, and an unknown ID. *Done.* Side effect: `l` and `s`
+   share the same argument type, so `l r0 r14 Activate` (Fab Room line 45) now works too. **Check in
+   game** whether `l`/`s` accept a reference ID. If they don't, give `l`/`s` a pin-only argument.
 5. **Errors never escape `step()` (G11).** Catch instruction exceptions and record them as chip errors.
 6. **Undefined identifiers (G5).** Report them in the sandbox pass. *Optional; the harness lint can
    cover this instead.*
@@ -576,6 +578,15 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 | **7 VS Code debugger** | §6b. Build the adapter and a small extension in `ic10-test/vscode/`, reusing vscode-ic10's grammar and adapter pieces. Add the CodeLens on tests and the scopes from the table. | Breakpoint in an `.ic10` file, "Debug IC10" on a test, step line by line, and watch registers and `vent.On` change. |
 | **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, and extracting `ic10-test/` to its own repo. | — |
 
+**Status (2026-10-07):**
+- **Phase 0 is done.** The fork has been converted (CI passes). The root npm workspace uses
+  `vitest.config.ts` and resolves the fork's TypeScript sources through a `source` export
+  condition, so there's no build step. The first VCCR test and the script sweep are in `tests/`.
+  The `ic10-test/` workspace package (`@tasermonkey/ic10-test`) exists, with `createEnv`,
+  `readScript` and `findScripts` and its own tests. Phase 2's `sim()` builder builds on
+  `createEnv`. Paths specific to this repo are in `tests/support/paths.ts`.
+- **Phase 1:** G6 and G10 are done. Suspend signal, G11 and i18n are still to do.
+
 Suggested first regression tests (Phase 4):
 
 | Review item | Test |
@@ -603,7 +614,7 @@ Suggested first regression tests (Phase 4):
 ---
 
 ## Appendix: spike notes (2026-10-07)
-- `Builer.from(env)` → for each runner, `switchContext("real")` and `init()` → `runner.step()` loop.
+- `Builder.from(env)` → for each runner, `switchContext("real")` and `init()` → `runner.step()` loop.
   This works with the npm package's CJS build under Node 24. The ESM build fails because of
   extensionless imports.
 - Env `props` can set read-only values such as `TemperatureOutput`, which tests need for sensor

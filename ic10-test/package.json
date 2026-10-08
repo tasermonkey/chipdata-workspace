@@ -1,0 +1,16 @@
+{
+	"name": "@tasermonkey/ic10-test",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"description": "Test harness for Stationeers IC10 scripts, built on the @stationeers-ic/ic10 emulator",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"dependencies": {
+		"@stationeers-ic/ic10": "*"
+	},
+	"engines": {
+		"node": ">=24"
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"name": "chipdata-workspace",
+	"private": true,
+	"type": "module",
+	"description": "Stationeers IC10 scripts and their tests",
+	"workspaces": [
+		"ic10-test",
+		"vendor/ic10"
+	],
+	"scripts": {
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"typecheck": "tsc -p tsconfig.json"
+	},
+	"devDependencies": {
+		"@types/node": "^26.2.0",
+		"typescript": "^7.0.2",
+		"vitest": "^5.0.3"
+	},
+	"engines": {
+		"node": ">=24"
+	}
+}
