@@ -55,6 +55,7 @@ scripts on 2026-10-07 (see the Appendix).
 | G10 | **`ld` and `sd` don't work at all.** `calculateDevicePinOrId` turns a failed pin parse into error code `0`, then treats that as pin 0, so it never tries the ID lookup. `ld r3 $1488 On` and `ld r3 r1 On` both fail with `pin_not_allowed_in_instruction`. | Printer Control can't run (line 38 `ld Tmp Param1 On`), nor can anything else using reference IDs. Device-ID arguments also rejected `define`d IDs (`define DEBUG_1 $4D655` / `sd DEBUG_1 …`). | **Fixed in fork**: a failed pin parse falls through to the ID lookup, and device-ID arguments accept defines. Covered by instruction tests and `fork-fixes.test.ts`. |
 | G12 | No **Logic Mirror** in the emulator or its game data. | Scripts that read another network through a mirror can't be tested. | Fork extension point (proxy device) + harness (§5.4) |
 | G11 | Instruction errors can **throw out of `step()`** instead of being recorded. | One bad line crashes the test with a JS stack trace instead of halting the chip. | **Fixed in fork** (catch in `step()`); the harness also catches as a safety net |
+| G13 | **`jal` and the branch-and-link instructions store the wrong return address**: their own line instead of the next one. Upstream's `beqal` test expected the wrong value. | `j ra` jumps back to the `jal`, so a `jal sub` … `j ra` loop never gets past the call. 31 of the 38 scripts use `jal`. Found by the first `sim()` test in which day comes partway through the run. | **Fixed in fork** (`ra` = line + 1), with tests in `fork-fixes.test.ts` |
 | G9 | Toolchain is Bun-only. | Tests import `bun:test`, scripts run with `bun tools/*.ts`, there's a `bunfig.toml`, and CI uses Bun. | Fork conversion (§3) |
 
 ---
@@ -321,7 +322,7 @@ describe("VCCR Cooling Air Management", () => {
   Mirror that, and confirm in game when convenient.
 - A halt is **not** an automatic test failure. It's state you assert on:
   ```ts
-  expect(world.chip("ic")).toHaveHalted({ line: 58, error: /register/ });
+  expect(world.chip("ic")).toHaveHalted({ line: 57, error: /register/ });   // 0-based: editor line 58
   expect(world.chip("ic")).toHaveNoErrors();     // the usual assertion
   ```
 - `sim({ failOnHalt: true })` is available for tests that want any halt to fail immediately.
@@ -600,13 +601,29 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   `createEnv`. Paths specific to this repo are in `tests/support/paths.ts`.
 - **Phase 1 is done:** G6, G10, the suspend signal (G1/G2, fork side), G11, and i18n defaulting
   to English. The sweep is 37/38; the one failure is Alaska's real `move stage 0` bug. G5
-  (undefined identifiers) stays optional and moves to the Phase 8 lint. **Next: Phase 2.**
+  (undefined identifiers) stays optional and moves to the Phase 8 lint.
+- **Phase 2 is done**, apart from `World.fromEnv(json)`, which moves to Phase 3. `ic10-test/` has:
+  - `sim()` with `file:` / `code:` programs, devices by key, and `{ id, name, network }` options.
+    IDs come from a deterministic sequence starting at `$1001`.
+  - The tick scheduler: 128 lines per tick, then an automatic yield; `countNonInstructionLines`;
+    per-chip overrides; `sleep` on a virtual clock.
+  - Run controls with `maxTicks` / `maxLinesPerRun` budgets. A failing run reports every chip's state
+    and the last 20 lines. An endless `runUntil` on a yielding loop fails in about 0.1 s; a loop with
+    no yield hits the line budget after about 3 s, at roughly 3 µs per line.
+  - Halt-on-error: strong or critical errors, with the housing's `Error` set to 1, and `failOnHalt`.
+  - Register accessors that resolve aliases; snapshots and diffs; `record()`.
+  - Scripted events: `at`, `every`, `when`.
+  - The debug gate (`sim({ debug })`, `setDefaultDebugGate`).
+
+  Line numbers in the API are **0-based**, like the game's `LineNumber`. The VCCR test is in the §4.4
+  style (plain `expect` until the Phase 3 matchers exist), plus a day-comes test that found G13.
+  **Next: Phase 3.**
 
 Suggested first regression tests (Phase 4):
 
 | Review item | Test |
 |---|---|
-| 1.1 Alaska `stage` | Run until cooling finishes, then `toHaveNoErrors()`. Today it halts at line 58. |
+| 1.1 Alaska `stage` | Run until cooling finishes, then `toHaveNoErrors()`. Today it halts at line 57 (0-based; editor line 58). |
 | 1.4 Cooling Air Mgmt | Hot pipe at 5,000 kPa, then the vent is on. |
 | 1.5 CoolCleanMarsAir | Input below setpoint, then `db.Mode` returns to 0. |
 | 1.6 Suit MKII chatter | O₂ low and pressure normal for 20 ticks, then `toToggleAtMost(2)` on Filtration. |

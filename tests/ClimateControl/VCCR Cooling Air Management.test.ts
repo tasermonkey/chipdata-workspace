@@ -1,84 +1,71 @@
-import type { EnvSchema } from "@stationeers-ic/ic10";
 import { describe, expect, it } from "vitest";
-import { createEnv } from "@tasermonkey/ic10-test";
-import { readRepoScript } from "../support/paths.ts";
+import { sim } from "@tasermonkey/ic10-test";
+import { REPO_ROOT } from "../support/paths.ts";
 
 const SCRIPT = "ic10/ClimateControl/VCCR Cooling Air Management (1) [22840].ic10";
-const HOUSING = 100;
-const VENT = 200;
-const SENSOR = 300;
 
-function setup(world: { outsideTemp: number; pipeTemp: number; pipePressure: number }) {
-	const env = {
-		version: 1,
-		chips: [{ id: 1, code: readRepoScript(SCRIPT) }],
-		networks: [{ id: "data", type: "data" }],
-		devices: [
-			{
-				id: HOUSING,
-				PrefabName: "StructureCircuitHousingCompact",
-				chip: 1,
-				ports: [{ port: "default", network: "data" }],
-				pins: [
-					{ pin: "d0", device: VENT },
-					{ pin: "d1", device: SENSOR },
-				],
-			},
-			{
-				id: VENT,
-				PrefabName: "StructureActiveVent",
-				ports: [{ port: "default", network: "data" }],
-				props: [
-					{ name: "TemperatureOutput", value: world.pipeTemp },
-					{ name: "PressureOutput", value: world.pipePressure },
-				],
-			},
-			{
-				id: SENSOR,
-				PrefabName: "StructureGasSensor",
-				ports: [{ port: "default", network: "data" }],
-				props: [{ name: "Temperature", value: world.outsideTemp }],
-			},
-		],
-	} as EnvSchema;
-	return createEnv(env, HOUSING);
+/** Temperatures in kelvin; the script's thresholds are 408 K (night) and 453 K (pipe). */
+function build(world: { outsideTemp: number; pipeTemp: number; pipePressure: number }) {
+	return sim({ root: REPO_ROOT })
+		.device("vent", "StructureActiveVent", {
+			TemperatureOutput: world.pipeTemp,
+			PressureOutput: world.pipePressure,
+		})
+		.device("sensor", "StructureGasSensor", { Temperature: world.outsideTemp })
+		.housing("ic", {
+			file: SCRIPT,
+			prefab: "StructureCircuitHousingCompact",
+			pins: { d0: "vent", d1: "sensor" },
+		})
+		.build();
 }
 
+// The loop yields at the top and again inside each mode, so the vent is fully set in the third tick.
+const SETTLE_TICKS = 3;
+
 describe("VCCR Cooling Air Management", () => {
-	it("at night, vents inward (Mode 1) while the pipe is under max pressure", async () => {
-		const env = setup({ outsideTemp: 300, pipeTemp: 500, pipePressure: 1000 });
-		expect(await env.run(200)).toBe(200);
+	it("pulls in night air while the pipe is under max pressure", async () => {
+		const world = await build({ outsideTemp: 300, pipeTemp: 500, pipePressure: 1000 });
+		await world.runTicks(SETTLE_TICKS);
 
-		const vent = env.device(VENT).props!;
-		expect(vent.read("Mode")).toBe(1);
-		expect(vent.read("On")).toBe(1);
-		expect(env.runner.context.errors).toEqual([]);
+		expect(world.device("vent").props("Mode", "On")).toEqual({ Mode: 1, On: 1 });
+		expect(world.chip("ic").reg("OutsideTemp")).toBe(300);
+		expect(world.chip("ic").errors).toEqual([]);
 	});
 
-	it("at night, turns the vent off once the pipe reaches max pressure", async () => {
-		const env = setup({ outsideTemp: 300, pipeTemp: 500, pipePressure: 41_000 });
-		await env.run(200);
+	it("turns the vent off at night once the pipe reaches max pressure", async () => {
+		const world = await build({ outsideTemp: 300, pipeTemp: 500, pipePressure: 41_000 });
+		await world.runTicks(SETTLE_TICKS);
 
-		const vent = env.device(VENT).props!;
-		expect(vent.read("Mode")).toBe(1);
-		expect(vent.read("On")).toBe(0);
+		expect(world.device("vent").props("Mode", "On")).toEqual({ Mode: 1, On: 0 });
 	});
 
-	it("by day, vents outward (Mode 0) only while the pipe is hotter than 180 °C", async () => {
-		const hot = setup({ outsideTemp: 500, pipeTemp: 500, pipePressure: 1000 });
-		await hot.run(200);
-		expect(hot.device(VENT).props!.read("Mode")).toBe(0);
-		expect(hot.device(VENT).props!.read("On")).toBe(1);
+	it("by day, vents outward only while the pipe is hotter than 180 °C", async () => {
+		const hot = await build({ outsideTemp: 500, pipeTemp: 500, pipePressure: 1000 });
+		await hot.runTicks(SETTLE_TICKS);
+		expect(hot.device("vent").props("Mode", "On")).toEqual({ Mode: 0, On: 1 });
 
-		const cool = setup({ outsideTemp: 500, pipeTemp: 400, pipePressure: 1000 });
-		await cool.run(200);
-		expect(cool.device(VENT).props!.read("Mode")).toBe(0);
-		expect(cool.device(VENT).props!.read("On")).toBe(0);
+		const cool = await build({ outsideTemp: 500, pipeTemp: 400, pipePressure: 1000 });
+		await cool.runTicks(SETTLE_TICKS);
+		expect(cool.device("vent").props("Mode", "On")).toEqual({ Mode: 0, On: 0 });
+	});
+
+	it("switches to day mode when day comes", async () => {
+		const world = await build({ outsideTemp: 300, pipeTemp: 500, pipePressure: 1000 });
+		world.at({ tick: 10 }, (w) => w.device("sensor").set("Temperature", 450));
+		const mode = world.record("vent.Mode");
+
+		await world.runUntil((w) => w.device("vent").get("Mode") === 1, { maxTicks: 5 });
+		await world.runUntil((w) => w.device("vent").get("Mode") === 0, { maxTicks: 20 });
+
+		expect(world.tick).toBe(12); // the sensor reads 450 in tick 10; the vent switches in tick 11
+		expect(mode.changes).toBe(2); // unset (0) → night (1) → day (0)
+		expect(world.chip("ic").halted).toBe(false);
 	});
 
 	it("shows the pipe temperature on the housing", async () => {
-		const env = setup({ outsideTemp: 300, pipeTemp: 432.5, pipePressure: 1000 });
-		await env.run(200);
-		expect(env.device(HOUSING).props!.read("Setting")).toBe(432.5);
+		const world = await build({ outsideTemp: 300, pipeTemp: 432.5, pipePressure: 1000 });
+		await world.runTicks(SETTLE_TICKS);
+		expect(world.db("ic").get("Setting")).toBe(432.5);
 	});
 });

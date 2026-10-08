@@ -1,2 +1,11 @@
+export { type DebugGate, type DebugLineInfo, setDefaultDebugGate } from "./debug/gate.ts";
+export type { StepOutcome } from "./engine/chip.ts";
 export { createEnv, type Env } from "./engine/env.ts";
+export { formatId, parseId, type ReferenceId } from "./engine/ids.ts";
+export { SimBudgetError, SimHaltError, SimRunError } from "./scheduler/errors.ts";
+export type { Halt } from "./scheduler/scheduler.ts";
 export { findScripts, readScript } from "./scripts.ts";
+export type { Cancel, Interval, When, WorldEvent } from "./world/events.ts";
+export { type DeviceOptions, type HousingOptions, type Pin, SimBuilder, type SimOptions, sim } from "./world/sim.ts";
+export type { Change, Recording, Snapshot } from "./world/snapshot.ts";
+export { ChipHandle, DeviceHandle, NetworkHandle, type RunBudget, World } from "./world/world.ts";
