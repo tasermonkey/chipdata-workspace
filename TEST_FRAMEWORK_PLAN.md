@@ -45,7 +45,7 @@ scripts on 2026-10-07 (see the Appendix).
 | # | Gap | Effect | Where it's fixed |
 |---|---|---|---|
 | G1 | No tick model: `yield` is a no-op and there's no 128-line auto-yield. | "Run N ticks" has no meaning, and preemption can't be tested. | Fork hook plus harness scheduler (§4.2) |
-| G2 | `sleep` calls a real `setTimeout`. | `sleep 5` makes the test wait 5 real seconds. | Fork hook plus virtual clock |
+| G2 | `sleep` calls a real `setTimeout`, with the seconds multiplied by 1000 twice. | `sleep 5` makes the test wait 5,000 real seconds. | Fork hook (**done**) plus virtual clock |
 | G3 | A cumulative 1000-jump limit. | Every `j start` loop dies with a critical error. The spike was killed after about 3,000 lines. | Harness creates runners with no jump limit and uses its own budgets (§4.3) |
 | G4 | Strong runtime errors don't halt. | `move stage 0` logs an error and keeps going, but in game the chip stops. | Harness halts the chip and records it, so tests can assert on it (§4.5) |
 | G5 | The validator misses undefined identifiers. | `move stage 0` validates cleanly. | Fork (sandbox check) or harness lint |
@@ -76,13 +76,19 @@ The fork then gets the engine fixes:
 
 1. **Suspend signal (G1, G2).** `yield` and `sleep(s)` record a pending suspend instead of doing
    nothing or calling `setTimeout`. `step()` exposes it, and the harness scheduler acts on it.
+   *Done (fork side):* after each `step()`, `runner.suspend` is `{ kind: "yield" }`,
+   `{ kind: "sleep", seconds }` or `null`, and a `suspend` event fires. `sleep 0` (or negative) acts as a `yield`, as in game (confirmed
+   2026-10-07).
+   This also fixed upstream's `sleep N`, which multiplied by 1000 twice (N × 1000 real seconds).
+   The 128-line auto-yield and the virtual clock belong to the harness scheduler (Phase 2).
 2. **`define` zero (G6).** Done: `parseArgumentAnyNumber` returns `false` on failure, so the check is `value !== false`.
 3. **Initialisation (G7).** Fix the sandbox network lookup and default i18n to English.
 4. **`ld` / `sd` by reference ID (G10).** Only treat the argument as a pin when `getDevicePin`
    succeeds, otherwise resolve it as an ID (a literal like `$1488` or `5256`, or a register holding
    one). Add tests for literal, hex, register, and an unknown ID. *Done.* Side effect: `l` and `s`
-   share the same argument type, so `l r0 r14 Activate` (Fab Room line 45) now works too. **Check in
-   game** whether `l`/`s` accept a reference ID. If they don't, give `l`/`s` a pin-only argument.
+   share the same argument type, so `l r0 r14 Activate` (Fab Room line 45) now works too. That is
+   correct: the in-game docs give `l r? device(d?|r?|id) logicType`, so `l`/`s` accept a register
+   or a reference ID as well as a pin (confirmed 2026-10-07).
 5. **Errors never escape `step()` (G11).** Catch instruction exceptions and record them as chip errors.
 6. **Undefined identifiers (G5).** Report them in the sandbox pass. *Optional; the harness lint can
    cover this instead.*
@@ -130,9 +136,9 @@ reference to a git URL.
 - **World events and device models run between ticks**, so the world can change between any two
   slices of 128 lines, as it can in game.
 - With several chips, they run in a fixed, configurable round-robin order within each tick.
-- **Comment, label and blank lines count toward the 128 by default**, matching how the game behaves
-  from experience and how Ryex's ic10emu models it (it compiles every source line, including blanks
-  and comments, to a `Nop` step). Developers can change both settings, per world or per chip:
+- **Comment, label and blank lines count toward the 128 by default**, matching the game (confirmed
+  2026-10-07) and Ryex's ic10emu (it compiles every source line, including blanks and comments, to a
+  `Nop` step). It stays configurable. Developers can change both settings, per world or per chip:
   ```ts
   sim({ linesPerTick: 128, countNonInstructionLines: true })   // defaults
   ```
@@ -144,7 +150,7 @@ reference to a git URL.
 |---|---|---|
 | 1 tick = 0.5 s | Stationeers wiki energy reference ("1 Watt per 0.5 real time seconds"). The game's own text only says `yield` "Pauses execution for 1 tick", with no length. | Good, but secondary |
 | At most 128 lines per tick, then auto-yield with no error | Ryex/ic10emu `run_programmable`: 128 steps, then state `Yield`. Forum posts describe the same rule. | Good |
-| Blank, comment and label lines count | ic10emu compiles them to `Nop` steps. A forum post and your recollection agree. | Good |
+| Blank, comment and label lines count | Confirmed in game (2026-10-07). ic10emu also compiles them to `Nop` steps. | Confirmed |
 | An error stops the chip and sets the housing's `Error` to 1 | ic10emu `step()` | Good |
 
 One guide claims that hitting 128 lines throws a "too many operations" error instead of
@@ -585,7 +591,8 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   The `ic10-test/` workspace package (`@tasermonkey/ic10-test`) exists, with `createEnv`,
   `readScript` and `findScripts` and its own tests. Phase 2's `sim()` builder builds on
   `createEnv`. Paths specific to this repo are in `tests/support/paths.ts`.
-- **Phase 1:** G6 and G10 are done. Suspend signal, G11 and i18n are still to do.
+- **Phase 1:** G6, G10 and the suspend signal (G1/G2, fork side) are done. G11 and i18n are still
+  to do.
 
 Suggested first regression tests (Phase 4):
 

@@ -377,8 +377,9 @@ elsewhere, they will fight. The Fab Room script uses `sbn` with a name, which is
 
 ### 3.5 Use `ld` / `sd` consistently for reference IDs
 [VC-IC Fab Room EControl.ic10:45](ic10/EControl/VC-IC%20Fab%20Room%20EControl.ic10#L45) reads with
-`l machineActive machineHash Activate` but writes with `sd machineHash On ...`. Use `ld` for reads by
-reference ID so it matches the `sd` and other scripts.
+`l machineActive machineHash Activate` but writes with `sd machineHash On ...`. This is valid (`l`
+accepts `d?|r?|id`), so it's purely style: using `ld` for reads by reference ID would match the `sd`
+and the other scripts.
 
 ### 3.6 Avoid giving one register two aliases
 - Printer Control: `DialAmount` and `Fabricator` are both `r6`.
