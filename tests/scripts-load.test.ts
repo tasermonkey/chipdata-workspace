@@ -4,7 +4,7 @@
  * named problem (a script bug or an emulator gap) is fixed; once one passes, its test fails so
  * the entry gets removed.
  */
-import { ErrorSeverity, ValidateIc10Runner } from "@stationeers-ic/ic10";
+import { ErrorSeverity, JUMP_LIMIT_ERROR_CODE, ValidateIc10Runner } from "@stationeers-ic/ic10";
 import { describe, expect, it } from "vitest";
 import { readRepoScript, repoScripts } from "./support/paths.ts";
 
@@ -19,7 +19,7 @@ async function problems(path: string): Promise<string[]> {
 	const errors = await ValidateIc10Runner.validate(code, { jumpLimit: 100_000 });
 	return errors
 		.filter((e) => e.severity === ErrorSeverity.Strong || e.severity === ErrorSeverity.Critical)
-		.filter((e) => !/jump_limit/.test(e.message))
+		.filter((e) => e.code !== JUMP_LIMIT_ERROR_CODE)
 		.map((e) => `line ${e.line}: ${e.message} :: ${(lines[e.line ?? -1] ?? "").trim()}`);
 }
 

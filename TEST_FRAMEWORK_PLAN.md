@@ -82,7 +82,9 @@ The fork then gets the engine fixes:
    This also fixed upstream's `sleep N`, which multiplied by 1000 twice (N × 1000 real seconds).
    The 128-line auto-yield and the virtual clock belong to the harness scheduler (Phase 2).
 2. **`define` zero (G6).** Done: `parseArgumentAnyNumber` returns `false` on failure, so the check is `value !== false`.
-3. **Initialisation (G7).** Fix the sandbox network lookup and default i18n to English.
+3. **Initialisation (G7).** Fix the sandbox network lookup and default i18n to English. *Done:*
+   `src/Languages/lang.ts` initialises synchronously in English when loaded, with every bundled
+   language available through `i18n.changeLanguage()`.
 4. **`ld` / `sd` by reference ID (G10).** Only treat the argument as a pin when `getDevicePin`
    succeeds, otherwise resolve it as an ID (a literal like `$1488` or `5256`, or a register holding
    one). Add tests for literal, hex, register, and an unknown ID. *Done.* Side effect: `l` and `s`
@@ -596,8 +598,9 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   The `ic10-test/` workspace package (`@tasermonkey/ic10-test`) exists, with `createEnv`,
   `readScript` and `findScripts` and its own tests. Phase 2's `sim()` builder builds on
   `createEnv`. Paths specific to this repo are in `tests/support/paths.ts`.
-- **Phase 1:** G6, G10, the suspend signal (G1/G2, fork side) and G11 are done. i18n is still to
-  do.
+- **Phase 1 is done:** G6, G10, the suspend signal (G1/G2, fork side), G11, and i18n defaulting
+  to English. The sweep is 37/38; the one failure is Alaska's real `move stage 0` bug. G5
+  (undefined identifiers) stays optional and moves to the Phase 8 lint. **Next: Phase 2.**
 
 Suggested first regression tests (Phase 4):
 

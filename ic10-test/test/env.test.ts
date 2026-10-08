@@ -31,6 +31,14 @@ describe("createEnv", () => {
 		expect(await env.run(100)).toBe(2);
 	});
 
+	it("reports errors in English and halts the chip", async () => {
+		const env = oneChip("ld r0 d0 On\nmove r0 1");
+		expect(await env.run(10)).toBe(0);
+		const error = env.runner.context.criticalError;
+		expect(error && error.message).toBe("You can't use pin in this instruction");
+		expect(env.runner.isStopped()).toBe(true);
+	});
+
 	it("rejects an unknown device id", () => {
 		expect(() => oneChip("").device(999)).toThrow("no device with id 999");
 	});
