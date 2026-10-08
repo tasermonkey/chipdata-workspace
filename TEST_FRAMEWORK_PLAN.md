@@ -54,7 +54,7 @@ scripts on 2026-10-07 (see the Appendix).
 | G8 | Devices are property bags with no behaviour. | Turning a vent on doesn't move any gas. | Harness world model (§5) |
 | G10 | **`ld` and `sd` don't work at all.** `calculateDevicePinOrId` turns a failed pin parse into error code `0`, then treats that as pin 0, so it never tries the ID lookup. `ld r3 $1488 On` and `ld r3 r1 On` both fail with `pin_not_allowed_in_instruction`. | Printer Control can't run (line 38 `ld Tmp Param1 On`), nor can anything else using reference IDs. Device-ID arguments also rejected `define`d IDs (`define DEBUG_1 $4D655` / `sd DEBUG_1 …`). | **Fixed in fork**: a failed pin parse falls through to the ID lookup, and device-ID arguments accept defines. Covered by instruction tests and `fork-fixes.test.ts`. |
 | G12 | No **Logic Mirror** in the emulator or its game data. | Scripts that read another network through a mirror can't be tested. | Fork extension point (proxy device) + harness (§5.4) |
-| G11 | Instruction errors can **throw out of `step()`** instead of being recorded. | One bad line crashes the test with a JS stack trace instead of halting the chip. | Fork (catch in `step()`); the harness also catches as a safety net |
+| G11 | Instruction errors can **throw out of `step()`** instead of being recorded. | One bad line crashes the test with a JS stack trace instead of halting the chip. | **Fixed in fork** (catch in `step()`); the harness also catches as a safety net |
 | G9 | Toolchain is Bun-only. | Tests import `bun:test`, scripts run with `bun tools/*.ts`, there's a `bunfig.toml`, and CI uses Bun. | Fork conversion (§3) |
 
 ---
@@ -90,6 +90,11 @@ The fork then gets the engine fixes:
    correct: the in-game docs give `l r? device(d?|r?|id) logicType`, so `l`/`s` accept a register
    or a reference ID as well as a pin (confirmed 2026-10-07).
 5. **Errors never escape `step()` (G11).** Catch instruction exceptions and record them as chip errors.
+   *Done:* anything thrown while a line runs (an `Ic10Error`, a plain `Error`, even a bare string)
+   becomes a **critical** error on that line. The chip stops, `step()` returns `false`, and
+   `error` → `fatalError` → `stop` are emitted. The jump-limit error now has `code: "JUMP_LIMIT"`,
+   so `Builder.init()` can reject scripts whose validation pass threw, while still accepting
+   endless loops. `DeviceSlots` throws a real `Error` instead of a string.
 6. **Undefined identifiers (G5).** Report them in the sandbox pass. *Optional; the harness lint can
    cover this instead.*
 
@@ -591,8 +596,8 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   The `ic10-test/` workspace package (`@tasermonkey/ic10-test`) exists, with `createEnv`,
   `readScript` and `findScripts` and its own tests. Phase 2's `sim()` builder builds on
   `createEnv`. Paths specific to this repo are in `tests/support/paths.ts`.
-- **Phase 1:** G6, G10 and the suspend signal (G1/G2, fork side) are done. G11 and i18n are still
-  to do.
+- **Phase 1:** G6, G10, the suspend signal (G1/G2, fork side) and G11 are done. i18n is still to
+  do.
 
 Suggested first regression tests (Phase 4):
 
