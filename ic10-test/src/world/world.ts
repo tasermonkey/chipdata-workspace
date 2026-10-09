@@ -1,5 +1,14 @@
 import type { Device, Ic10Error } from "@stationeers-ic/ic10";
-import { listProps, readProp, writeProp } from "../engine/device.ts";
+import {
+	clearSlot,
+	listProps,
+	putItem,
+	readProp,
+	readSlot,
+	slotOccupied,
+	writeProp,
+	writeSlot,
+} from "../engine/device.ts";
 import { formatId } from "../engine/ids.ts";
 import type { EnvSchema } from "@stationeers-ic/ic10";
 import { describeChip, SimBudgetError, SimRunError } from "../scheduler/errors.ts";
@@ -94,6 +103,65 @@ export class DeviceHandle {
 	props(...names: string[]): Record<string, number> {
 		if (names.length === 0) return listProps(this.entry.device);
 		return Object.fromEntries(names.map((name) => [name, this.get(name)]));
+	}
+
+	/**
+	 * An entry in the device's own memory, which `put` / `get` on a pin write and read (a logic
+	 * sorter's instructions, say). Throws if the device has no memory. For a housing's chip, use
+	 * `world.chip(key).stackAt(i)`.
+	 */
+	stackAt(index: number): number {
+		const memory = this.entry.device.hasMemory ? this.entry.device.memory : undefined;
+		if (!memory) throw new Error(`${this.prefab} "${this.key}" has no memory`);
+		return memory.get(index) ?? 0;
+	}
+
+	/** One of the device's slots, for `ls` / `ss`. Throws if the device has no such slot. */
+	slot(index: number): SlotHandle {
+		return new SlotHandle(this.entry.device, index);
+	}
+}
+
+/** A device's slot, and the item in it. */
+export class SlotHandle {
+	private readonly device: Device;
+	readonly index: number;
+
+	constructor(device: Device, index: number) {
+		slotOccupied(device, index); // throws if there's no such slot
+		this.device = device;
+		this.index = index;
+	}
+
+	/** Whether there's an item in the slot. */
+	get occupied(): boolean {
+		return slotOccupied(this.device, this.index);
+	}
+
+	/**
+	 * Put an item (by prefab name) in the slot, replacing what's there. Sets `Occupied`, `OccupantHash`
+	 * and `Quantity` (default 1) as the game does; `props` sets those and other slot values.
+	 */
+	put(item: string, props: Record<string, number> = {}): this {
+		putItem(this.device, this.index, item, props);
+		return this;
+	}
+
+	/** Empty the slot. Its values then read 0. */
+	clear(): this {
+		clearSlot(this.device, this.index);
+		return this;
+	}
+
+	/** A slot value as `ls` reads it (0 for an empty slot). */
+	get(prop: string): number {
+		return readSlot(this.device, this.index, prop);
+	}
+
+	/** Set a value on the item in the slot. Throws if the slot is empty. */
+	set(prop: string, value: number): this {
+		writeSlot(this.device, this.index, prop, value);
+		return this;
 	}
 }
 

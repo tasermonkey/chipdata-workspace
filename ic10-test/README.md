@@ -78,7 +78,13 @@ fails at once if every chip has stopped and no events are due.
 
 ## Inspecting
 
-- `world.device(key)`: `get`, `set` (read-only properties too), `add`, `props(...)`, `id`, `idHex`, `name`.
+- `world.device(key)`: `get`, `set` (read-only properties too), `add`, `props(...)`, `id`, `idHex`, `name`,
+  `stackAt(i)` (the device's own memory, which `put` writes: a logic sorter's instructions, say), and
+  `slot(i)`:
+  - `put("ItemIronOre", { Quantity: 10 })` puts an item in, setting `Occupied`, `OccupantHash` and
+    `Quantity` (default 1) as the game does; other slot values (`Mature`, …) go in the same object.
+  - `get(prop)` reads as `ls` does (0 when empty), `set(prop, v)` changes the item, `clear()` empties
+    it, `occupied` says whether there's an item.
 - `world.chip(key)`: `reg("Stage" | "r15")`, `setReg`, `registers()`, `aliases()`, `stack()`, `stackAt(i)`,
   `sp`, `ra`, `line`, `findLabel`, `errors`, `halt`, `ended`, `sleeping`, `switchedOff`, `restarts`, `autoYields`,
   `autoYieldLog`, `pins`, `status`, `recentLines(n)`, `db`.
@@ -123,7 +129,7 @@ keep their starting registers and stack, and take the same options as `sim()`.
 line, on halts, on automatic yields and after each tick. The VS Code debugger will attach through this.
 
 Also exported: `createEnv` (a lower-level world from emulator env JSON), `readScript` / `findScripts`,
-`parseId` / `formatId`.
+`parseId` / `formatId`, and `hash(name)`, the game's `HASH()`.
 
 Runs as TypeScript source on Node 24+ (no build step yet). Its own tests run with `npm test` in this
 directory, or `npm test -w ic10-test` from the workspace root; the root `npm test` runs them too.

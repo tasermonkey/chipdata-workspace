@@ -1,4 +1,13 @@
-import { type BiMap, type Device, Devices, DevicesByPrefabName, HashString, Structure } from "@stationeers-ic/ic10";
+import {
+	type BiMap,
+	type Device,
+	Devices,
+	DevicesByPrefabName,
+	HashString,
+	ItemEntity,
+	type Slot,
+	Structure,
+} from "@stationeers-ic/ic10";
 
 /** Whether the emulator's device catalogue has this prefab. */
 export function isCatalogued(prefab: string): boolean {
@@ -56,4 +65,54 @@ export function listProps(device: Device): Record<string, number> {
 /** Write a property if the device has it, otherwise do nothing. */
 export function writePropIfPresent(device: Device, prop: string, value: number): void {
 	if (hasProp(device, prop)) device.props?.forceWrite(prop, value);
+}
+
+function slotOf(device: Device, index: number): Slot {
+	const slot = device.hasSlots ? device.slots?.getSlot(index) : undefined;
+	if (!slot) throw new Error(`${device.prefabName ?? "device"} (${device.id}) has no slot ${index}`);
+	return slot;
+}
+
+/** Whether the slot holds an item. */
+export function slotOccupied(device: Device, index: number): boolean {
+	return slotOf(device, index).hasItem();
+}
+
+/**
+ * Put an item in a slot, replacing what's there. `Occupied`, `OccupantHash` and `Quantity` (default 1)
+ * are set as the game sets them; `props` sets those and any other slot logic values.
+ */
+export function putItem(device: Device, index: number, item: string, props: Record<string, number> = {}): void {
+	const entity = new ItemEntity(new HashString(item).hash, props.Quantity ?? 1);
+	entity.setProp("Occupied", 1);
+	entity.setProp("OccupantHash", entity.hash);
+	for (const [prop, value] of Object.entries(props)) writeItemProp(entity, prop, value);
+	slotOf(device, index).putItem(entity, true);
+}
+
+/** Empty a slot. */
+export function clearSlot(device: Device, index: number): void {
+	slotOf(device, index).removeItem();
+}
+
+/** A slot logic value as `ls` reads it: 0 for an empty slot. */
+export function readSlot(device: Device, index: number, prop: string): number {
+	return slotOf(device, index).getProp(prop);
+}
+
+/** Set a slot logic value on the item in it. */
+export function writeSlot(device: Device, index: number, prop: string, value: number): void {
+	const item = slotOf(device, index).getItem();
+	if (!item) throw new Error(`${device.prefabName ?? "device"} (${device.id}) slot ${index} is empty`);
+	writeItemProp(item, prop, value);
+}
+
+function writeItemProp(item: ItemEntity, prop: string, value: number): void {
+	if (prop === "Quantity") item.count = value;
+	else item.setProp(prop, value);
+}
+
+/** The game's `HASH("name")`: a CRC-32 as a signed 32-bit number. */
+export function hash(name: string): number {
+	return new HashString(name).hash;
 }

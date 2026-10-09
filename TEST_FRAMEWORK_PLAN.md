@@ -57,6 +57,9 @@ scripts on 2026-10-07 (see the Appendix).
 | G11 | Instruction errors can **throw out of `step()`** instead of being recorded. | One bad line crashes the test with a JS stack trace instead of halting the chip. | **Fixed in fork** (catch in `step()`); the harness also catches as a safety net |
 | G13 | **`jal` and the branch-and-link instructions store the wrong return address**: their own line instead of the next one. Upstream's `beqal` test expected the wrong value. | `j ra` jumps back to the `jal`, so a `jal sub` … `j ra` loop never gets past the call. 31 of the 38 scripts use `jal`. Found by the first `sim()` test in which day comes partway through the run. | **Fixed in fork** (`ra` = line + 1), with tests in `fork-fixes.test.ts` |
 | G14 | **Batch reads of no devices all return 0.** In game `Average` is NaN (0 / 0) and `Maximum` is −∞; `Sum` and `Minimum` are 0 (per [dcramer/stationeers](https://github.com/dcramer/stationeers/blob/main/docs/ic10-instructions.md#device-access-and-missing-batch-data), unofficial). | The mixer scripts' "NaN means a missing device" check never fires, so a missing tank looks like the mixer being off. Found writing the review 1.11 test. | **Fixed in fork**, with tests in `fork-fixes.test.ts` |
+| G15 | **The "is a device set" instructions error on an empty pin.** `sdse`, `sdns`, `bdse`, `bdns`, `brdse`, `brdns`, `bdseal` and `bdnsal` required a device on the pin, so testing for one halted the chip. | The Arc Furnace script loops over d0–d5 with `bdns dr0` and halted at the first empty pin. | **Fixed in fork**: those instructions take a pin that may be empty, with tests in `fork-fixes.test.ts` |
+| G16 | **Slots the game data lists no logic types for read 0.** The Larre's Target Slot (255, the plant at its arm) is one. | `ls r1 larre 255 Mature` always read 0. | **Fixed in fork**: such a slot reads whatever its item has; slots that list their logic types are unchanged |
+| G17 | **`sdse` / `sdns` take only a pin.** The wiki gives them `device(d?\|r?\|id)`, so the game also accepts a reference ID (set = on the network). | `sdse r0 $1488` fails in the emulator. No script uses it yet. | Fork, when a script needs it |
 | G9 | Toolchain is Bun-only. | Tests import `bun:test`, scripts run with `bun tools/*.ts`, there's a `bunfig.toml`, and CI uses Bun. | Fork conversion (§3) |
 
 ---
@@ -685,7 +688,18 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
       "PA Breathable Air", alongside the existing "PA N-CO2".
     - 1.3 (Alaska vent modes) still needs an in-game check.
 
-  Next: behaviour tests for the short scripts (60 lines or fewer).
+  - Behaviour tests for the short scripts (60 lines or fewer): Mars CO2, Grow Lights, Filter
+    Controller MKI, Nitrice Crusher (its chip is in a filtration unit), Cold Night Extraction, the
+    five room EControl scripts, Dock Occupied, Weather, Arc Furnace, Food Machine Selector and Larree
+    Debug. They describe what the scripts do today; review §2 issues they touch are `it.todo`
+    entries (2.6, 2.8), not fixes. They needed engine gaps G15 and G16 fixed, and two harness
+    additions: `device.slot(i)` (put items in slots for `ls`) and `device.stackAt(i)` (a device's
+    own memory), plus `hash(name)`.
+  - Weather's warning light (d1) is a Diode in the test. Only the Diode, the console LEDs and the
+    Beacon have `Color` logic; ordinary lights, the Flashing Light included, are paint-only. In the
+    game code, `Device.CanLogicRead` allows `Color` only when the prefab's `HasColorState` is set.
+
+  Next: behaviour tests for the longer scripts.
 
 Suggested first regression tests (Phase 4):
 
