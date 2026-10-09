@@ -12,8 +12,6 @@ push HASH("StructureLightRoundAngled")
 push HASH("StructureWallLight")
 push HASH("StructureWallLightBattery")
 push HASH("StructureLightLongAngled")
-push HASH("StructureLightLongWide")
-push HASH("StructureLightLong")
 poke 0 sp #Save TOS
 
 start:

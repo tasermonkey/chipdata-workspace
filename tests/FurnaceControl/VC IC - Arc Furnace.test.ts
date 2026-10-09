@@ -37,5 +37,17 @@ describe("VC IC - Arc Furnace", () => {
 		expect(world.device("furnace1")).toHaveProps({ On: 1, Activate: 0 });
 	});
 
-	it.todo("CODE_REVIEW.md 2.6: doesn't turn off a furnace that's still smelting once its import slot empties");
+	// CODE_REVIEW.md 2.6: switching a furnace off stops its smelt, and the script did that as soon as
+	// the furnace had taken the last ore from its import slot.
+	it("leaves a furnace that's still smelting on once its import slot empties", async () => {
+		const world = await build();
+		world.device("furnace1").set("Idle", 0).set("On", 1); // smelting the ore it took in
+		await world.runTicks(8);
+		expect(world.device("furnace1")).toHaveProps({ On: 1 });
+
+		world.device("furnace1").set("Idle", 1); // done
+		await world.runTicks(8);
+		expect(world.device("furnace1")).toHaveProps({ On: 0 });
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
 });

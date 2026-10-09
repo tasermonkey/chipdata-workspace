@@ -35,8 +35,8 @@ j loop
 checkWork:
 l IsIdle dr0 Idle
 ls WaitingOres dr0 0 Quantity
+beqz IsIdle ra # still smelting: switching it off would stop the smelt
 blez WaitingOres deactivateOne
-blez IsIdle ra
 s dr0 On 1
 s dr0 Activate 1
 j ra

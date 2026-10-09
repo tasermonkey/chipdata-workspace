@@ -230,6 +230,15 @@ script is mixing the wrong gas.
 These won't necessarily break anything today, but they make the scripts fragile or cause odd
 behaviour in edge cases.
 
+**Status (2026-10-09).** Fixed, each after a failing test:
+- **2.6** Arc Furnace: a furnace that's still smelting is left on. Switching one off stops its smelt
+  in game. [Test](tests/FurnaceControl/VC%20IC%20-%20Arc%20Furnace.test.ts)
+- **2.8** Food Machine Selector: a dial set past the end of the item table picks the last item. The
+  clamp reads the table's size from the saved stack top, so adding items needs no other change.
+  [Test](tests/FoodControl/Food%20Machine%20Selector%20Controller%20MKI.test.ts)
+
+The rest of §2 is open.
+
 ### 2.1 Relative branches (`br*`, `jr`) are easy to break
 Several scripts use relative jumps such as `brgt r15 75 4`, `breqz r0 2` and `jr 3`. Inserting or
 removing a line, *including a blank line or a comment line*, silently changes where they land. Bug
