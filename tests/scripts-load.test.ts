@@ -8,10 +8,7 @@ import { ErrorSeverity, JUMP_LIMIT_ERROR_CODE, ValidateIc10Runner } from "@stati
 import { describe, expect, it } from "vitest";
 import { readRepoScript, repoScripts } from "./support/paths.ts";
 
-const KNOWN_FAILURES: Record<string, string> = {
-	// Aliases are case-sensitive: the alias is `Stage`, so line 58 `move stage 0` is invalid.
-	"ic10/ClimateControl/Alaska IC Cooler [101290].ic10": "script bug, move stage 0 (see CODE_REVIEW.md)",
-};
+const KNOWN_FAILURES: Record<string, string> = {};
 
 async function problems(path: string): Promise<string[]> {
 	const code = readRepoScript(path);

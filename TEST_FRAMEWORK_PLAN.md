@@ -339,6 +339,11 @@ describe("VCCR Cooling Air Management", () => {
   within one turn isn't noticed, which is why the `yield` is needed. Housings start switched on
   unless built with `On: 0`.
 
+  This applies to IC housings only. On other devices that take a chip, `On` is the device's own
+  function: a hardsuit's is its A/C ("Controls A/C power for the suit", per the wiki), and the MKII
+  suit script switches it off and on while its chip keeps running. An AC unit's `On` is treated the
+  same way, which is unconfirmed in game.
+
   **Open question:** whether a restart keeps registers and the stack. The default keeps them, and
   `restartClearsState: true` (per world or per housing) clears them. In-game check: run
   `add r0 r0 1` / `s db Setting r0` / `yield` / `j 0`, switch the housing off and on, and see whether
@@ -649,7 +654,12 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   - `World.fromEnv(env)` takes an object, JSON text or a file path. Devices are keyed by unique
     `name`, otherwise by `$hex` ID, or by `{ testKeysById }`. Chips keep their starting registers and stack.
 
-  The VCCR test now uses the matchers. **Next: Phase 4.**
+  The VCCR test now uses the matchers.
+- **Phase 4 is in progress.** Regression tests were written first and failed, then the scripts were
+  fixed, for 1.1 (Alaska), 1.4 (Cooling Air Mgmt), 1.5 (CoolCleanMarsAir) and 1.6 (Suit MKII
+  chatter; the fix also corrects the 1.7 branch offset). The script sweep is now 38/38.
+  1.9, 1.10 and the FabControl pair are **blocked**: they use console-mod devices
+  (`ModularDevice*`) and `StationBatteryNuclear`, which aren't in the emulator's device catalogue.
 
 Suggested first regression tests (Phase 4):
 

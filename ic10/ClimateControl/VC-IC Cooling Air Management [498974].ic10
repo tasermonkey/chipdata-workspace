@@ -9,9 +9,9 @@ j loop
 
 expelVentCheck:
 l r0 ExpelGasExchangeVent TemperatureOutput
-l r1 ExpelGasExchangeVent PressureInternal
+l r1 ExpelGasExchangeVent PressureOutput # the pipe's pressure (PressureInternal is the vent's limit setting)
 sgt r2 r0 MAX_PIPE_TEMP
-slt r3 r1 MIN_PRESSURE
+sgt r3 r1 MIN_PRESSURE # keep at least MIN_PRESSURE in the pipe
 min r2 r2 r3 
 
 s ExpelGasExchangeVent Mode 0

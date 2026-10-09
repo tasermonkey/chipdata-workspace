@@ -5,7 +5,8 @@ define MAX_PRESSURE 150
 define MIN_OXY_RATIO 0.19
 
 define TempDelta 5
-define O2PartialPressureMinKpa 30
+define O2PartialPressureMinKpa 30 # filtration on below this
+define O2PartialPressureOkKpa 40  # and off again above this
 
 alias dSuit db
 alias dHelmet d0
@@ -102,10 +103,12 @@ filtrationOff:
 
 filtrationOn:
   s dSuit Filtration 1
-  l r0 dHelmet Pressure
-  l r1 dSuit PressureSetting
-  mul r1 r1 0.80
-  brlt r0 r1 4
+  l r0 dHelmet RatioOxygen
+  l r1 dHelmet RatioLiquidOxygen
+  add r0 r0 r1
+  l r1 dHelmet Pressure
+  mul r0 r0 r1
+  brlt r0 O2PartialPressureOkKpa 2
   move rFiltrationState filtrationOff
   j ra
 

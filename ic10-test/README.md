@@ -40,7 +40,10 @@ expect(world.chip("ic")).toHaveNoErrors();
   it's 0 the chip is skipped, and once it's 1 again the chip starts over from line 0, with any halt
   cleared and the housing's `Error` back at 0. Off and on again within one turn goes unnoticed, so a
   script restarting another chip has to `yield` in between. Registers and the stack are kept, unless
-  `restartClearsState: true` (not yet confirmed in game). Several chips take their turns in
+  `restartClearsState: true` (not yet confirmed in game). This applies to IC housings only
+  (`StructureCircuitHousing`, `…Compact`, `StructureRocketCircuitHousing`). On other devices that
+  take a chip, `On` is the device's own function (a hardsuit's is its A/C), so the chip keeps
+  running. Several chips take their turns in
   declaration order within a tick, and each sees the others' writes as soon as they happen.
 - **Scripted events** (`at`, `every`, `when`) run at the start of a tick, before any chip.
 - Line numbers are **0-based indices**, like the game's `LineNumber` property.

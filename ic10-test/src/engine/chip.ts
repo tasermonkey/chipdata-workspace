@@ -24,6 +24,9 @@ export type StepOutcome =
 
 const HALTING = new Set<string>([ErrorSeverity.Strong, ErrorSeverity.Critical]);
 
+/** Devices whose only job is to hold a chip, so switching them off stops it. */
+const IC_HOUSING = /^Structure(Rocket)?CircuitHousing/;
+
 /**
  * One chip in its housing, as the harness sees it. This (with the rest of `engine/`) is the only
  * code that touches the emulator's internals.
@@ -167,9 +170,12 @@ export class EngineChip {
 		return { kind: "ran", line };
 	}
 
-	/** Whether the housing is switched on (`On` is non-zero). A housing without `On` is always on. */
+	/**
+	 * Whether the chip is powered: an IC housing's `On` is non-zero. On other devices that take a
+	 * chip, `On` is the device's own function (a hardsuit's is its A/C), so the chip always runs.
+	 */
 	get switchedOn(): boolean {
-		if (!hasProp(this.housing, "On")) return true;
+		if (!IC_HOUSING.test(this.housing.prefabName?.value ?? "") || !hasProp(this.housing, "On")) return true;
 		return readProp(this.housing, "On") !== 0;
 	}
 

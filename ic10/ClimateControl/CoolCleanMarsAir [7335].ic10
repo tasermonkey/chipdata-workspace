@@ -71,8 +71,10 @@ move GasCoolingStage 1
 j ra
 coolingInp:
 l r1 db TemperatureInput
-sne r2 r1 DesiredTempK
+sgt r2 r1 DesiredTempK
 s db Mode r2
+bnez r2 ra
+move GasCoolingStage 0 # reached the setpoint, go back to waiting
 j ra
 disableDevice:
 s db Mode 0

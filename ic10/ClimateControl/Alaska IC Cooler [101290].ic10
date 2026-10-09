@@ -55,5 +55,5 @@ s VP_ATMO On 1
 j start
 
 finishCooling:
-move stage 0
+move Stage 0
 j start

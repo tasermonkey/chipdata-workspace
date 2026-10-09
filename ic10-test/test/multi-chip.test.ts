@@ -282,4 +282,14 @@ describe("switching a housing off and on", () => {
 		await world.runTicks(1);
 		expect(world.chip("off")).toHaveRegister("r0", 1);
 	});
+
+	it("only IC housings: a hardsuit's On is its A/C, and its chip keeps running", async () => {
+		const world = await sim({ debug: false })
+			.housing("suit", { code: "loop:\ns db On 0\nadd r0 r0 1\nyield\nj loop", prefab: "ItemHardSuit" })
+			.build();
+		await world.runTicks(3);
+		expect(world.db("suit")).toHaveProps({ On: 0 });
+		expect(world.chip("suit")).toHaveRegister("r0", 3);
+		expect(world.chip("suit").restarts).toEqual([]);
+	});
 });
