@@ -219,6 +219,16 @@ export class ChipHandle {
 		return this.state.sleepUntil !== null;
 	}
 
+	/** Its housing was switched off (`On` = 0) when its turn last came, so it isn't running. */
+	get switchedOff(): boolean {
+		return this.state.switchedOff;
+	}
+
+	/** Ticks in which it restarted from line 0 because its housing was switched back on. */
+	get restarts(): readonly number[] {
+		return this.state.restartLog;
+	}
+
 	/** Times the chip used up its lines for a tick and was preempted. */
 	get autoYields(): number {
 		return this.state.autoYields;

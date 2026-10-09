@@ -31,6 +31,11 @@ export interface SimOptions {
 	debug?: DebugGate | false;
 	/** Executed lines kept for failure reports. Default 50. */
 	traceLength?: number;
+	/**
+	 * Whether a chip whose housing is switched off and on again also loses its registers and stack.
+	 * Default false: it restarts from line 0 and keeps them (not yet confirmed in game).
+	 */
+	restartClearsState?: boolean;
 }
 
 /** Where a device is and what it's called in game. */
@@ -61,6 +66,8 @@ export interface HousingOptions extends DeviceOptions {
 	linesPerTick?: number;
 	/** Overrides the world's `countNonInstructionLines` for this chip. */
 	countNonInstructionLines?: boolean;
+	/** Overrides the world's `restartClearsState` for this chip. */
+	restartClearsState?: boolean;
 }
 
 interface DeviceDecl {
@@ -173,6 +180,7 @@ export class SimBuilder {
 				...(housing.countNonInstructionLines !== undefined && {
 					countNonInstructionLines: housing.countNonInstructionLines,
 				}),
+				...(housing.restartClearsState !== undefined && { restartClearsState: housing.restartClearsState }),
 			};
 		});
 		return assembleWorld(engine, entries, chips, opts);
@@ -219,6 +227,7 @@ export interface ChipDecl {
 	pins: Record<string, string>;
 	linesPerTick?: number;
 	countNonInstructionLines?: boolean;
+	restartClearsState?: boolean;
 }
 
 /** @internal Wrap built emulator objects in a World with its scheduler. */
@@ -237,6 +246,7 @@ export function assembleWorld(engine: Engine, entries: DeviceEntry[], chipDecls:
 				chip.linesPerTick ?? opts.linesPerTick ?? 128,
 				chip.countNonInstructionLines ?? opts.countNonInstructionLines ?? true,
 				chip.pins,
+				chip.restartClearsState ?? opts.restartClearsState ?? false,
 			),
 	);
 	const gate = opts.debug === false ? undefined : (opts.debug ?? getDefaultDebugGate());

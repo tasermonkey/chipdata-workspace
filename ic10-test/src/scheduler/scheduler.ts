@@ -53,6 +53,12 @@ export class ChipState {
 	readonly autoYieldLog: AutoYield[] = [];
 	/** Lines executed in total. */
 	linesExecuted = 0;
+	/** The housing was switched off (`On` = 0) when the chip's turn last came. */
+	switchedOff = false;
+	/** Ticks in which the chip restarted from line 0 because its housing was switched back on. */
+	readonly restartLog: number[] = [];
+	/** Whether the chip's turn has come yet in the tick in progress. */
+	turnStarted = false;
 
 	/** Test-side key of the housing. */
 	readonly key: string;
@@ -65,6 +71,8 @@ export class ChipState {
 	readonly countNonInstructionLines: boolean;
 	/** Which device (by key) is on each pin, e.g. `{ d0: "vent" }`. */
 	readonly pins: Readonly<Record<string, string>>;
+	/** Whether a restart (housing switched off, then on) clears registers and the stack. */
+	readonly restartClearsState: boolean;
 
 	constructor(
 		key: string,
@@ -73,6 +81,7 @@ export class ChipState {
 		linesPerTick: number,
 		countNonInstructionLines: boolean,
 		pins: Record<string, string> = {},
+		restartClearsState = false,
 	) {
 		this.key = key;
 		this.engine = engine;
@@ -80,6 +89,7 @@ export class ChipState {
 		this.linesPerTick = linesPerTick;
 		this.countNonInstructionLines = countNonInstructionLines;
 		this.pins = pins;
+		this.restartClearsState = restartClearsState;
 	}
 
 	/** Times the chip used up its lines for a tick and was preempted. */
@@ -94,7 +104,7 @@ export class ChipState {
 
 	/** Whether the chip can run a line now, in the tick in progress. */
 	get runnable(): boolean {
-		return !this.stopped && !this.doneThisTick && this.sleepUntil === null;
+		return !this.stopped && !this.switchedOff && !this.doneThisTick && this.sleepUntil === null;
 	}
 }
 
@@ -115,8 +125,10 @@ const EPSILON = 1e-9;
 /**
  * Runs chips under the game's rules. Each tick, every chip in turn runs until it yields, sleeps,
  * halts, ends, or uses up its lines for the tick (an automatic yield). Sleeping chips are skipped
- * until game time reaches their wake time. Work is done one line per `advance()`, so a run can
- * stop in the middle of a tick and the next one carries on from there.
+ * until game time reaches their wake time. A chip whose housing is switched off (`On` = 0) when its
+ * turn comes is skipped, and when it's found switched on again it restarts from line 0. Work is
+ * done one line per `advance()`, so a run can stop in the middle of a tick and the next one carries
+ * on from there.
  */
 export class Scheduler {
 	/** Ticks completed. */
@@ -156,6 +168,10 @@ export class Scheduler {
 
 		while (this.cursor < this.chips.length) {
 			const chip = this.chips[this.cursor]!;
+			if (!chip.turnStarted) {
+				chip.turnStarted = true;
+				this.checkPower(chip);
+			}
 			if (!chip.runnable) {
 				this.cursor++;
 				continue;
@@ -179,8 +195,28 @@ export class Scheduler {
 		for (const chip of this.chips) {
 			chip.linesThisTick = 0;
 			chip.doneThisTick = false;
+			chip.turnStarted = false;
 			if (chip.sleepUntil !== null && this.time + EPSILON >= chip.sleepUntil) chip.sleepUntil = null;
 		}
+	}
+
+	/**
+	 * At the start of a chip's turn: skip it while its housing is switched off, and restart it from
+	 * line 0 once it's switched back on. Switching off and on again within one turn goes unnoticed,
+	 * so a script that power-cycles another chip has to yield in between.
+	 */
+	private checkPower(chip: ChipState): void {
+		if (!chip.engine.switchedOn) {
+			chip.switchedOff = true;
+			return;
+		}
+		if (!chip.switchedOff) return;
+		chip.switchedOff = false;
+		chip.engine.restart(chip.restartClearsState);
+		chip.halt = null;
+		chip.ended = false;
+		chip.sleepUntil = null;
+		chip.restartLog.push(this.tick);
 	}
 
 	/**

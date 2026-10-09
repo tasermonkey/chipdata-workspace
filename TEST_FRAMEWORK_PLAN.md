@@ -326,6 +326,23 @@ describe("VCCR Cooling Air Management", () => {
   expect(world.chip("ic")).toHaveNoErrors();     // the usual assertion
   ```
 - `sim({ failOnHalt: true })` is available for tests that want any halt to fail immediately.
+- **Switching a housing off and on restarts its chip** from line 0, which is also how a halted chip
+  gets going again. Another chip does it with:
+  ```
+  s otherHousing On 0
+  yield
+  s otherHousing On 1
+  ```
+  The harness reads a housing's `On` at the start of its chip's turn. While it's 0, the chip is
+  skipped. When it's found back at 1, the chip restarts: the halt is cleared, the housing's `Error`
+  goes back to 0, and defines and aliases are rebuilt as the script runs again. Switching off and on
+  within one turn isn't noticed, which is why the `yield` is needed. Housings start switched on
+  unless built with `On: 0`.
+
+  **Open question:** whether a restart keeps registers and the stack. The default keeps them, and
+  `restartClearsState: true` (per world or per housing) clears them. In-game check: run
+  `add r0 r0 1` / `s db Setting r0` / `yield` / `j 0`, switch the housing off and on, and see whether
+  `Setting` carries on counting or starts again from 1.
 
 ### 4.6 Matchers (Vitest `expect.extend`)
 `toHaveProps`, `toHaveRegister`, `toHaveRegisterCloseTo`, `toHaveStack`, `toHaveStackAt(i, v)`, `toBeAtLine`,

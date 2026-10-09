@@ -131,6 +131,8 @@ export function buildEngineFromEnv(env: EnvSchema | string, seed: number, keyOf:
 		for (const [index, value] of registers) chip.registers.set(index, value);
 		for (const value of stack) chip.memory.push(value);
 		for (const [prop, value] of Object.entries(props)) writePropIfPresent(device, prop, value);
+		// A housing someone built a chip into is normally switched on; the emulator leaves On at 0.
+		if (!("On" in props)) writePropIfPresent(device, "On", 1);
 		chips.set(id, new EngineChip(runner, device));
 	}
 

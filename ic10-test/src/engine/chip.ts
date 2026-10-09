@@ -7,6 +7,7 @@ import {
 	InstructionLine,
 	LabelLine,
 } from "@stationeers-ic/ic10";
+import { hasProp, listProps, readProp, writePropIfPresent } from "./device.ts";
 
 /** What happened when a chip executed one line. */
 export type StepOutcome =
@@ -30,6 +31,12 @@ const HALTING = new Set<string>([ErrorSeverity.Strong, ErrorSeverity.Critical]);
 export class EngineChip {
 	readonly runner: Ic10Runner;
 	readonly housing: Housing;
+	/**
+	 * Errors from before the last restart. The emulator records each distinct error (by line,
+	 * position, code and device) only once, so a restart moves them here and clears its list, or a
+	 * restarted chip failing on the same line again would go unnoticed.
+	 */
+	private readonly earlierErrors: Ic10Error[] = [];
 
 	constructor(runner: Ic10Runner, housing: Housing) {
 		this.runner = runner;
@@ -131,9 +138,9 @@ export class EngineChip {
 		return this.chip.memory.get(index) ?? 0;
 	}
 
-	/** Every error recorded on the chip so far, of any severity. */
+	/** Every error recorded on the chip so far, of any severity, restarts included. */
 	get errors(): Ic10Error[] {
-		return this.runner.context.errors;
+		return [...this.earlierErrors, ...this.runner.context.errors];
 	}
 
 	/**
@@ -142,12 +149,12 @@ export class EngineChip {
 	 */
 	async step(): Promise<StepOutcome> {
 		const line = this.nextLine;
-		const errorsBefore = this.errors.length;
+		const errorsBefore = this.runner.context.errors.length;
 		const ok = await this.runner.step();
 
 		const critical = this.runner.context.criticalError;
 		if (critical) return this.halted(critical, line);
-		const halting = this.errors.slice(errorsBefore).find((error) => HALTING.has(error.severity));
+		const halting = this.runner.context.errors.slice(errorsBefore).find((error) => HALTING.has(error.severity));
 		if (halting) {
 			this.runner.stopExecution();
 			return this.halted(halting, line);
@@ -158,6 +165,36 @@ export class EngineChip {
 		if (suspend?.kind === "yield") return { kind: "yield", line };
 		if (suspend?.kind === "sleep") return { kind: "sleep", line, seconds: suspend.seconds };
 		return { kind: "ran", line };
+	}
+
+	/** Whether the housing is switched on (`On` is non-zero). A housing without `On` is always on. */
+	get switchedOn(): boolean {
+		if (!hasProp(this.housing, "On")) return true;
+		return readProp(this.housing, "On") !== 0;
+	}
+
+	/**
+	 * Start the program again from line 0, as the game does when a housing is switched back on:
+	 * the halt is cleared, defines and aliases are rebuilt as the script runs, and the housing keeps
+	 * its properties with `Error` back at 0. Registers and the stack are kept unless `clearState`.
+	 */
+	restart(clearState: boolean): void {
+		const chip = this.chip;
+		const props = listProps(this.housing);
+		const registers = new Map(chip.registers);
+		const stack = chip.memory.toArray();
+
+		this.earlierErrors.push(...this.runner.context.errors);
+		this.runner.context.$errors.clear();
+		this.runner.init(true); // line 0, and resets the chip and the housing's properties
+		this.runner.context.$criticalError = undefined;
+
+		for (const [prop, value] of Object.entries(props)) writePropIfPresent(this.housing, prop, value);
+		writePropIfPresent(this.housing, "Error", 0);
+		if (!clearState) {
+			for (const [index, value] of registers) chip.registers.set(index, value);
+			stack.forEach((value, index) => chip.memory.set(index, value));
+		}
 	}
 
 	private halted(error: Ic10Error, line: number): StepOutcome {
