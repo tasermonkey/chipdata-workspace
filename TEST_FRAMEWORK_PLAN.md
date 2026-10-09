@@ -691,8 +691,10 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   - Behaviour tests for the short scripts (60 lines or fewer): Mars CO2, Grow Lights, Filter
     Controller MKI, Nitrice Crusher (its chip is in a filtration unit), Cold Night Extraction, the
     five room EControl scripts, Dock Occupied, Weather, Arc Furnace, Food Machine Selector and Larree
-    Debug. They describe what the scripts do today; review §2 issues they touch are `it.todo`
-    entries (2.6, 2.8), not fixes. They needed engine gaps G15 and G16 fixed, and two harness
+    Debug. They describe what the scripts do today, except where a review §2 issue was then fixed
+    after a failing test: 2.6 (Arc Furnace switched off mid-smelt) and 2.8 (Food Selector dial past
+    the item table). Two small tidies too: Weather's dead `seq` line, and duplicate light pushes in
+    the room scripts. They needed engine gaps G15 and G16 fixed, and two harness
     additions: `device.slot(i)` (put items in slots for `ls`) and `device.stackAt(i)` (a device's
     own memory), plus `hash(name)`.
   - Weather's warning light (d1) is a Diode in the test. Only the Diode, the console LEDs and the
