@@ -25,6 +25,20 @@ expect(world.chip("ic")).toHaveRegister("OutsideTemp", 450); // aliases work
 expect(world.chip("ic")).toHaveNoErrors();
 ```
 
+## Devices the emulator doesn't know
+
+`sim()` rejects a prefab that isn't in the emulator's device catalogue, such as the console mod's
+`ModularDevice…` parts or `StationBatteryNuclear`. Mark one `custom` to use it anyway:
+
+```ts
+.device("delta", "ModularDeviceGauge3x3", { Setting: 0.5 }, { custom: true, name: "Power Delta" })
+```
+
+A custom device's `PrefabHash` is `HASH(prefab)`, so `lb`, `sb`, `lbn` and `sbn` find it by type and
+name; `ld` / `sd` find it by reference ID, and it can go on a pin. It has **every** logic property,
+readable and writable, so nothing checks that a script uses ones the real device has (the catalogue
+will). `custom` on a catalogued prefab, or on a housing, is a build error.
+
 ## Execution model
 
 - **Ticks.** Each tick (0.5 s of game time by default), every chip in declaration order runs until it

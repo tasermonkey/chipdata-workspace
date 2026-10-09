@@ -125,7 +125,7 @@ checkGeneration:
 
 
 updatePowerDelta:
-  beqz r0 zeroGen
+  beqz powerTotalOutputSum zeroGen
   div r0 totalPowerUsage powerTotalOutputSum
   add r0 r0 1
   div r0 1 r0

@@ -1,4 +1,25 @@
-import type { Device } from "@stationeers-ic/ic10";
+import { type BiMap, type Device, Devices, DevicesByPrefabName, HashString, Structure } from "@stationeers-ic/ic10";
+
+/** Whether the emulator's device catalogue has this prefab. */
+export function isCatalogued(prefab: string): boolean {
+	return Object.hasOwn(DevicesByPrefabName, prefab);
+}
+
+/**
+ * A device the emulator's catalogue doesn't have, such as a console-mod display. Its PrefabHash is
+ * HASH(prefab), so batch instructions find it, and it has every logic property, readable and writable.
+ */
+export class CustomDevice extends Structure {
+	constructor(id: number, prefab: string) {
+		const prefabName = new HashString(prefab);
+		// lb, sb and the rest reject a hash missing from this table. Registering it is global, but
+		// only adds a prefab the game has and the emulator doesn't.
+		(Devices as unknown as BiMap<number, string>).set(prefabName.hash, prefab);
+		super({ id, hash: prefabName.hash, name: prefab });
+		Object.defineProperty(this, "prefabName", { value: prefabName });
+		this.errors.reset(); // the emulator's "unknown device" warnings
+	}
+}
 
 /** Whether the device has a logic property of this name (readable or writable). */
 export function hasProp(device: Device, prop: string): boolean {

@@ -8,7 +8,7 @@ import {
 	Ic10Runner,
 } from "@stationeers-ic/ic10";
 import { EngineChip } from "./chip.ts";
-import { listProps, writeProp, writePropIfPresent } from "./device.ts";
+import { CustomDevice, isCatalogued, listProps, writeProp, writePropIfPresent } from "./device.ts";
 
 export interface EngineDeviceSpec {
 	/** Test-side key, used in error messages. */
@@ -19,6 +19,8 @@ export interface EngineDeviceSpec {
 	name?: string;
 	network: string;
 	props: Record<string, number>;
+	/** Not in the emulator's catalogue: built as a {@link CustomDevice}. */
+	custom?: boolean;
 }
 
 export interface EngineHousingSpec extends EngineDeviceSpec {
@@ -49,6 +51,7 @@ export interface Engine {
  */
 export function buildEngine(spec: EngineSpec): Engine {
 	const port = (network: string) => [{ port: "default", network }];
+	const custom = new Map(spec.devices.filter((d) => d.custom).map((d) => [d.id, d]));
 	const env = {
 		version: 1,
 		chips: spec.housings.map((housing, i) => ({ id: i + 1, code: housing.code })),
@@ -60,20 +63,27 @@ export function buildEngine(spec: EngineSpec): Engine {
 				chip: i + 1,
 				...(housing.name !== undefined && { name: housing.name }),
 				ports: port(housing.network),
-				pins: Object.entries(housing.pins).map(([pin, device]) => ({ pin, device })),
+				pins: Object.entries(housing.pins)
+					.filter(([, device]) => !custom.has(device))
+					.map(([pin, device]) => ({ pin, device })),
 			})),
-			...spec.devices.map((device) => ({
-				id: device.id,
-				PrefabName: device.prefab,
-				...(device.name !== undefined && { name: device.name }),
-				ports: port(device.network),
-				props: Object.entries(device.props).map(([name, value]) => ({ name, value })),
-			})),
+			...spec.devices
+				.filter((device) => !device.custom)
+				.map((device) => ({
+					id: device.id,
+					PrefabName: device.prefab,
+					...(device.name !== undefined && { name: device.name }),
+					ports: port(device.network),
+					props: Object.entries(device.props).map(([name, value]) => ({ name, value })),
+				})),
 		],
 	} as EnvSchema;
 
 	const keys = new Map([...spec.housings, ...spec.devices].map((d) => [d.id, d.key]));
-	const engine = buildEngineFromEnv(env, spec.seed, (id) => keys.get(id) ?? String(id));
+	const keyOf = (id: number) => keys.get(id) ?? String(id);
+	const builder = parseEnv(env, keyOf);
+	if (custom.size > 0) addCustomDevices(builder, [...custom.values()], spec.housings);
+	const engine = prepareEngine(builder, spec.seed, keyOf);
 
 	// A housing's own properties are written after its chip is reset, with the harness's messages.
 	for (const housingSpec of spec.housings) {
@@ -95,14 +105,56 @@ export function buildEngine(spec: EngineSpec): Engine {
  * stack, and the housing's properties, are kept. `keyOf` names a device in error messages.
  */
 export function buildEngineFromEnv(env: EnvSchema | string, seed: number, keyOf: (id: number) => string): Engine {
-	let builder: Builder;
+	return prepareEngine(parseEnv(env, keyOf), seed, keyOf);
+}
+
+function parseEnv(env: EnvSchema | string, keyOf: (id: number) => string): Builder {
 	try {
-		builder = Builder.from(typeof env === "string" ? env : JSON.stringify(env));
+		return Builder.from(typeof env === "string" ? env : JSON.stringify(env));
 	} catch (error) {
 		const ids = typeof env === "string" ? "" : ` (device IDs: ${env.devices.map((d) => `${keyOf(d.id)}=${d.id}`).join(", ")})`;
 		throw new Error(`sim: the emulator rejected the world: ${(error as Error).message}${ids}`);
 	}
+}
 
+/**
+ * Add devices the emulator's catalogue doesn't have, which its env format would reject: put each on
+ * its network with its properties, then connect the housing pins that point at them.
+ */
+function addCustomDevices(builder: Builder, devices: EngineDeviceSpec[], housings: EngineHousingSpec[]): void {
+	for (const spec of devices) {
+		if (isCatalogued(spec.prefab)) {
+			throw new Error(`sim: "${spec.key}": ${spec.prefab} is in the emulator's catalogue, so it can't be custom`);
+		}
+		const device = new CustomDevice(spec.id, spec.prefab);
+		if (spec.name !== undefined) device.name = spec.name;
+		builder.Networks.get(spec.network)!.apply(device);
+		for (const [prop, value] of Object.entries(spec.props)) {
+			try {
+				writeProp(device, prop, value);
+			} catch (error) {
+				throw new Error(`sim: "${spec.key}": ${(error as Error).message}`);
+			}
+		}
+		builder.Devices.set(spec.id, device);
+	}
+	const custom = new Map(devices.map((d) => [d.id, d]));
+	for (const housingSpec of housings) {
+		const housing = builder.Devices.get(housingSpec.id) as Housing;
+		for (const [pin, id] of Object.entries(housingSpec.pins)) {
+			const target = custom.get(id);
+			if (!target) continue;
+			if (target.network !== housingSpec.network) {
+				throw new Error(
+					`sim: "${housingSpec.key}" ${pin}: "${target.key}" is on network "${target.network}", not "${housingSpec.network}"`,
+				);
+			}
+			housing.connectDevices(Number(pin.slice(1)), builder.Devices.get(id)!);
+		}
+	}
+}
+
+function prepareEngine(builder: Builder, seed: number, keyOf: (id: number) => string): Engine {
 	const chips = new Map<number, EngineChip>();
 	for (const [id, device] of builder.Devices) {
 		if (!(device instanceof Housing) || !device.chip) continue;

@@ -271,6 +271,10 @@ describe("VCCR Cooling Air Management", () => {
     is the **Logic Mirror** (§5.4).
   - With more than one network, each device says which one it's on:
     `{ network: "outside" }`. With a single data network, that's the default.
+- **Devices the emulator doesn't know** (console-mod parts, `StationBatteryNuclear`) are a build
+  error unless marked `{ custom: true }`. A custom device's PrefabHash is `HASH(prefab)`, so batch
+  instructions find it by type and name, and it accepts every logic property, readable and
+  writable. Phase 5's catalogue can tighten that to the real property lists.
 - The chip can live in a device that holds a chip (an AC unit or filtration unit), and then `db` is
   that device.
 - **Chips that configure other chips.** A housing can be pinned to another housing, and `put` / `get`
@@ -291,7 +295,7 @@ describe("VCCR Cooling Air Management", () => {
       ` })
       .device("lathe1",  "StructureAutolathe", {},       { id: "$1488" })
       .device("stacker", "StructureStacker",   {},       { id: "$3606" })
-      .device("power",   "ModularDeviceFlipCoverSwitch", { On: 0 }, { id: "$AE87A" })
+      .device("power",   "ModularDeviceFlipCoverSwitch", { On: 0 }, { id: "$AE87A", custom: true })
       // …
       .build();
 
@@ -658,8 +662,16 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 - **Phase 4 is in progress.** Regression tests were written first and failed, then the scripts were
   fixed, for 1.1 (Alaska), 1.4 (Cooling Air Mgmt), 1.5 (CoolCleanMarsAir) and 1.6 (Suit MKII
   chatter; the fix also corrects the 1.7 branch offset). The script sweep is now 38/38.
-  1.9, 1.10 and the FabControl pair are **blocked**: they use console-mod devices
-  (`ModularDevice*`) and `StationBatteryNuclear`, which aren't in the emulator's device catalogue.
+  1.9, 1.10 and the FabControl pair needed console-mod devices (`ModularDevice*`) and
+  `StationBatteryNuclear`, which aren't in the emulator's device catalogue, so `sim()` now takes
+  **custom devices** (`{ custom: true }`, §4.4). The harness registers their hashes with the
+  emulator, which otherwise rejects an unknown hash in `lb` / `sb`. With them (2026-10-09):
+  - 1.9 Battery Controller 1 and 1.10 Trader Vert: failing tests first, then the fixes.
+  - FabControl: behaviour tests with the real setup chip and devices at its hard-coded IDs. They
+    passed as written; swapping the light colours or the button offset in Control makes them fail.
+  - Behaviour tests for the Trader Vert buttons and numpad.
+
+  Next: behaviour tests for the simpler scripts.
 
 Suggested first regression tests (Phase 4):
 

@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { type DebugGate, getDefaultDebugGate } from "../debug/gate.ts";
 import { buildEngine, type Engine, type EngineDeviceSpec, type EngineHousingSpec } from "../engine/build.ts";
+import { isCatalogued } from "../engine/device.ts";
 import { parseId, type ReferenceId } from "../engine/ids.ts";
 import { ChipState, Scheduler } from "../scheduler/scheduler.ts";
 import { readScript } from "../scripts.ts";
@@ -46,6 +47,11 @@ export interface DeviceOptions {
 	name?: string;
 	/** Data network id. May be left out when the world has one network. */
 	network?: string;
+	/**
+	 * The device isn't in the emulator's catalogue (a console-mod display, say). Its PrefabHash is
+	 * HASH(prefab), and it accepts every logic property, readable and writable. Devices only.
+	 */
+	custom?: boolean;
 }
 
 export type Pin = "d0" | "d1" | "d2" | "d3" | "d4" | "d5";
@@ -130,6 +136,14 @@ export class SimBuilder {
 		for (const decl of this.decls) {
 			if (keys.has(decl.key)) throw new Error(`sim: "${decl.key}" is declared twice`);
 			keys.add(decl.key);
+			if (decl.housing && decl.options.custom) {
+				throw new Error(`sim: housing "${decl.key}": a housing can't be custom`);
+			}
+			if (!decl.options.custom && !isCatalogued(decl.prefab)) {
+				throw new Error(
+					`sim: "${decl.key}": the emulator has no device ${decl.prefab}; for one it doesn't know, pass { custom: true }`,
+				);
+			}
 		}
 
 		const ids = this.assignIds();
@@ -141,6 +155,7 @@ export class SimBuilder {
 				...(decl.options.name !== undefined && { name: decl.options.name }),
 				network: this.networkOf(decl, networks),
 				props: decl.props,
+				...(decl.options.custom && { custom: true }),
 			};
 			if (!decl.housing) return base;
 			const pins: Record<string, number> = {};

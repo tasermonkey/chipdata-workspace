@@ -43,8 +43,7 @@ alias CurrentButton r14
 alias Multiplier r13
 alias Delta r12
 
-sbn NUM_DISPLAY_TYPE HASH("HC Current Value") Setting 0
-#sbn NUM_DISPLAY_TYPE HASH("VC Current Value") Setting 0
+sbn NUM_DISPLAY_TYPE HASH("VC Current Value") Setting 0
 
 programLoop:
 yield
