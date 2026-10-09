@@ -19,6 +19,25 @@ Line numbers refer to the files as committed at `f71665a`.
 
 These are places where the code almost certainly doesn't do what the comments or README say.
 
+**Status (2026-10-09).** Each fix was made after a test that failed against the script as it was
+(1.2's test pins behaviour that didn't change). Line numbers in the items below are from before
+the fixes.
+
+| Item | Status | Test |
+|---|---|---|
+| 1.1 Alaska `stage` | Fixed 2026-10-08 | [Alaska IC Cooler.test.ts](tests/ClimateControl/Alaska%20IC%20Cooler.test.ts) |
+| 1.2 Alaska `MIN_TEMP` / `MAX_TEMP` | Fixed: kelvin defines with °C comments, now used | same |
+| 1.3 Alaska vent modes | **Open**: needs an in-game check | — |
+| 1.4 Cooling Air Management | Fixed 2026-10-08 | [VC-IC Cooling Air Management.test.ts](tests/ClimateControl/VC-IC%20Cooling%20Air%20Management.test.ts) |
+| 1.5 CoolCleanMarsAir | Fixed 2026-10-08 | [CoolCleanMarsAir.test.ts](tests/ClimateControl/CoolCleanMarsAir.test.ts) |
+| 1.6 Suit MKII filtration chatter | Fixed 2026-10-08 | [Simple Suit Controller MKII.test.ts](tests/SuitControl/Simple%20Suit%20Controller%20MKII.test.ts) |
+| 1.7 Suit MKII branch offset | Fixed by the 1.6 change | same |
+| 1.8 Suit helmet in a hostile atmosphere | Fixed (MKI and MKII): 40–150 kPa and 280–313 K | [helmet.ts](tests/SuitControl/helmet.ts), run by both suit tests |
+| 1.9 Battery Controller 1 guard | Fixed | [VCIC - Battery Controller 1.test.ts](tests/EControl/VCIC%20-%20Battery%20Controller%201.test.ts) |
+| 1.10 Trader Vert reset | Fixed | [VCIC Trader Vert Input.test.ts](tests/TraderControl/VCIC%20Trader%20Vert%20Input.test.ts) |
+| 1.11 Mixer housing status | Fixed in all three mixer scripts | [gas-mixer.ts](tests/support/gas-mixer.ts), run by each mixer's test |
+| 1.12 N-CO2 "O2 Tank" | Fixed: the second input is the CO₂. Tanks no longer have logic in game, so both air mixers now read pipe analyzers (`PA Nitrogen`, `PA CO2`, `PA O2`, `PA Breathable Air`) | [MBA - N-CO2 Mixer.test.ts](tests/ClimateControl/AirMixers/MBA%20-%20N-CO2%20Mixer.test.ts) |
+
 ### 1.1 Alaska IC Cooler: misspelled register alias errors the chip
 [Alaska IC Cooler [101290].ic10:58](ic10/ClimateControl/Alaska%20IC%20Cooler%20%5B101290%5D.ic10#L58)
 
