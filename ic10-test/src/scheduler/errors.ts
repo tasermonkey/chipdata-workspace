@@ -1,5 +1,5 @@
 import { formatSeconds } from "./time.ts";
-import type { ChipState, Scheduler } from "./scheduler.ts";
+import type { ChipState, Scheduler, TraceEntry } from "./scheduler.ts";
 
 /** How many trace lines a report shows. */
 const REPORT_LINES = 20;
@@ -30,13 +30,19 @@ export function formatReport(scheduler: Scheduler): string {
 	const trace = scheduler.trace.slice(-REPORT_LINES);
 	if (trace.length > 0) {
 		out.push(`last ${trace.length} lines run:`);
-		for (const entry of trace) {
-			const outcome = entry.outcome === "ran" ? "" : `  <- ${entry.outcome}`;
-			const tick = `tick ${entry.tick}`.padEnd(10);
-			out.push(`  ${tick} ${entry.chip.padEnd(width)} ${String(entry.line).padStart(4)}  ${entry.text.trim()}${outcome}`);
-		}
+		out.push(...formatTrace(trace, width));
 	}
 	return out.join("\n");
+}
+
+/** Trace entries as indented lines: tick, chip (when `chipWidth` is given), line index, source, outcome. */
+export function formatTrace(trace: readonly TraceEntry[], chipWidth?: number): string[] {
+	return trace.map((entry) => {
+		const outcome = entry.outcome === "ran" ? "" : `  <- ${entry.outcome}`;
+		const tick = `tick ${entry.tick}`.padEnd(10);
+		const chip = chipWidth === undefined ? "" : `${entry.chip.padEnd(chipWidth)} `;
+		return `  ${tick} ${chip}${String(entry.line).padStart(4)}  ${entry.text.trim()}${outcome}`;
+	});
 }
 
 /** A run call couldn't do what it was asked; the message includes a report of every chip. */

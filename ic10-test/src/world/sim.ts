@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { type DebugGate, getDefaultDebugGate } from "../debug/gate.ts";
-import { buildEngine, type EngineDeviceSpec, type EngineHousingSpec } from "../engine/build.ts";
+import { buildEngine, type Engine, type EngineDeviceSpec, type EngineHousingSpec } from "../engine/build.ts";
 import { parseId, type ReferenceId } from "../engine/ids.ts";
 import { ChipState, Scheduler } from "../scheduler/scheduler.ts";
 import { readScript } from "../scripts.ts";
@@ -161,40 +161,21 @@ export class SimBuilder {
 			prefab: s.prefab,
 			network: s.network,
 		}));
-		const world = new World(entries, new EventQueue(), {
-			tickSeconds: opts.tickSeconds ?? 0.5,
-			maxTicks: opts.maxTicks ?? 10_000,
-			maxLinesPerRun: opts.maxLinesPerRun ?? 1_000_000,
-		});
-
-		const chips = housingSpecs.map((spec) => {
+		const keyOfId = new Map(specs.map((s) => [s.id, s.key]));
+		const chips = housingSpecs.map((spec): ChipDecl => {
 			const housing = this.decls.find((d) => d.key === spec.key)!.housing!;
-			return new ChipState(
-				spec.key,
-				engine.chips.get(spec.id)!,
-				housing.file ?? "<code>",
-				housing.linesPerTick ?? opts.linesPerTick ?? 128,
-				housing.countNonInstructionLines ?? opts.countNonInstructionLines ?? true,
-			);
+			return {
+				key: spec.key,
+				id: spec.id,
+				source: housing.file ?? "<code>",
+				pins: Object.fromEntries(Object.entries(spec.pins).map(([pin, id]) => [pin, keyOfId.get(id)!])),
+				...(housing.linesPerTick !== undefined && { linesPerTick: housing.linesPerTick }),
+				...(housing.countNonInstructionLines !== undefined && {
+					countNonInstructionLines: housing.countNonInstructionLines,
+				}),
+			};
 		});
-		const gate = opts.debug === false ? undefined : (opts.debug ?? getDefaultDebugGate());
-		const scheduler = new Scheduler(
-			chips,
-			{
-				tickSeconds: world.options.tickSeconds,
-				maxLinesPerRun: world.options.maxLinesPerRun,
-				failOnHalt: opts.failOnHalt ?? false,
-				traceLength: opts.traceLength ?? 50,
-			},
-			{
-				world,
-				...(gate && { gate }),
-				beginTick: (tick) => world.beginTick(tick),
-				endTick: (tick) => world.endTick(tick),
-			},
-		);
-		world.attach(scheduler);
-		return world;
+		return assembleWorld(engine, entries, chips, opts);
 	}
 
 	/** Explicit IDs first (checking for duplicates), then a fixed sequence for the rest. */
@@ -228,6 +209,54 @@ export class SimBuilder {
 		if (!networks.includes(network)) throw new Error(`sim: "${decl.key}": no network "${network}"`);
 		return network;
 	}
+}
+
+/** A chip for `assembleWorld`: its housing's key and ID, and per-chip settings. */
+export interface ChipDecl {
+	key: string;
+	id: number;
+	source: string;
+	pins: Record<string, string>;
+	linesPerTick?: number;
+	countNonInstructionLines?: boolean;
+}
+
+/** @internal Wrap built emulator objects in a World with its scheduler. */
+export function assembleWorld(engine: Engine, entries: DeviceEntry[], chipDecls: ChipDecl[], opts: SimOptions): World {
+	const world = new World(entries, new EventQueue(), {
+		tickSeconds: opts.tickSeconds ?? 0.5,
+		maxTicks: opts.maxTicks ?? 10_000,
+		maxLinesPerRun: opts.maxLinesPerRun ?? 1_000_000,
+	});
+	const chips = chipDecls.map(
+		(chip) =>
+			new ChipState(
+				chip.key,
+				engine.chips.get(chip.id)!,
+				chip.source,
+				chip.linesPerTick ?? opts.linesPerTick ?? 128,
+				chip.countNonInstructionLines ?? opts.countNonInstructionLines ?? true,
+				chip.pins,
+			),
+	);
+	const gate = opts.debug === false ? undefined : (opts.debug ?? getDefaultDebugGate());
+	const scheduler = new Scheduler(
+		chips,
+		{
+			tickSeconds: world.options.tickSeconds,
+			maxLinesPerRun: world.options.maxLinesPerRun,
+			failOnHalt: opts.failOnHalt ?? false,
+			traceLength: opts.traceLength ?? 50,
+		},
+		{
+			world,
+			...(gate && { gate }),
+			beginTick: (tick) => world.beginTick(tick),
+			endTick: (tick) => world.endTick(tick),
+		},
+	);
+	world.attach(scheduler);
+	return world;
 }
 
 function programOf(key: string, housing: HousingOptions, root: string): string {

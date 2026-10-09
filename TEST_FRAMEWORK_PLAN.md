@@ -592,7 +592,7 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 | **7 VS Code debugger** | §6b. Build the adapter and a small extension in `ic10-test/vscode/`, reusing vscode-ic10's grammar and adapter pieces. Add the CodeLens on tests and the scopes from the table. | Breakpoint in an `.ic10` file, "Debug IC10" on a test, step line by line, and watch registers and `vent.On` change. |
 | **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, and extracting `ic10-test/` to its own repo. | — |
 
-**Status (2026-10-07):**
+**Status (2026-10-08):**
 - **Phase 0 is done.** The fork has been converted (CI passes). The root npm workspace uses
   `vitest.config.ts` and resolves the fork's TypeScript sources through a `source` export
   condition, so there's no build step. The first VCCR test and the script sweep are in `tests/`.
@@ -616,8 +616,23 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   - The debug gate (`sim({ debug })`, `setDefaultDebugGate`).
 
   Line numbers in the API are **0-based**, like the game's `LineNumber`. The VCCR test is in the §4.4
-  style (plain `expect` until the Phase 3 matchers exist), plus a day-comes test that found G13.
-  **Next: Phase 3.**
+  style, plus a day-comes test that found G13.
+- **Phase 3 is done (2026-10-08).** All twelve §4.6 matchers are in `ic10-test/src/matchers/vitest-setup.ts`, loaded
+  through `setupFiles`. Each is backed by a plain `check*` function in `src/matchers/checks.ts`.
+  Details settled while building them:
+  - `toHaveNoErrors()` counts **warnings and above** by default. That includes reading a property
+    the device doesn't have, which the emulator records as a warning without halting.
+    `{ severity }` changes the threshold.
+  - `toOnlyChange` takes a world with `{ since: snapshot }`, or `world.diff(...)`. It accepts aliases
+    and `*`, and ignores a housing's `LineNumber`, which the emulator updates on every line.
+  - `toHaveProps` also accepts a chip, meaning its housing (`db`). Asymmetric matchers work.
+  - A failure report shows the chip's status and source line, registers with aliases (values that
+    are reference IDs are labelled with their device), the stack, the devices on its pins and `db`,
+    and its last lines. Auto-yield failures also list where the chip was preempted and in which ticks.
+  - `World.fromEnv(env)` takes an object, JSON text or a file path. Devices are keyed by unique
+    `name`, otherwise by `$hex` ID, or by `{ testKeysById }`. Chips keep their starting registers and stack.
+
+  The VCCR test now uses the matchers. **Next: Phase 4.**
 
 Suggested first regression tests (Phase 4):
 

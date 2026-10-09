@@ -1,10 +1,12 @@
 import type { Device, Ic10Error } from "@stationeers-ic/ic10";
 import { listProps, readProp, writeProp } from "../engine/device.ts";
 import { formatId } from "../engine/ids.ts";
-import { SimBudgetError, SimRunError } from "../scheduler/errors.ts";
-import type { ChipState, Halt, Scheduler } from "../scheduler/scheduler.ts";
+import type { EnvSchema } from "@stationeers-ic/ic10";
+import { describeChip, SimBudgetError, SimRunError } from "../scheduler/errors.ts";
+import type { AutoYield, ChipState, Halt, Scheduler, TraceEntry } from "../scheduler/scheduler.ts";
 import { secondsToTicks } from "../scheduler/time.ts";
 import type { Cancel, EventQueue, Interval, When, WorldEvent } from "./events.ts";
+import { type EnvWorldOptions, worldFromEnv } from "./from-env.ts";
 import { type Change, diffSnapshots, Recording, type Snapshot } from "./snapshot.ts";
 
 /** Settings a built world runs with (see `SimOptions` for what each means). */
@@ -29,9 +31,12 @@ export interface DeviceEntry {
 
 /** A device in the world (a housing too), found by its test-side key. */
 export class DeviceHandle {
+	/** The world the device is in. */
+	readonly world: World;
 	private readonly entry: DeviceEntry;
 
-	constructor(entry: DeviceEntry) {
+	constructor(world: World, entry: DeviceEntry) {
+		this.world = world;
 		this.entry = entry;
 	}
 
@@ -94,7 +99,8 @@ export class DeviceHandle {
 
 /** A chip in its housing, found by the housing's test-side key. */
 export class ChipHandle {
-	private readonly world: World;
+	/** The world the chip is in. */
+	readonly world: World;
 	private readonly state: ChipState;
 
 	constructor(world: World, state: ChipState) {
@@ -109,6 +115,11 @@ export class ChipHandle {
 	/** Where the program came from: a file path, or `<code>`. */
 	get source(): string {
 		return this.state.source;
+	}
+
+	/** Which device (by key) is on each pin, e.g. `{ d0: "vent" }`. */
+	get pins(): Readonly<Record<string, string>> {
+		return this.state.pins;
 	}
 
 	/** The housing, i.e. the chip's `db`. */
@@ -175,6 +186,16 @@ export class ChipHandle {
 		return this.state.engine.lineText(index);
 	}
 
+	/** Line index of a label, or undefined if the program has no such label. */
+	findLabel(name: string): number | undefined {
+		return this.state.engine.findLabel(name);
+	}
+
+	/** Number of source lines. */
+	get lineCount(): number {
+		return this.state.engine.lineCount;
+	}
+
 	/** Every error recorded on the chip, of any severity. */
 	get errors(): Ic10Error[] {
 		return this.state.engine.errors;
@@ -203,9 +224,29 @@ export class ChipHandle {
 		return this.state.autoYields;
 	}
 
+	/** Every automatic yield so far: the tick and the last line run before it. */
+	get autoYieldLog(): readonly AutoYield[] {
+		return this.state.autoYieldLog;
+	}
+
 	/** Lines executed in total. */
 	get linesExecuted(): number {
 		return this.state.linesExecuted;
+	}
+
+	/** Lines per tick before an automatic yield. */
+	get linesPerTick(): number {
+		return this.state.linesPerTick;
+	}
+
+	/** Where the chip is, in one line: halted, ended, sleeping or the line it runs next. */
+	get status(): string {
+		return describeChip(this.state, this.world.scheduler);
+	}
+
+	/** The last lines this chip ran (up to `n`, from what the world keeps; see `traceLength`). */
+	recentLines(n = 20): TraceEntry[] {
+		return this.world.scheduler.trace.filter((entry) => entry.chip === this.key).slice(-n);
 	}
 
 	/** Run whole ticks until this chip halts or ends. */
@@ -262,10 +303,18 @@ export class World {
 	private readonly events: EventQueue;
 	readonly options: WorldOptions;
 
+	/**
+	 * Build a world from emulator env JSON: an object, JSON text, or a path to a `.json` file.
+	 * Devices are keyed by their `name` when it's unique, otherwise by reference ID in `$hex` form.
+	 */
+	static fromEnv(env: EnvSchema | string, options?: EnvWorldOptions): Promise<World> {
+		return worldFromEnv(env, options);
+	}
+
 	constructor(devices: DeviceEntry[], events: EventQueue, options: WorldOptions) {
 		this.events = events;
 		this.options = options;
-		for (const entry of devices) this.devices.set(entry.key, new DeviceHandle(entry));
+		for (const entry of devices) this.devices.set(entry.key, new DeviceHandle(this, entry));
 	}
 
 	/** @internal */
@@ -308,6 +357,21 @@ export class World {
 		return handle;
 	}
 
+	/** Every device, housings included, in declaration order. */
+	listDevices(): DeviceHandle[] {
+		return [...this.devices.values()];
+	}
+
+	/** Every chip, in the order they run. */
+	listChips(): ChipHandle[] {
+		return [...this.chips.values()];
+	}
+
+	/** The device with this reference ID, or undefined. */
+	deviceById(id: number): DeviceHandle | undefined {
+		return this.listDevices().find((d) => d.id === id);
+	}
+
 	/** A chip's housing, i.e. its `db`. */
 	db(key: string): DeviceHandle {
 		return this.chip(key).db;
@@ -324,13 +388,18 @@ export class World {
 	 * alias; anything else on a chip key is its housing's property, e.g. `ic.Setting`).
 	 */
 	value(path: string): number {
-		const dot = path.lastIndexOf(".");
-		if (dot <= 0) throw new Error(`invalid path "${path}": use "<key>.<property or register>"`);
-		const key = path.slice(0, dot);
-		const name = path.slice(dot + 1);
+		const { key, name } = splitPath(path);
 		const chip = this.chips.get(key);
 		if (chip?.hasRegister(name)) return chip.reg(name);
 		return this.device(key).get(name);
+	}
+
+	/** A path as snapshots spell it: a register alias becomes its register (`ic.Stage` → `ic.r15`). */
+	canonicalPath(path: string): string {
+		const { key, name } = splitPath(path);
+		const chip = this.chips.get(key);
+		if (chip?.hasRegister(name)) return `${key}.r${chip.registerIndex(name)}`;
+		return path;
 	}
 
 	// --- running ---------------------------------------------------------------------------------
@@ -537,4 +606,10 @@ export class World {
 			this.running = false;
 		}
 	}
+}
+
+function splitPath(path: string): { key: string; name: string } {
+	const dot = path.lastIndexOf(".");
+	if (dot <= 0) throw new Error(`invalid path "${path}": use "<key>.<property or register>"`);
+	return { key: path.slice(0, dot), name: path.slice(dot + 1) };
 }

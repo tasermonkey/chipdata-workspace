@@ -5,12 +5,28 @@
 	"type": "module",
 	"description": "Test harness for Stationeers IC10 scripts, built on the @stationeers-ic/ic10 emulator",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./vitest": "./src/matchers/vitest-setup.ts"
+	},
+	"scripts": {
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@stationeers-ic/ic10": "*"
 	},
 	"engines": {
 		"node": ">=24"
+	},
+	"peerDependencies": {
+		"vitest": ">=5"
+	},
+	"peerDependenciesMeta": {
+		"vitest": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"vitest": "^5.0.3"
 	}
 }

@@ -24,6 +24,12 @@ export interface Halt {
 	tick: number;
 }
 
+/** One automatic yield: the tick it happened in, and the last line run before it. */
+export interface AutoYield {
+	tick: number;
+	line: number;
+}
+
 /** One executed line, for failure reports. */
 export interface TraceEntry {
 	tick: number;
@@ -43,20 +49,22 @@ export class ChipState {
 	halt: Halt | null = null;
 	/** Ran off the end of its program. */
 	ended = false;
-	/** Times the chip used up its lines for a tick and was preempted. */
-	autoYields = 0;
+	/** Every time the chip used up its lines for a tick and was preempted, in order. */
+	readonly autoYieldLog: AutoYield[] = [];
 	/** Lines executed in total. */
 	linesExecuted = 0;
 
 	/** Test-side key of the housing. */
 	readonly key: string;
 	readonly engine: EngineChip;
-	/** Where the program came from: a file path, or `<code>` for inline source. */
+	/** Where the program came from: a file path, `<code>` for inline source, or `<env>`. */
 	readonly source: string;
 	/** Lines per tick before an automatic yield (the game's is 128). */
 	readonly linesPerTick: number;
 	/** Whether blank, comment and label lines use up the per-tick budget (they do in game). */
 	readonly countNonInstructionLines: boolean;
+	/** Which device (by key) is on each pin, e.g. `{ d0: "vent" }`. */
+	readonly pins: Readonly<Record<string, string>>;
 
 	constructor(
 		key: string,
@@ -64,12 +72,19 @@ export class ChipState {
 		source: string,
 		linesPerTick: number,
 		countNonInstructionLines: boolean,
+		pins: Record<string, string> = {},
 	) {
 		this.key = key;
 		this.engine = engine;
 		this.source = source;
 		this.linesPerTick = linesPerTick;
 		this.countNonInstructionLines = countNonInstructionLines;
+		this.pins = pins;
+	}
+
+	/** Times the chip used up its lines for a tick and was preempted. */
+	get autoYields(): number {
+		return this.autoYieldLog.length;
 	}
 
 	/** Halted or ended: the chip won't run again. */
@@ -212,7 +227,7 @@ export class Scheduler {
 
 		if (ticks && counts) chip.linesThisTick++;
 		if (ticks && !chip.doneThisTick && !chip.stopped && chip.linesThisTick >= chip.linesPerTick) {
-			chip.autoYields++;
+			chip.autoYieldLog.push({ tick: this.tick, line });
 			chip.doneThisTick = true;
 			await gate?.onAutoYield?.(info);
 		}

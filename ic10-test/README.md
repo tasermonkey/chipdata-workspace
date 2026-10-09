@@ -20,9 +20,9 @@ const world = await sim()
 world.at({ tick: 20 }, (w) => w.device("sensor").set("Temperature", 450)); // day comes
 await world.runTicks(30);
 
-expect(world.device("vent").props("Mode", "On")).toEqual({ Mode: 0, On: 1 });
-expect(world.chip("ic").reg("OutsideTemp")).toBe(450); // aliases work
-expect(world.chip("ic").halted).toBe(false);
+expect(world.device("vent")).toHaveProps({ Mode: 0, On: 1 });
+expect(world.chip("ic")).toHaveRegister("OutsideTemp", 450); // aliases work
+expect(world.chip("ic")).toHaveNoErrors();
 ```
 
 ## Execution model
@@ -56,9 +56,42 @@ fails at once if every chip has stopped and no events are due.
 
 - `world.device(key)`: `get`, `set` (read-only properties too), `add`, `props(...)`, `id`, `idHex`, `name`.
 - `world.chip(key)`: `reg("Stage" | "r15")`, `setReg`, `registers()`, `aliases()`, `stack()`, `stackAt(i)`,
-  `sp`, `ra`, `line`, `errors`, `halt`, `ended`, `sleeping`, `autoYields`, `db`.
+  `sp`, `ra`, `line`, `findLabel`, `errors`, `halt`, `ended`, `sleeping`, `autoYields`, `autoYieldLog`,
+  `pins`, `status`, `recentLines(n)`, `db`.
+- `world.listDevices()`, `world.listChips()`, `world.deviceById(id)`.
 - `world.network(id).byName(...)` / `.byType(...)`.
 - `world.snapshot()` / `world.diff(before)`; `world.record("vent.On")` samples a value every tick.
+
+## Matchers
+
+Add `@tasermonkey/ic10-test/vitest` (in this repo, `./ic10-test/src/matchers/vitest-setup.ts`) to Vitest's `setupFiles`.
+
+| Matcher | Subject | Passes when |
+|---|---|---|
+| `toHaveProps({ Mode: 1 })` | device, or chip (its housing) | Those properties have those values; others aren't checked. Asymmetric matchers such as `expect.closeTo` work. |
+| `toHaveRegister(name, v)` | chip | `r15`, `sp`, `ra` or an alias has the value. |
+| `toHaveRegisterCloseTo(name, v, digits = 2)` | chip | Within `10^-digits / 2`. |
+| `toHaveStack([...])` / `toHaveStackAt(i, v)` | chip | The stack below `sp` / one entry. |
+| `toBeAtLine(index | label)` | chip | It runs that line next, or halted on it. |
+| `toHaveNoErrors({ severity })` | chip | Not halted, and no errors at or above `severity` (default `"warning"`, which includes reading a property a device doesn't have). |
+| `toHaveHalted({ line, error, code })` | chip | Halted, optionally on that line with a matching message (string or RegExp) or code. |
+| `toOnlyChange(paths, { since })` | world, or `world.diff(...)` | Nothing else changed. Paths can use aliases (`ic.Stage`) and `*`. A housing's `LineNumber` is ignored unless listed. |
+| `toToggleAtMost(n)` | `world.record(...)` | The value changed at most `n` times. |
+| `toNeverAutoYield()` | chip | Never ran out of lines in a tick. |
+| `toAutoYieldAtMost(n, { perTicks })` | chip | At most `n` auto-yields, in total or in any window of `perTicks` ticks. |
+
+A failure shows the chip's state and source line, its registers with aliases (values that are
+reference IDs are labelled with their device), the stack, the devices on its pins and its housing,
+and the last lines it ran; for auto-yields, where it was preempted and in which ticks. Each matcher
+is a plain function underneath (`checkProps`, `checkRegister`, …), returning `{ pass, message }`,
+and the reports are available as `chipReport`, `deviceReport` and `worldReport`.
+
+## Env files
+
+`World.fromEnv(env, options)` builds a world from the emulator's env JSON: an object, JSON text, or a
+path relative to `root`. Devices are keyed by their `name` when it's unique, otherwise by reference
+ID in `$hex` form (`world.device("$300")`); `{ testKeysById: { $300: "vent" } }` names them yourself. Chips
+keep their starting registers and stack, and take the same options as `sim()`.
 
 ## Debugging
 
@@ -68,4 +101,5 @@ line, on halts, on automatic yields and after each tick. The VS Code debugger wi
 Also exported: `createEnv` (a lower-level world from emulator env JSON), `readScript` / `findScripts`,
 `parseId` / `formatId`.
 
-Runs as TypeScript source on Node 24+ (no build step yet).
+Runs as TypeScript source on Node 24+ (no build step yet). Its own tests run with `npm test` in this
+directory, or `npm test -w ic10-test` from the workspace root; the root `npm test` runs them too.

@@ -13,5 +13,7 @@ export default defineConfig({
 	},
 	test: {
 		include: ["tests/**/*.test.ts", "ic10-test/test/**/*.test.ts"],
+		// The IC10 matchers (toHaveProps, toHaveRegister, toHaveNoErrors, …).
+		setupFiles: ["./ic10-test/src/matchers/vitest-setup.ts"],
 	},
 });

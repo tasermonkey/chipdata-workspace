@@ -1,3 +1,5 @@
+export * from "./matchers/checks.ts";
+export { chipReport, deviceReport, worldReport } from "./matchers/report.ts";
 export { type DebugGate, type DebugLineInfo, setDefaultDebugGate } from "./debug/gate.ts";
 export type { StepOutcome } from "./engine/chip.ts";
 export { createEnv, type Env } from "./engine/env.ts";
@@ -8,4 +10,5 @@ export { findScripts, readScript } from "./scripts.ts";
 export type { Cancel, Interval, When, WorldEvent } from "./world/events.ts";
 export { type DeviceOptions, type HousingOptions, type Pin, SimBuilder, type SimOptions, sim } from "./world/sim.ts";
 export type { Change, Recording, Snapshot } from "./world/snapshot.ts";
+export type { EnvWorldOptions } from "./world/from-env.ts";
 export { ChipHandle, DeviceHandle, NetworkHandle, type RunBudget, World } from "./world/world.ts";

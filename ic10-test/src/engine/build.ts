@@ -8,7 +8,7 @@ import {
 	Ic10Runner,
 } from "@stationeers-ic/ic10";
 import { EngineChip } from "./chip.ts";
-import { writeProp, writePropIfPresent } from "./device.ts";
+import { listProps, writeProp, writePropIfPresent } from "./device.ts";
 
 export interface EngineDeviceSpec {
 	/** Test-side key, used in error messages. */
@@ -39,17 +39,15 @@ export interface Engine {
 	builder: Builder;
 	/** Every device, housings included, by reference ID. */
 	devices: Map<number, Device>;
-	/** Chips by their housing's reference ID. */
+	/** Chips by their housing's reference ID, in the env's device order. */
 	chips: Map<number, EngineChip>;
 }
 
 /**
- * Build the emulator objects for a world. Goes through the emulator's env format, so prefab and
- * property names get its validation, then gives every chip a runner with no jump limit (the
- * harness has its own budgets) and resets it for a real run.
+ * Build the emulator objects for a `sim()` world. Goes through the emulator's env format, so prefab
+ * and property names get its validation.
  */
 export function buildEngine(spec: EngineSpec): Engine {
-	const all = [...spec.housings, ...spec.devices];
 	const port = (network: string) => [{ port: "default", network }];
 	const env = {
 		version: 1,
@@ -74,21 +72,46 @@ export function buildEngine(spec: EngineSpec): Engine {
 		],
 	} as EnvSchema;
 
+	const keys = new Map([...spec.housings, ...spec.devices].map((d) => [d.id, d.key]));
+	const engine = buildEngineFromEnv(env, spec.seed, (id) => keys.get(id) ?? String(id));
+
+	// A housing's own properties are written after its chip is reset, with the harness's messages.
+	for (const housingSpec of spec.housings) {
+		const housing = engine.devices.get(housingSpec.id)!;
+		for (const [prop, value] of Object.entries(housingSpec.props)) {
+			try {
+				writeProp(housing, prop, value);
+			} catch (error) {
+				throw new Error(`sim: "${housingSpec.key}": ${(error as Error).message}`);
+			}
+		}
+	}
+	return engine;
+}
+
+/**
+ * Build the emulator objects from env JSON. Every housing with a chip gets a runner with no jump
+ * limit (the harness has its own budgets), reset for a real run; the chip's starting registers and
+ * stack, and the housing's properties, are kept. `keyOf` names a device in error messages.
+ */
+export function buildEngineFromEnv(env: EnvSchema | string, seed: number, keyOf: (id: number) => string): Engine {
 	let builder: Builder;
 	try {
-		builder = Builder.from(JSON.stringify(env));
+		builder = Builder.from(typeof env === "string" ? env : JSON.stringify(env));
 	} catch (error) {
-		const ids = all.map((d) => `${d.key}=${d.id}`).join(", ");
-		throw new Error(`sim: the emulator rejected the world: ${(error as Error).message} (device IDs: ${ids})`);
+		const ids = typeof env === "string" ? "" : ` (device IDs: ${env.devices.map((d) => `${keyOf(d.id)}=${d.id}`).join(", ")})`;
+		throw new Error(`sim: the emulator rejected the world: ${(error as Error).message}${ids}`);
 	}
 
 	const chips = new Map<number, EngineChip>();
-	for (const housingSpec of spec.housings) {
-		const housing = builder.Devices.get(housingSpec.id);
-		if (!(housing instanceof Housing)) {
-			throw new Error(`sim: "${housingSpec.key}" (${housingSpec.prefab}) can't hold a chip`);
-		}
-		const runner = new Ic10Runner({ housing, jumpLimit: Number.POSITIVE_INFINITY, randomSeed: spec.seed });
+	for (const [id, device] of builder.Devices) {
+		if (!(device instanceof Housing) || !device.chip) continue;
+		const chip = device.chip;
+		const registers = new Map(chip.registers);
+		const stack = chip.memory.toArray();
+		const props = listProps(device);
+
+		const runner = new Ic10Runner({ housing: device, jumpLimit: Number.POSITIVE_INFINITY, randomSeed: seed });
 		runner.switchContext("real");
 		runner.init(); // resets the chip and the housing's own properties
 
@@ -101,18 +124,14 @@ export function buildEngine(spec: EngineSpec): Engine {
 			const unparsed = runner.lines.findIndex((l) => l instanceof EmptyLine && l.originalText.trim() !== "");
 			const line = unparsed >= 0 ? unparsed : (parseError.line ?? 0);
 			throw new Error(
-				`sim: "${housingSpec.key}" line ${line}: ${parseError.message}: ${JSON.stringify(runner.lines[line]?.originalText ?? "")}`,
+				`sim: "${keyOf(id)}" line ${line}: ${parseError.message}: ${JSON.stringify(runner.lines[line]?.originalText ?? "")}`,
 			);
 		}
 
-		for (const [prop, value] of Object.entries(housingSpec.props)) {
-			try {
-				writeProp(housing, prop, value);
-			} catch (error) {
-				throw new Error(`sim: "${housingSpec.key}": ${(error as Error).message}`);
-			}
-		}
-		chips.set(housingSpec.id, new EngineChip(runner, housing));
+		for (const [index, value] of registers) chip.registers.set(index, value);
+		for (const value of stack) chip.memory.push(value);
+		for (const [prop, value] of Object.entries(props)) writePropIfPresent(device, prop, value);
+		chips.set(id, new EngineChip(runner, device));
 	}
 
 	// The game sets these on every device; the emulator leaves them unset (or reset).
