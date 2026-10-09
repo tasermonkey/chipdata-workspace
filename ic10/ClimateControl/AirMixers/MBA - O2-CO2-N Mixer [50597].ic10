@@ -9,10 +9,10 @@ push 0 #Enter tank or pipe analyzer names and prefabs below.
 push HASH("GM O2-N-CO2") #Gas Mixer name
 push HASH("StructurePipeAnalysizer") #Gas Input 1 prefab
 push HASH("PA N-CO2") #Gas Input 1 name
-push HASH("StructureTankSmallInsulated") #Gas Input 2 prefab
-push HASH("O2 Tank") #Gas Input 2 name
-push HASH("StructureTankSmallInsulated") #Gas Output prefab
-push HASH("Breathable Air Tank") #Gas Output name
+push HASH("StructurePipeAnalysizer") #Gas Input 2 prefab
+push HASH("PA O2") #Gas Input 2 name
+push HASH("StructurePipeAnalysizer") #Gas Output prefab
+push HASH("PA Breathable Air") #Gas Output name
 push 0.75 #Mix Ratio: Fraction of Gas1 (back input), from 0 to 1
 push 40000 #Output Pressure shutoff, kPa.
 # More groups would go here, BUT this highly commented version is too long for that!
@@ -63,7 +63,7 @@ sbn HASH("StructureGasMixer") Name Setting r0
 sbn HASH("StructureGasMixer") Name On Run
 lbn r0 HASH("StructureGasMixer") Name On Average
 mul Status Status r0 #Status now holds either mixer power (0, 1) or NaN.
-#s db Setting r0 #Display status on IC housing. NaN means missing devices!
+s db Setting Status #Display status on IC housing. NaN means missing devices!
 j loop
 
 readGas: #Returns Pressure in r0, Temperature in r1

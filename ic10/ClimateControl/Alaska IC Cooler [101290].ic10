@@ -13,8 +13,8 @@ alias PA_SRC d0
 alias PA_ATMO d1
 alias VP_ATMO d2
 
-define MIN_TEMP 19
-define MAX_TEMP 28
+define MIN_TEMP 290 # 17C
+define MAX_TEMP 303 # 30C
 
 alias Stage r15 
 
@@ -44,11 +44,11 @@ j start
 
 waitForWarm:
 sleep 2
-blt r0 303 start
+blt r0 MAX_TEMP start
 move Stage 2
 
 startCooling:
-blt r0 290 finishCooling 
+blt r0 MIN_TEMP finishCooling
 s VP_ATMO Mode 0
 yield
 s VP_ATMO On 1

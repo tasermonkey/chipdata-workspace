@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sim } from "@tasermonkey/ic10-test";
 import { REPO_ROOT } from "../support/paths.ts";
+import { describeHelmet } from "./helmet.ts";
 
 const SCRIPT = "ic10/SuitControl/Simple SUit Controller MKII.ic10";
 
@@ -52,4 +53,8 @@ describe("Simple Suit Controller MKII filtration", () => {
 		expect(filtration).toToggleAtMost(0);
 		expect(world.chip("suit")).toHaveNoErrors();
 	});
+});
+
+describe("Simple Suit Controller MKII", () => {
+	describeHelmet(SCRIPT);
 });

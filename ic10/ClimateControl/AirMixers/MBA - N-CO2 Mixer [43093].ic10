@@ -8,10 +8,10 @@ push 0
 # version of this script from the workshop. Not enough free bytes in this version.
 #To make ONE gas mix FASTER, just build additional mixers connected to the same pipes!
 push HASH("GM N-CO2") #Gas Mixer name
-push HASH("StructureTankSmallInsulated") #Gas Input 1 prefab
-push HASH("Nitrogen Tank") #Gas Input 1 name
-push HASH("StructureTankSmallInsulated") #Gas Input 2 prefab
-push HASH("O2 Tank") #Gas Input 2 name
+push HASH("StructurePipeAnalysizer") #Gas Input 1 prefab
+push HASH("PA Nitrogen") #Gas Input 1 name
+push HASH("StructurePipeAnalysizer") #Gas Input 2 prefab
+push HASH("PA CO2") #Gas Input 2 name
 push HASH("StructurePipeAnalysizer") #Gas Output prefab
 push HASH("PA N-CO2") #Gas Output name
 push 0.6666666 #Mix Ratio: Fraction of Gas1 (back input), from 0 to 1
@@ -64,7 +64,7 @@ sbn HASH("StructureGasMixer") Name Setting r0
 sbn HASH("StructureGasMixer") Name On Run
 lbn r0 HASH("StructureGasMixer") Name On Average
 mul Status Status r0 #Status now holds either mixer power (0, 1) or NaN.
-s db Setting r0 #Display status on IC housing. NaN means missing devices!
+s db Setting Status #Display status on IC housing. NaN means missing devices!
 j loop
 
 readGas: #Returns Pressure in r0, Temperature in r1

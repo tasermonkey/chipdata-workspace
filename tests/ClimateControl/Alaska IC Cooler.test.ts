@@ -26,6 +26,25 @@ describe("Alaska IC Cooler", () => {
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
+	// CODE_REVIEW.md 1.2: the thresholds are MAX_TEMP 303 K and MIN_TEMP 290 K.
+	it("waits until the gas reaches 303 K, and cools until it's below 290 K", async () => {
+		const world = await build({ gasTemp: 302, outsidePressure: 0 });
+		await world.runUntil((w) => w.chip("ic").reg("r15") === 1, { maxTicks: 30 });
+		await world.runSeconds(20);
+		expect(world.chip("ic")).toHaveRegister("Stage", 1);
+
+		world.device("source").set("Temperature", 303);
+		await world.runUntil((w) => w.chip("ic").reg("r15") === 2, { maxTicks: 30 });
+
+		world.device("source").set("Temperature", 290);
+		await world.runSeconds(5);
+		expect(world.chip("ic")).toHaveRegister("Stage", 2);
+
+		world.device("source").set("Temperature", 289);
+		await world.runUntil((w) => w.chip("ic").reg("r15") === 0, { maxTicks: 10 });
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
+
 	// CODE_REVIEW.md 1.1: `move stage 0` used the alias with the wrong case.
 	it("goes back to waiting (Stage 0) once the gas has cooled, without an error", async () => {
 		const world = await build({ gasTemp: 310, outsidePressure: 0 });

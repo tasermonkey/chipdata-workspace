@@ -56,6 +56,7 @@ scripts on 2026-10-07 (see the Appendix).
 | G12 | No **Logic Mirror** in the emulator or its game data. | Scripts that read another network through a mirror can't be tested. | Fork extension point (proxy device) + harness (§5.4) |
 | G11 | Instruction errors can **throw out of `step()`** instead of being recorded. | One bad line crashes the test with a JS stack trace instead of halting the chip. | **Fixed in fork** (catch in `step()`); the harness also catches as a safety net |
 | G13 | **`jal` and the branch-and-link instructions store the wrong return address**: their own line instead of the next one. Upstream's `beqal` test expected the wrong value. | `j ra` jumps back to the `jal`, so a `jal sub` … `j ra` loop never gets past the call. 31 of the 38 scripts use `jal`. Found by the first `sim()` test in which day comes partway through the run. | **Fixed in fork** (`ra` = line + 1), with tests in `fork-fixes.test.ts` |
+| G14 | **Batch reads of no devices all return 0.** In game `Average` is NaN (0 / 0) and `Maximum` is −∞; `Sum` and `Minimum` are 0 (per [dcramer/stationeers](https://github.com/dcramer/stationeers/blob/main/docs/ic10-instructions.md#device-access-and-missing-batch-data), unofficial). | The mixer scripts' "NaN means a missing device" check never fires, so a missing tank looks like the mixer being off. Found writing the review 1.11 test. | **Fixed in fork**, with tests in `fork-fixes.test.ts` |
 | G9 | Toolchain is Bun-only. | Tests import `bun:test`, scripts run with `bun tools/*.ts`, there's a `bunfig.toml`, and CI uses Bun. | Fork conversion (§3) |
 
 ---
@@ -670,8 +671,21 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   - FabControl: behaviour tests with the real setup chip and devices at its hard-coded IDs. They
     passed as written; swapping the light colours or the button offset in Control makes them fail.
   - Behaviour tests for the Trader Vert buttons and numpad.
+  - The rest of review §1, with your decisions:
+    - 1.2 Alaska: the defines are now kelvin with °C comments (`MIN_TEMP 290 # 17C`,
+      `MAX_TEMP 303 # 30C`), and the code uses them. Behaviour is unchanged; a test pins the thresholds.
+    - 1.8 Suit MKI and MKII: failing tests first, then the helmet opens only when the outside pressure
+      is between 40 and 150 kPa and the temperature between 280 and 313 K, and closes when that stops
+      being true, including during the 5 s wait.
+    - 1.11 and 1.12, the mixers: the housing shows `Status` (1 mixing, 0 off, NaN for missing devices)
+      in all three mixer scripts, and the N-CO2 mixer's second input is the CO₂ (2/3 N₂, 1/3 CO₂,
+      kept). The 1.11 test needed engine gap G14 fixed.
+    - Tanks no longer have logic in the current game (a tank just adds volume to its pipe network),
+      so the air mixers now read pipe analyzers: "PA Nitrogen", "PA CO2", "PA O2" and
+      "PA Breathable Air", alongside the existing "PA N-CO2".
+    - 1.3 (Alaska vent modes) still needs an in-game check.
 
-  Next: behaviour tests for the simpler scripts.
+  Next: behaviour tests for the short scripts (60 lines or fewer).
 
 Suggested first regression tests (Phase 4):
 

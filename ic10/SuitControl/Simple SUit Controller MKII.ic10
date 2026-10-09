@@ -17,6 +17,7 @@ alias rIntTempLow r12
 alias rIntTempHigh r11
 alias rHelmetOpen r10
 alias rExternal r9
+alias rReturn r8
 
 # set initial state
 move rIntTempHigh 0
@@ -40,25 +41,35 @@ main:
   j main
 
 helmetCheck:
-    l rExternal dSuit PressureExternal
+    move rReturn ra
+    jal checkSafe
     beqz rHelmetOpen checkClosedHelmet
-    j checkOpenedHelmet
     checkOpenedHelmet:
-        sgt r1 rExternal MIN_PRESSURE
         #s db SoundAlert 1
-        bnez r1 ra
+        bnez r1 rReturn
         s dHelmet Open 0
-        j ra
+        j rReturn
     checkClosedHelmet:
-        slt r1 rExternal MIN_PRESSURE
         #s db SoundAlert 1
-        bnez r1 ra
+        beqz r1 rReturn
         sleep 5
-        l rExternal dSuit PressureExternal
-        slt r1 rExternal MIN_PRESSURE
-        bnez r1 ra
+        jal checkSafe
+        beqz r1 rReturn
         s dHelmet Open 1
-        j ra
+        j rReturn
+
+# r1 = 1 when the outside pressure and temperature are safe for an open helmet
+checkSafe:
+    l rExternal dSuit PressureExternal
+    l r2 dSuit TemperatureExternal
+    sgt r1 rExternal MIN_PRESSURE
+    slt r3 rExternal MAX_PRESSURE
+    and r1 r1 r3
+    sgt r3 r2 MIN_TEMP
+    and r1 r1 r3
+    slt r3 r2 MAX_TEMP
+    and r1 r1 r3
+    j ra
 
 getCoolingSetpoints:
   l r0 dSuit TemperatureSetting
