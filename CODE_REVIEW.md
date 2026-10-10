@@ -265,8 +265,23 @@ Found while writing the Landing Bay tests (not in the review), also fixed after 
 - Line 24 `sbn LPV_T LPV_HANG On 0` switched GoodVent off at the top of every pass. Stage 6 never
   emptied the hangar, and stage 3 filled at half rate. The line is gone.
 
-The rest of §2 is open: 2.1 (relative branches), 2.9 (needs an in-game check of how long
-`Activate` stays 1) and 2.10.
+- **2.9** The issue was the opposite of the one described below. Per the wiki (Kit (Switch)), a
+  button press is a pulse of 1 for 0.5 s, one tick. The Trader inputs read their buttons once a tick,
+  so a press counts once. Printer Control, though, handles one fabricator per tick, so with three
+  fabricators it **missed** two presses in three (checked in the emulator). It now checks every
+  round button with one batch read each tick (`lb BUTTON_T Activate Maximum`), and on a tick with a
+  press it applies every fabricator's +/- to its dial and leaves that tick's fabricator update for
+  the next tick, to stay under 128 lines. This assumes the console mod's round buttons pulse like
+  the vanilla Button. [Test](tests/FabControl/VCIC%20-%20Printer%20Control.test.ts)
+- **2.10** Suit MKII: heating and cooling still start at ±5 K from the setting, but stop at the
+  setting (`rSetpoint`). [Test](tests/SuitControl/Simple%20Suit%20Controller%20MKII.test.ts) The
+  `sleep 5` in the helmet check is kept.
+
+**2.1** is left as is, by decision: only relative jumps of 5 or more lines would be converted, and
+the only one, Suit MKII's `breqz rHelmetOpen 5`, is in a script already over the 128-line limit. The
+tests catch a jump that lands in the wrong place.
+
+All of §2 is now dealt with.
 
 ### 2.1 Relative branches (`br*`, `jr`) are easy to break
 Several scripts use relative jumps such as `brgt r15 75 4`, `breqz r0 2` and `jr 3`. Inserting or

@@ -13,6 +13,7 @@ alias Tmp r14
 alias Param1 r15
 define Debug1 $C3611
 define FabVarCount 12
+define BUTTON_T HASH("ModularDeviceRoundButton")
 programLoop:
   get Tmp db 0 # FabricatorCount
   mul Tmp FabVarCount Tmp
@@ -22,6 +23,8 @@ programLoop:
   fabLoopStart:
     ble sp 1 programLoop
     yield
+    lb Tmp BUTTON_T Activate Maximum # a press is a one-tick pulse:
+    bnez Tmp scanButtons # read every fabricator's buttons now
     move fabSpTop sp
     jal checkOff
     j updateFabricator
@@ -50,12 +53,6 @@ updateFabricator:
   brgtz stackSize 3
   move stackSize 10
   #sd $B208B Setting sp
-  sub sp sp 3 # position for Minus and plus
-  #sd $B0D98 Setting sp
-  move Param1 -10
-  jal modifyStackSize
-  move Param1 10
-  jal modifyStackSize
   move Param1 6
   jal getDeviceAt # ProductionMode
   ld productionMode Param1 On
@@ -97,13 +94,28 @@ monitorFabricator:
   sd Param1 Setting Tmp
   j fabLoopNearEnd
 
-modifyStackSize:
-  pop TmpDevice
-  ld Tmp TmpDevice Activate
-  snez Tmp Tmp
-  mul Tmp Tmp Param1
-  add stackSize stackSize Tmp
-  j ra
+# Add each fabricator's +/- presses to its dial, then wait for the next tick
+# (this fabricator's update waits a tick, to stay under 128 lines).
+scanButtons:
+  get r8 db 0
+  mul r8 r8 FabVarCount # top of the last block
+  scanNext:
+    blez r8 fabLoopStart
+    sub r9 r8 4 # Plus 10 button
+    get r9 db r9
+    ld r9 r9 Activate
+    sub r10 r8 3 # Minus 10 button
+    get r10 db r10
+    ld r10 r10 Activate
+    sub r9 r9 r10
+    sub r10 r8 2 # Input amount
+    get r10 db r10
+    ld r11 r10 Setting
+    mul r9 r9 10
+    add r11 r11 r9
+    sd r10 Setting r11
+    sub r8 r8 FabVarCount
+    j scanNext
 
 getDeviceAt:
   sub Param1 fabSpTop Param1

@@ -721,8 +721,12 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 - **Phase 4 is done (2026-10-10).** The §1 review bugs are covered and fixed, apart from 1.3 (Alaska
   vent modes), which needs an in-game check. Afterwards, also test-first: review 2.5 (Battery
   Control and Battery Controller 1 read only "Base CA") and 2.2 in CoolCleanMarsAir and Alaska
-  (`EMPTY_KPA`). Open §2 items (2.1, 2.9, 2.10) are listed in CODE_REVIEW.md. Next is Phase 5, the
-  catalogue (§6).
+  (`EMPTY_KPA`). Then the rest of §2: 2.10 (Suit MKII stops heating and cooling at the setting),
+  and 2.9, which turned out to be missed presses rather than repeated ones. A button press is a
+  one-tick pulse, and Printer Control read one fabricator's buttons per tick; it now batch-checks
+  the round buttons every tick and scans them all on a press. 2.1 is left as is: the only jump of
+  5 or more lines is in Suit MKII, which is over the line limit. All of review §2 is dealt with.
+  Next is Phase 5, the catalogue (§6).
 
 Suggested first regression tests (Phase 4):
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseId, type ReferenceId, sim } from "@tasermonkey/ic10-test";
+import { parseId, type ReferenceId, sim, type World } from "@tasermonkey/ic10-test";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const SETUP = "ic10/FabControl/VCIC - Printer Setup.ic10";
@@ -68,6 +68,12 @@ function build({ dial = 20, power = {} as Partial<Record<Fab, number>> } = {}) {
 		.build();
 }
 
+/** A button press: Activate is 1 for one tick (0.5 s), then 0 again. */
+function press(world: World, button: string) {
+	world.device(button).set("Activate", 1);
+	world.at({ tick: world.tick + 1 }, (w) => w.device(button).set("Activate", 0));
+}
+
 describe("VCIC - Printer Setup and Printer Control", () => {
 	it("setup writes each fabricator's device IDs into Control's stack", async () => {
 		const world = await build();
@@ -105,8 +111,9 @@ describe("VCIC - Printer Setup and Printer Control", () => {
 
 	it("changes the amount by 10 with the plus and minus buttons", async () => {
 		const world = await build({ dial: 20 });
-		world.device(key("autolathe", "plus")).set("Activate", 1);
-		world.device(key("electronics", "minus")).set("Activate", 1);
+		await world.runTicks(1); // the chip's first tick ends before it reads any buttons
+		press(world, key("autolathe", "plus"));
+		press(world, key("electronics", "minus"));
 		await world.runTicks(4);
 
 		expect(world.device(key("autolathe", "dial"))).toHaveProps({ Setting: 30 });
@@ -114,6 +121,30 @@ describe("VCIC - Printer Setup and Printer Control", () => {
 		expect(world.device(key("electronics", "dial"))).toHaveProps({ Setting: 10 });
 		expect(world.device(key("pipes", "dial"))).toHaveProps({ Setting: 20 });
 		expect(world.chip("control")).toHaveNoErrors();
+	});
+
+	// CODE_REVIEW.md 2.9: a press is a one-tick pulse (wiki, Kit (Switch)), and Control read one
+	// fabricator's buttons per tick, so with three fabricators it missed two presses in three.
+	it("counts a one-tick press whenever it comes, for every fabricator", async () => {
+		for (const fab of Object.keys(FABS) as Fab[]) {
+			for (let offset = 0; offset < 4; offset++) {
+				const world = await build({ dial: 20 });
+				await world.runTicks(6 + offset);
+				press(world, key(fab, "plus"));
+				await world.runTicks(4);
+				expect(world.device(key(fab, "dial")), `${fab}, offset ${offset}`).toHaveProps({ Setting: 30 });
+				expect(world.device(key(fab, "amount")), `${fab}, offset ${offset}`).toHaveProps({ Setting: 30 });
+			}
+		}
+	});
+
+	it("fits each tick, button scan included, in 128 lines", async () => {
+		const world = await build({ dial: 20 });
+		await world.runTicks(5);
+		press(world, key("pipes", "minus")); // a tick with a full button scan
+		await world.runTicks(7);
+		expect(world.chip("control")).toNeverAutoYield();
+		expect(world.device(key("pipes", "dial"))).toHaveProps({ Setting: 10 });
 	});
 
 	it("turns a switched-off fabricator's light red and leaves it alone", async () => {

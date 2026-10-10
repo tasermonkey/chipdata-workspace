@@ -18,6 +18,7 @@ alias rIntTempHigh r11
 alias rHelmetOpen r10
 alias rExternal r9
 alias rReturn r8
+alias rSetpoint r7
 
 # set initial state
 move rIntTempHigh 0
@@ -72,9 +73,9 @@ checkSafe:
     j ra
 
 getCoolingSetpoints:
-  l r0 dSuit TemperatureSetting
-  sub rIntTempLow r0 TempDelta
-  add r0 r0 TempDelta
+  l rSetpoint dSuit TemperatureSetting
+  sub rIntTempLow rSetpoint TempDelta
+  add r0 rSetpoint TempDelta
   breq r0 rIntTempHigh 2
   move rCoolingState coolingOff
   move rIntTempHigh r0
@@ -89,15 +90,15 @@ coolingOff:
   move rCoolingState coolingUp
   j ra
 
-coolingDown:
+coolingDown: # starts above the band, stops at the setting
   s dSuit On 1
-  brgt rIntTemp rIntTempLow 2
+  brgt rIntTemp rSetpoint 2
   move rCoolingState coolingOff
   j ra
 
-coolingUp:
+coolingUp: # starts below the band, stops at the setting
   s dSuit On 1
-  brlt rIntTemp rIntTempHigh 2
+  brlt rIntTemp rSetpoint 2
   move rCoolingState coolingOff
   j ra
 

@@ -55,6 +55,47 @@ describe("Simple Suit Controller MKII filtration", () => {
 	});
 });
 
+// CODE_REVIEW.md 2.10: cooling ran on to 5 K below the setting, and heating to 5 K above it.
+describe("Simple Suit Controller MKII temperature", () => {
+	const SETTING = 293;
+
+	it("starts cooling 5 K above the setting, and stops at the setting", async () => {
+		const world = await build({ pressure: 100, ratioOxygen: 0.5 });
+		const helmet = world.device("helmet");
+		helmet.set("Temperature", SETTING + 4);
+		await world.runTicks(4);
+		expect(world.db("suit")).toHaveProps({ On: 0 }); // inside the band
+
+		helmet.set("Temperature", SETTING + 5);
+		await world.runTicks(2);
+		expect(world.db("suit")).toHaveProps({ On: 1 });
+
+		helmet.set("Temperature", SETTING + 1);
+		await world.runTicks(2);
+		expect(world.db("suit")).toHaveProps({ On: 1 }); // still cooling
+		helmet.set("Temperature", SETTING);
+		await world.runTicks(2);
+		expect(world.db("suit")).toHaveProps({ On: 0 });
+		expect(world.chip("suit")).toHaveNoErrors();
+	});
+
+	it("starts heating 5 K below the setting, and stops at the setting", async () => {
+		const world = await build({ pressure: 100, ratioOxygen: 0.5 });
+		const helmet = world.device("helmet");
+		helmet.set("Temperature", SETTING - 5);
+		await world.runTicks(4);
+		expect(world.db("suit")).toHaveProps({ On: 1 });
+
+		helmet.set("Temperature", SETTING - 1);
+		await world.runTicks(2);
+		expect(world.db("suit")).toHaveProps({ On: 1 }); // still heating
+		helmet.set("Temperature", SETTING);
+		await world.runTicks(2);
+		expect(world.db("suit")).toHaveProps({ On: 0 });
+		expect(world.chip("suit")).toHaveNoErrors();
+	});
+});
+
 describe("Simple Suit Controller MKII", () => {
 	describeHelmet(SCRIPT);
 });
