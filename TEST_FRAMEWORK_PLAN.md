@@ -701,7 +701,26 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     Beacon have `Color` logic; ordinary lights, the Flashing Light included, are paint-only. In the
     game code, `Device.CanLogicRead` allows `Color` only when the prefab's `HasColorState` is set.
 
-  Next: behaviour tests for the longer scripts.
+  - Behaviour tests for the longer scripts (2026-10-10), so every script in `ic10/` now has a test:
+    Trader Horz Input (sharing `trader-input.ts` with Vert), Trading Switch Board, Landing Bay, Sat
+    Control, Power Controller Battery, Battery Control and Battery Controller 1 (sharing `power.ts`,
+    one `describe*` per feature), MBA Solar Power Controller, Larre Controller (with a small Larre
+    model in the test until Phase 6), and the workshop scripts V-IC Hash and V-IC - Furnace, tested
+    from the outside. Fixed after failing tests, with your decisions: review 2.2 (Landing Bay counts
+    up to `EMPTY_KPA` 1 kPa as empty), 2.4 (the generators follow the charging state on every pass,
+    so they start on when the battery is low) and 2.7 (Larre harvests only mature plants and gives
+    up after 5 tries). Two Landing Bay bugs that weren't in the review were fixed as well: a startup
+    branch that left the stage at 0 when the door was open, and a line that switched GoodVent off
+    on every pass. `EXT_KPA` stays a per-world define.
+  - Device notes: StructureLogicSwitch2 has no `On`, so the Trading Switch Board's dock switches
+    are custom console switches in the test. The emulator's `mod` is a true modulo (−1 mod 360 =
+    359), as the wiki says. V-IC - Furnace unpacks iron's maximum pressure as 9921, not 10000,
+    because of double rounding in the workshop script's packing; the game should do the same, and
+    the test pins 9921.
+
+- **Phase 4 is done (2026-10-10).** The §1 review bugs are covered and fixed, apart from 1.3 (Alaska
+  vent modes), which needs an in-game check. Open §2 items are listed in CODE_REVIEW.md. Next is
+  Phase 5, the catalogue (§6).
 
 Suggested first regression tests (Phase 4):
 

@@ -77,14 +77,14 @@ j start
 coalGeneratorRunLoop:
 lb r0 BATTERY_T Ratio Average
 bnez State checkCharge # check to see if too low, and need charge
-blt r0 MAX_CHARGE ra # check if done charging
+blt r0 MAX_CHARGE setGenerators # check if done charging
 move State 1
-sb GEN_T On 0
-
 checkCharge:
-bgt r0 MIN_CHARGE ra
+bgt r0 MIN_CHARGE setGenerators
 move State 0
-sb GEN_T On 1
+setGenerators: # every pass, so they start right and stay right
+seqz r1 State
+sb GEN_T On r1
 j ra
 
 powerOutput:

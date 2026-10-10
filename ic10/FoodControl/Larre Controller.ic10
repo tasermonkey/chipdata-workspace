@@ -1,11 +1,11 @@
 alias larre d0
-alias positionDial d1
 alias counter r10
 define DropOff 15 # Change this number to the station where you have the input chute
 #define DEBUG_1 $4D655
 #define DEBUG_2 $4D61F
 #define DEBUG_3 $4D775
 define PlantClass 11
+define HARVEST_TRIES 5 # Activates before giving up on a plant
 
 
 reset:
@@ -33,9 +33,11 @@ check:
   bne r0 PlantClass start
   ls r0 larre 255 Mature
   #sd DEBUG_1 Setting r0
+  beqz r0 start
   ls r0 larre 255 Seeding
   #sd DEBUG_2 Setting r0
   beq r0 -1 start
+  move r2 HARVEST_TRIES
 
 harvest:
   s larre Activate 1
@@ -45,6 +47,9 @@ harvest:
   seqz r0 r0
   ls r1 larre 255 Seeding
   seq r1 r1 -1
+  or r0 r0 r1
+  sub r2 r2 1
+  sle r1 r2 0 # out of tries: drop off whatever we have
   or r0 r0 r1
   beqz r0 harvest
 
