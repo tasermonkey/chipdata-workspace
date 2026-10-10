@@ -8,8 +8,11 @@
 		"vendor/ic10"
 	],
 	"scripts": {
+		"catalog:build": "node --conditions=source ic10-test/tools/catalog-build.ts",
+		"pretest": "npm run catalog:build",
 		"test": "vitest run",
 		"test:watch": "vitest",
+		"pretypecheck": "npm run catalog:build",
 		"typecheck": "tsc -p tsconfig.json"
 	},
 	"devDependencies": {

@@ -9,6 +9,8 @@
 		"./vitest": "./src/matchers/vitest-setup.ts"
 	},
 	"scripts": {
+		"catalog:build": "node --conditions=source tools/catalog-build.ts",
+		"pretest": "npm run catalog:build",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},

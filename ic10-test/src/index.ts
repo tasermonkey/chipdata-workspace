@@ -1,3 +1,13 @@
+export {
+	type Access,
+	type Catalog,
+	type CatalogDescription,
+	type CatalogPrefab,
+	type CatalogSlot,
+	canAccess,
+	loadCatalog,
+	prefabInfo,
+} from "./catalog/catalog.ts";
 export * from "./matchers/checks.ts";
 export { chipReport, deviceReport, worldReport } from "./matchers/report.ts";
 export { type DebugGate, type DebugLineInfo, setDefaultDebugGate } from "./debug/gate.ts";

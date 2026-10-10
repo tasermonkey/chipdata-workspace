@@ -116,6 +116,27 @@ and the last lines it ran; for auto-yields, where it was preempted and in which 
 is a plain function underneath (`checkProps`, `checkRegister`, …), returning `{ pass, message }`,
 and the reports are available as `chipReport`, `deviceReport` and `worldReport`.
 
+## Device catalogue
+
+`npm run catalog:build` (run automatically before `npm test` and `npm run typecheck`) writes
+`generated/catalog.json`: every prefab's logic types with Read/Write, its slots and its modes (by
+value), and a description of each logic type.
+
+- **Prefabs** come from the emulator's game data, plus mods' devices listed in `data/mods/`.
+- **Descriptions** come from the installed game's `Language/english.xml`, found through
+  `STATIONEERS_DIR` or the default Steam path. Without the game (e.g. in CI) they come from
+  ic10emu's copy in `data/ic10emu/`, which is older and misses some newer logic types. The build
+  says which it used and lists logic types that have no description.
+- `generated/` is gitignored, because the descriptions are the game's own text.
+
+```ts
+import { loadCatalog, prefabInfo, canAccess } from "@tasermonkey/ic10-test";
+
+const vent = prefabInfo("StructureActiveVent");   // { logic: { Mode: "rw", … }, modes: ["Outward", "Inward"], … }
+canAccess(vent!, "PressureInternal", "r");
+loadCatalog().logicTypes.On;                       // { text: "The current state of the device, 0 for off, 1 for on", source: "game" }
+```
+
 ## Env files
 
 `World.fromEnv(env, options)` builds a world from the emulator's env JSON: an object, JSON text, or a
