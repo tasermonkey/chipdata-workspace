@@ -88,7 +88,7 @@ sb GEN_T On r1
 j ra
 
 powerOutput:
-lb totalPowerUsage CABLE_CA_TYPE PowerRequired Sum
+lbn totalPowerUsage CABLE_CA_TYPE CableAnaylizer_NAME PowerRequired Maximum
 sbn OUTPUT_T PowerUsage_NAME Mode 2
 sbn OUTPUT_T PowerUsage_NAME Setting totalPowerUsage
 j ra

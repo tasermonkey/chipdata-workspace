@@ -719,8 +719,10 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     the test pins 9921.
 
 - **Phase 4 is done (2026-10-10).** The §1 review bugs are covered and fixed, apart from 1.3 (Alaska
-  vent modes), which needs an in-game check. Open §2 items are listed in CODE_REVIEW.md. Next is
-  Phase 5, the catalogue (§6).
+  vent modes), which needs an in-game check. Afterwards, also test-first: review 2.5 (Battery
+  Control and Battery Controller 1 read only "Base CA") and 2.2 in CoolCleanMarsAir and Alaska
+  (`EMPTY_KPA`). Open §2 items (2.1, 2.9, 2.10) are listed in CODE_REVIEW.md. Next is Phase 5, the
+  catalogue (§6).
 
 Suggested first regression tests (Phase 4):
 

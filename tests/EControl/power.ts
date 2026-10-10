@@ -37,18 +37,23 @@ export interface Plant {
 	/** Each wind turbine's output, W. */
 	wind?: number[];
 	usage?: number;
+	/** Readings of other cable analyzers on the network (not "Base CA"), W. */
+	otherAnalyzers?: number[];
 	throttle?: number;
 }
 
 /** A power plant with every device any of the scripts uses; console parts are keyed by name. */
 export function buildPlant(script: string, plant: Plant = {}) {
-	const { ratio = 0.5, charge = 1000, coal = [1000], coalOn = 1, wind = [], usage = 500, throttle = 0.5 } = plant;
+	const { ratio = 0.5, charge = 1000, coal = [1000], coalOn = 1, wind = [], usage = 500, otherAnalyzers = [], throttle = 0.5 } = plant;
 	let builder = sim({ root: REPO_ROOT }).device("battery", "StationBatteryNuclear", { Ratio: ratio, Charge: charge }, { custom: true });
 	coal.forEach((w, i) => {
 		builder = builder.device(`coal${i}`, "StructureSolidFuelGenerator", { PowerGeneration: w, On: coalOn });
 	});
 	wind.forEach((w, i) => {
 		builder = builder.device(`wind${i}`, "StructureWindTurbine", { PowerGeneration: w });
+	});
+	otherAnalyzers.forEach((w, i) => {
+		builder = builder.device(`analyzer${i + 1}`, "StructureCableAnalysizer", { PowerRequired: w }, { name: `Other CA ${i + 1}` });
 	});
 	for (const [prefab, name] of CONSOLE) {
 		builder = builder.device(name, prefab, name === "Transformer Throttle" ? { Setting: throttle } : {}, { custom: true, name });
@@ -168,6 +173,13 @@ export function describeGenerationDisplays(script: string): void {
 			expect(world.device("Total Power Generation")).toHaveProps({ Setting: 5200, Mode: 2 });
 			expect(world.device("Power Usage")).toHaveProps({ Setting: 2500, Mode: 2 });
 			expect(world.chip("ic")).toHaveNoErrors();
+		});
+
+		// CODE_REVIEW.md 2.5: usage was the sum of every cable analyzer on the network.
+		it("reads the usage from the analyzer named Base CA only", async () => {
+			const world = await buildPlant(script, { coal: [1000], usage: 500, otherAnalyzers: [500, 2000] });
+			await passes(world, 2);
+			expect(world.device("Power Usage")).toHaveProps({ Setting: 500 });
 		});
 	});
 }

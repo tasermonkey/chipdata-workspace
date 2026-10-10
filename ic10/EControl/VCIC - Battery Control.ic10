@@ -59,7 +59,7 @@ jal transformerLever
 j start
 
 powerOutput:
-lb totalPowerUsage CABLE_CA_TYPE PowerRequired Sum
+lbn totalPowerUsage CABLE_CA_TYPE CableAnaylizer_NAME PowerRequired Maximum # just Base CA
 sbn OUTPUT_T PowerUsage_NAME Mode 2
 sbn OUTPUT_T PowerUsage_NAME Setting totalPowerUsage
 j ra

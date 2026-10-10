@@ -238,15 +238,23 @@ behaviour in edge cases.
   [Test](tests/FoodControl/Food%20Machine%20Selector%20Controller%20MKI.test.ts)
 
 **Status (2026-10-10).** Fixed, each after a failing test:
-- **2.2** Landing Bay only: stages 2 and 6 now treat anything up to `EMPTY_KPA` (1 kPa, a define to
-  set per world) as empty. CoolCleanMarsAir and Alaska still wait for exactly 0.
-  [Test](tests/TraderControl/Landing%20Bay%20IC.test.ts)
+- **2.2** All three scripts now treat anything up to `EMPTY_KPA` (1 kPa, a define to set per world)
+  as empty: Landing Bay stages 2 and 6, CoolCleanMarsAir's coolant drain, and Alaska's stage 0. In
+  CoolCleanMarsAir the reading is the vent's pipe side, which the vent can pump down even into Mars
+  air; the threshold is still needed because the flow slows near empty. Alaska's threshold doesn't
+  depend on 1.3 (vent modes).
+  [Landing Bay](tests/TraderControl/Landing%20Bay%20IC.test.ts),
+  [CoolCleanMarsAir](tests/ClimateControl/CoolCleanMarsAir.test.ts),
+  [Alaska](tests/ClimateControl/Alaska%20IC%20Cooler.test.ts)
 - **2.3** Not a bug: `EXT_KPA` stays a define, set per world, and now has a comment (0 opens at once).
 - **2.4** Power Controller Battery and Battery Controller 1: this was worse than described. From the
   starting state the code only checked the 80% ceiling, so generators that started off stayed off even
   at 1% charge. The generators are now set from the state on every pass (`seqz r1 State` /
   `sb GEN_T On r1`), so they also come back if someone switches them by hand.
   [Tests](tests/EControl/power.ts), run by both scripts' tests
+- **2.5** Battery Control and Battery Controller 1 read the usage from "Base CA" only
+  (`lbn … CableAnaylizer_NAME PowerRequired Maximum`), so other cable analyzers on the network
+  aren't added in. [Test](tests/EControl/power.ts)
 - **2.7** Larre Controller: only a mature plant is harvested, and the harvest gives up after
   `HARVEST_TRIES` (5) activations and goes to the drop-off. The unused `positionDial` alias is gone.
   [Test](tests/FoodControl/Larre%20Controller.test.ts)
@@ -257,7 +265,8 @@ Found while writing the Landing Bay tests (not in the review), also fixed after 
 - Line 24 `sbn LPV_T LPV_HANG On 0` switched GoodVent off at the top of every pass. Stage 6 never
   emptied the hangar, and stage 3 filled at half rate. The line is gone.
 
-The rest of §2 is open: 2.1, 2.5, 2.9, 2.10, and 2.2 in CoolCleanMarsAir and Alaska.
+The rest of §2 is open: 2.1 (relative branches), 2.9 (needs an in-game check of how long
+`Activate` stays 1) and 2.10.
 
 ### 2.1 Relative branches (`br*`, `jr`) are easy to break
 Several scripts use relative jumps such as `brgt r15 75 4`, `breqz r0 2` and `jr 3`. Inserting or

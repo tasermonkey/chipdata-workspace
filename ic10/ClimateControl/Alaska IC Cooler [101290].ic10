@@ -15,6 +15,7 @@ alias VP_ATMO d2
 
 define MIN_TEMP 290 # 17C
 define MAX_TEMP 303 # 30C
+define EMPTY_KPA 1 # stage 0 counts the outside-air pipe empty at or below this
 
 alias Stage r15 
 
@@ -28,7 +29,7 @@ j start
 
 stopCooling:
 l r0 PA_ATMO Pressure
-beqz r0 doneStopping
+ble r0 EMPTY_KPA doneStopping
 s VP_ATMO Mode 1
 yield
 s VP_ATMO On 1

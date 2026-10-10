@@ -11,6 +11,7 @@ define MAX_COOLANT_TEMP_K 288 # 15c
 define MAX_COOLANT_PRESSURE 2500 # low enough where CO2 won't liquidify
 define MIN_OPERATING_COOLANT_PRESSURE 200
 define MAX_OPERATING_COOLANT_TEMP_K 293 # 20c 
+define EMPTY_KPA 1 # draining stops at or below this
 
 define AV_HASH HASH("StructureActiveVent")
 
@@ -49,7 +50,7 @@ drainCoolant:
 sbn AV_HASH AV_CoolantVent Mode 0 # pump out hot air
 #sbn AV_HASH AV_CoolantVent PressureExternal 2000
 sbn AV_HASH AV_CoolantVent On 1
-bgtz r1 ra
+bgt r1 EMPTY_KPA ra
 move CoolantStage 0
 j ra
 

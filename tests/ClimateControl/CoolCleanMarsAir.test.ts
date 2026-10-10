@@ -47,4 +47,32 @@ describe("CoolCleanMarsAir", () => {
 		expect(world.db("ac")).toHaveProps({ Mode: 1 });
 		expect(world.chip("ac")).toHaveNoErrors();
 	});
+
+	// CODE_REVIEW.md 2.2: draining waited for the coolant pipe to read exactly 0 kPa.
+	it("cycles the coolant: fill to 2500 kPa, hold until 288 K, then drain until near-empty", async () => {
+		const world = await build(285);
+		const vent = world.device("coolant");
+		const stage = () => world.chip("ac").reg("r15");
+		await world.runTicks(2);
+		expect(vent).toHaveProps({ Mode: 1, On: 1 }); // filling
+
+		vent.set("PressureOutput", 2500);
+		await world.runTicks(2);
+		expect(stage()).toBe(1);
+		expect(vent).toHaveProps({ On: 0 }); // holding
+
+		vent.set("TemperatureOutput", 290);
+		await world.runTicks(2);
+		expect(stage()).toBe(2);
+		expect(vent).toHaveProps({ Mode: 0, On: 1 }); // draining
+
+		vent.set("PressureOutput", 1.5);
+		await world.runTicks(4);
+		expect(stage()).toBe(2); // not empty yet
+		vent.set("PressureOutput", 0.4);
+		await world.runTicks(3);
+		expect(stage()).toBe(0);
+		expect(vent).toHaveProps({ Mode: 1, On: 1 }); // filling again
+		expect(world.chip("ac")).toHaveNoErrors();
+	});
 });

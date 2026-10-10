@@ -57,4 +57,17 @@ describe("Alaska IC Cooler", () => {
 		expect(world.chip("ic")).toHaveNoErrors();
 		expect(world.chip("ic")).toHaveRegister("Stage", 0);
 	});
+
+	// CODE_REVIEW.md 2.2: stage 0 waited for the outside-air pipe to read exactly 0 kPa.
+	it("counts the outside-air pipe as empty at EMPTY_KPA (1 kPa) or below", async () => {
+		const world = await build({ gasTemp: 280, outsidePressure: 1.5 });
+		await world.runTicks(6);
+		expect(world.chip("ic")).toHaveRegister("Stage", 0); // not empty yet
+
+		world.device("atmo").set("Pressure", 0.4);
+		await world.runUntil((w) => w.chip("ic").reg("r15") === 1, { maxTicks: 10 });
+		await world.runTicks(1); // the vent goes off after the stage changes, past a yield
+		expect(world.device("vent")).toHaveProps({ On: 0 });
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
 });
