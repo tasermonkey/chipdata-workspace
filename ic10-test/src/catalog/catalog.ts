@@ -3,8 +3,9 @@
  * Read/Write, and a description of every logic type.
  *
  * `npm run catalog:build` writes it to ic10-test/generated/ (gitignored: the descriptions are the
- * game's text). Prefabs come from the emulator's game data plus the console mod's devices;
- * descriptions from the installed game's english.xml (none without the game).
+ * game's text). Prefabs come from the emulator's game data plus mods' devices (data/mods/, from the
+ * Stationpedia export); descriptions from a local Stationpedia export, then the installed game's
+ * english.xml (none without either).
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -28,13 +29,14 @@ export interface CatalogPrefab {
 	slots: CatalogSlot[];
 	/** Mode names; the index is the value. */
 	modes: string[];
-	/** "game": the emulator's game data. "mod": a mod's device, from data/mods/. */
+	/** "game": the emulator's game data. "mod": a device it doesn't have, from data/mods/ (the export). */
 	source: "game" | "mod";
 }
 
 export interface CatalogDescription {
 	text: string;
-	source: "game";
+	/** "stationpedia": the Stationpedia export's Enums.json. "game": the game's english.xml. */
+	source: "stationpedia" | "game";
 }
 
 export interface Catalog {

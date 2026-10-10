@@ -122,12 +122,26 @@ and the reports are available as `chipReport`, `deviceReport` and `worldReport`.
 `generated/catalog.json`: every prefab's logic types with Read/Write, its slots and its modes (by
 value), and a description of each logic type.
 
-- **Prefabs** come from the emulator's game data, plus mods' devices listed in `data/mods/`.
-- **Descriptions** come from the installed game's `Language/english.xml`, found through
-  `STATIONEERS_DIR` or the default Steam path. Without the game (e.g. in CI) there are none;
-  everything else is the same. The build says which it used and lists logic types that have no
-  description.
+- **Prefabs** come from the emulator's game data, plus mods' devices in `data/mods/prefabs.json`
+  (console parts, `StationBatteryNuclear`, mirrored devices, …), which is committed.
+- **Descriptions** come from a local Stationpedia export (below), then the installed game's
+  `Language/english.xml`; the game is found through `STATIONEERS_DIR` or the default Steam path.
+  Without either (e.g. in CI) there are none; everything else is the same. The build says which it
+  used and lists logic types that have no description.
 - `generated/` is gitignored, because the descriptions are the game's own text.
+
+**Refreshing the mods' devices**, after a game update or a mod change. You don't need this to build or test.
+
+1. Install [StationeersStationpediaExtractor](https://github.com/Ryex/StationeersStationpediaExtractor)
+   (a BepInEx plugin: `StationpediaExtractor.dll` into `BepInEx/plugins/`), start the game with
+   your mods, load a save, and run `stationpedia_export` in the F3 console. It writes
+   `<game>/Stationpedia/Enums.json` and `Stationpedia.json`.
+2. `npm run catalog:import-stationpedia` (or `-- <folder>` if the export is elsewhere) rewrites
+   `data/mods/prefabs.json` with every prefab that has logic but isn't in the emulator's data, and
+   prints what was added, changed or removed. It also lists game prefabs whose logic types differ
+   from the emulator's data; the catalogue keeps the emulator's, since that's what it enforces.
+3. Commit `data/mods/prefabs.json`. Only names, hashes, Read/Write, slots and modes go in it; the
+   export's descriptions stay local, and `catalog:build` reads them from the export folder.
 
 ```ts
 import { loadCatalog, prefabInfo, canAccess } from "@tasermonkey/ic10-test";

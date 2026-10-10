@@ -21,11 +21,19 @@ export interface CatalogSources {
 	devices: SourceDevice[];
 	/** Mods' devices (data/mods/), added after the game's; a name clash is an error. */
 	modPrefabs?: CatalogPrefab[];
-	/** From the game's english.xml, when installed; without it, nothing has a description. */
-	game?: Descriptions;
-	/** Where `game` came from, for `sources.descriptions`. */
-	gameLabel?: string;
+	/**
+	 * Description sources, most preferred first: the Stationpedia export, then the game's
+	 * english.xml. With none, nothing has a description.
+	 */
+	descriptions?: DescriptionSource[];
 	builtAt?: Date;
+}
+
+export interface DescriptionSource {
+	source: CatalogDescription["source"];
+	/** Shown in `sources.descriptions`, e.g. "Stationpedia export (game 0.2.6428.27798)". */
+	label: string;
+	data: Descriptions;
 }
 
 export interface BuildResult {
@@ -67,7 +75,9 @@ export function buildCatalog(sources: CatalogSources): BuildResult {
 
 	const describe = (kind: keyof Descriptions): Record<string, CatalogDescription> => {
 		const out: Record<string, CatalogDescription> = {};
-		for (const [name, text] of Object.entries(sources.game?.[kind] ?? {})) out[name] = { text, source: "game" };
+		for (const { source, data } of sources.descriptions ?? []) {
+			for (const [name, text] of Object.entries(data[kind])) out[name] ??= { text, source };
+		}
 		return out;
 	};
 	const logicTypes = describe("logicTypes");
@@ -80,7 +90,9 @@ export function buildCatalog(sources: CatalogSources): BuildResult {
 		catalog: {
 			version: 1,
 			builtAt: (sources.builtAt ?? new Date()).toISOString(),
-			sources: { descriptions: sources.game ? (sources.gameLabel ?? "game") : "none (game not found)" },
+			sources: {
+				descriptions: sources.descriptions?.length ? sources.descriptions.map((d) => d.label).join(", then ") : "none (game not found)",
+			},
 			logicTypes,
 			slotLogicTypes,
 			prefabs,

@@ -3,45 +3,37 @@
  *
  *   npm run catalog:build      (node --conditions=source ic10-test/tools/catalog-build.ts)
  *
- * Descriptions come from the game's Language/english.xml, found through STATIONEERS_DIR or the
- * default Steam path. Without the game the catalogue has no descriptions; everything else is the same.
+ * Prefabs: the emulator's game data, plus mods' devices from data/mods/prefabs.json.
+ * Descriptions: a local Stationpedia export (<game>/Stationpedia/Enums.json), then the game's
+ * Language/english.xml; the game is found through STATIONEERS_DIR or the default Steam path.
+ * Without either there are no descriptions; everything else is the same.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { DEVICES } from "@stationeers-ic/ic10";
-import { buildCatalog, parseEnglishXml } from "../src/catalog/build.ts";
+import { buildCatalog, type DescriptionSource, parseEnglishXml } from "../src/catalog/build.ts";
 import { CATALOG_PATH, type CatalogPrefab, GENERATED_DIR } from "../src/catalog/catalog.ts";
+import { type StationpediaEnums, stationpediaDescriptions } from "../src/catalog/stationpedia.ts";
+import { englishXmlPath, MODS_FILE, stationpediaDir } from "./game-paths.ts";
 
-const DATA = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
-const DEFAULT_GAME_DIRS = [
-	"C:/Program Files (x86)/Steam/steamapps/common/Stationeers",
-	`${process.env.HOME}/.steam/steam/steamapps/common/Stationeers`,
-];
-const ENGLISH_XML = "rocketstation_Data/StreamingAssets/Language/english.xml";
-
-function findEnglishXml(): string | undefined {
-	const dirs = process.env.STATIONEERS_DIR ? [process.env.STATIONEERS_DIR] : DEFAULT_GAME_DIRS;
-	return dirs.map((dir) => join(dir, ENGLISH_XML)).find((path) => existsSync(path));
+const descriptions: DescriptionSource[] = [];
+const exportDir = stationpediaDir();
+if (exportDir && existsSync(join(exportDir, "Enums.json"))) {
+	const enums = JSON.parse(readFileSync(join(exportDir, "Enums.json"), "utf8")) as StationpediaEnums;
+	const date = statSync(join(exportDir, "Enums.json")).mtime.toISOString().slice(0, 10);
+	descriptions.push({ source: "stationpedia", label: `Stationpedia export (${date})`, data: stationpediaDescriptions(enums) });
+}
+const xmlPath = englishXmlPath();
+if (xmlPath) {
+	const date = statSync(xmlPath).mtime.toISOString().slice(0, 10);
+	descriptions.push({ source: "game", label: `game english.xml (${date})`, data: parseEnglishXml(readFileSync(xmlPath, "utf8")) });
 }
 
-/** data/mods/*.json: each a list of mod prefabs. */
-function modPrefabs(): CatalogPrefab[] {
-	const dir = join(DATA, "mods");
-	if (!existsSync(dir)) return [];
-	return readdirSync(dir)
-		.filter((f) => f.endsWith(".json"))
-		.flatMap((f) => (JSON.parse(readFileSync(join(dir, f), "utf8")) as { prefabs: CatalogPrefab[] }).prefabs);
-}
-
-const xmlPath = findEnglishXml();
-const { catalog, undescribed } = buildCatalog({
-	devices: Object.values(DEVICES),
-	modPrefabs: modPrefabs(),
-	game: xmlPath ? parseEnglishXml(readFileSync(xmlPath, "utf8")) : undefined,
-	gameLabel: xmlPath && `game english.xml (${statSync(xmlPath).mtime.toISOString().slice(0, 10)})`,
-});
+const modPrefabs = existsSync(MODS_FILE)
+	? (JSON.parse(readFileSync(MODS_FILE, "utf8")) as { prefabs: CatalogPrefab[] }).prefabs
+	: [];
+const { catalog, undescribed } = buildCatalog({ devices: Object.values(DEVICES), modPrefabs, descriptions });
 
 await mkdir(GENERATED_DIR, { recursive: true });
 await writeFile(CATALOG_PATH, `${JSON.stringify(catalog)}\n`);

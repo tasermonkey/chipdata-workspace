@@ -9,6 +9,7 @@
 	],
 	"scripts": {
 		"catalog:build": "node --conditions=source ic10-test/tools/catalog-build.ts",
+		"catalog:import-stationpedia": "node --conditions=source ic10-test/tools/catalog-import-stationpedia.ts",
 		"pretest": "npm run catalog:build",
 		"test": "vitest run",
 		"test:watch": "vitest",

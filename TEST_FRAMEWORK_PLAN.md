@@ -482,7 +482,7 @@ same Stationpedia export (ic10emu's `xtask generate` reads `Enums.json` and `Sta
 
 **Working from a clean clone** needs neither the mod nor an export: `npm install`, then `npm test`.
 The committed fork data and `data/mods/` give every type. **Refreshing** after a game update or a
-new mod: run the export in game, then `npm run catalog:import-export` to regenerate `data/mods/`,
+new mod: run the export in game, then `npm run catalog:import-stationpedia` to regenerate `data/mods/`,
 and commit it. Whoever has an export locally also gets its descriptions in their build.
 
 **How descriptions combine.** The catalogue keeps every source's text with a source label instead of
@@ -745,6 +745,14 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   - Step 1 is done: `catalog:build` writes `ic10-test/generated/catalog.json` from the fork's 407
     prefabs and the game's `english.xml`. ic10emu's descriptions were tried as a fallback and
     dropped, since they come from the same export.
+  - The Stationpedia export (game 0.2.6428.27798) includes mods' devices. `npm run
+    catalog:import-stationpedia` wrote the 130 prefabs with logic that the fork's data lacks (all 56
+    console parts, `StationBatteryNuclear`, Mirrored Devices, FPGA, terminals, circuit breakers) to
+    committed `ic10-test/data/mods/prefabs.json`, so the DLL isn't needed. `catalog:build` now has
+    537 prefabs and takes descriptions from the export's `Enums.json`, then `english.xml`; all 366
+    logic types are described. The export also shows 10 game prefabs with extra logic types the
+    fork's data lacks (batteries: `ImportQuantity`, `ExportQuantity`; transformers: `PowerActual`),
+    from a newer game version or a power mod. The catalogue keeps the fork's for now.
 
 Suggested first regression tests (Phase 4):
 

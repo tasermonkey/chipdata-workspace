@@ -1,0 +1,3507 @@
+{
+	"gameVersion": "0.2.6428.27798",
+	"prefabs": [
+		{
+			"prefab": "BusTie",
+			"hash": 1505274204,
+			"title": "Bus Tie (Power)",
+			"logic": {
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "CircuitBreakerHeavy",
+			"hash": -1888133277,
+			"title": "Heavy Circuit Breaker",
+			"logic": {
+				"Power": "r",
+				"Open": "r",
+				"Mode": "r",
+				"Error": "r",
+				"Activate": "w",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"PowerPotential": "r",
+				"PowerActual": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PowerRequired": "r",
+				"PowerGeneration": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Breaker is Open",
+				"Breaker is Tripped",
+				"Breaker is Closed"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "DataBusTie",
+			"hash": -765293937,
+			"title": "Bus Tie (Data)",
+			"logic": {
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ItemWirelessBatteryCellNuclear",
+			"hash": 1220303697,
+			"title": "Battery Wireless Cell (Nuclear)",
+			"logic": {
+				"Mode": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Empty",
+				"Critical",
+				"VeryLow",
+				"Low",
+				"Medium",
+				"High",
+				"Full"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "LoadCenter",
+			"hash": 1911572047,
+			"title": "Load Center",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Error": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "Lights Power",
+					"type": "None",
+					"logic": [
+						"Quantity",
+						"On"
+					]
+				},
+				{
+					"index": 1,
+					"name": "Door Power",
+					"type": "None",
+					"logic": [
+						"Quantity",
+						"On"
+					]
+				},
+				{
+					"index": 2,
+					"name": "Atmospherics Power",
+					"type": "None",
+					"logic": [
+						"Quantity",
+						"On"
+					]
+				},
+				{
+					"index": 3,
+					"name": "Equipment Power",
+					"type": "None",
+					"logic": [
+						"Quantity",
+						"On"
+					]
+				},
+				{
+					"index": 4,
+					"name": "Logic Power",
+					"type": "None",
+					"logic": [
+						"Quantity",
+						"On"
+					]
+				}
+			],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceAlarm",
+			"hash": 1922318669,
+			"title": "Logic Alarm",
+			"logic": {
+				"Power": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceBigLever",
+			"hash": -1095397205,
+			"title": "Big Lever",
+			"logic": {
+				"Open": "rw",
+				"Setting": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceCardReader",
+			"hash": 1866581662,
+			"title": "Access Card Reader",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"Setting": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "Access Card",
+					"type": "AccessCard",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [
+				"Blue",
+				"Gray",
+				"Green",
+				"Orange",
+				"Red",
+				"Yellow",
+				"White",
+				"Black",
+				"Brown",
+				"Khaki",
+				"Pink",
+				"Purple"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceComputer",
+			"hash": -2028449761,
+			"title": "Computer",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Error": "r",
+				"On": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "Motherboard",
+					"type": "Motherboard",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 1,
+					"name": "Data Disk",
+					"type": "DataDisk",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 2,
+					"name": "Data Disk",
+					"type": "DataDisk",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceConsole",
+			"hash": -651766268,
+			"title": "Console",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Error": "r",
+				"Activate": "rw",
+				"Setting": "r",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "Circuitboard",
+					"type": "Circuitboard",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"Mode",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 1,
+					"name": "Data Disk",
+					"type": "DataDisk",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"Mode",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceDial",
+			"hash": 1465300791,
+			"title": "Logic Dial",
+			"logic": {
+				"Mode": "rw",
+				"Setting": "rw",
+				"Ratio": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceDialSmall",
+			"hash": -1158984141,
+			"title": "Logic Dial Small",
+			"logic": {
+				"Mode": "rw",
+				"Setting": "rw",
+				"Ratio": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceEdgewiseMeter3",
+			"hash": -1958702412,
+			"title": "Edgewise Meter",
+			"logic": {
+				"Power": "r",
+				"Setting": "rw",
+				"Maximum": "rw",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r",
+				"Minimum": "rw"
+			},
+			"slots": [],
+			"modes": [
+				"Mode0",
+				"Mode1"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceEmergencyButton3x3",
+			"hash": 2088517573,
+			"title": "Emergency Button",
+			"logic": {
+				"Activate": "rw",
+				"Setting": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceFlipCoverButton",
+			"hash": -1542918971,
+			"title": "Flip Cover Button",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Activate": "rw",
+				"Lock": "rw",
+				"Setting": "r",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceFlipCoverSwitch",
+			"hash": -236516384,
+			"title": "Flip Cover Switch",
+			"logic": {
+				"Open": "rw",
+				"Setting": "r",
+				"On": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceFlipSwitch",
+			"hash": 1773255945,
+			"title": "Flip Switch",
+			"logic": {
+				"Setting": "r",
+				"On": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceGauge2x2",
+			"hash": -1013553731,
+			"title": "Gauge 2x2",
+			"logic": {
+				"Power": "r",
+				"Setting": "rw",
+				"Maximum": "rw",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r",
+				"Minimum": "rw"
+			},
+			"slots": [],
+			"modes": [
+				"Mode0",
+				"Mode1"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceGauge3x3",
+			"hash": -1252835556,
+			"title": "Gauge 3x3",
+			"logic": {
+				"Power": "r",
+				"Setting": "rw",
+				"Maximum": "rw",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r",
+				"Minimum": "rw"
+			},
+			"slots": [],
+			"modes": [
+				"Mode0",
+				"Mode1"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceLabelDiode2",
+			"hash": 688119132,
+			"title": "Label Diode 2",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Mode0",
+				"Mode1"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceLabelDiode3",
+			"hash": 1577381322,
+			"title": "Label Diode 3",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Mode0",
+				"Mode1"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceLEDdisplay2",
+			"hash": -2041948072,
+			"title": "LED Display 2",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"Error": "r",
+				"Setting": "rw",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Default",
+				"Percent",
+				"Power",
+				"Kelvin",
+				"Celsius",
+				"Meters",
+				"Credits",
+				"Seconds",
+				"Minutes",
+				"Days",
+				"String",
+				"Fahrenheit",
+				"Litres",
+				"Mol",
+				"Pa",
+				"Newtons",
+				"Degrees"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceLEDdisplay3",
+			"hash": -246585138,
+			"title": "LED Display 3",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"Error": "r",
+				"Setting": "rw",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Default",
+				"Percent",
+				"Power",
+				"Kelvin",
+				"Celsius",
+				"Meters",
+				"Credits",
+				"Seconds",
+				"Minutes",
+				"Days",
+				"String",
+				"Fahrenheit",
+				"Litres",
+				"Mol",
+				"Pa",
+				"Newtons",
+				"Degrees"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceLight",
+			"hash": 1829854055,
+			"title": "Light Diode",
+			"logic": {
+				"Power": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceLightLarge",
+			"hash": 1644427753,
+			"title": "Light Diode Large",
+			"logic": {
+				"Power": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceLightSmall",
+			"hash": 1311586884,
+			"title": "Light Diode Small",
+			"logic": {
+				"Power": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceMeter3x3",
+			"hash": -1399920604,
+			"title": "Meter 3x3",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceNumpad",
+			"hash": -377257892,
+			"title": "Logic Num Pad",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"Setting": "rw",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Mode0",
+				"Mode1"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceRoundButton",
+			"hash": 489382030,
+			"title": "Logic Button Round",
+			"logic": {
+				"Power": "r",
+				"Activate": "rw",
+				"Setting": "r",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceSlider",
+			"hash": 1070499908,
+			"title": "Logic Slider",
+			"logic": {
+				"Setting": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceSliderDiode1",
+			"hash": 2015129381,
+			"title": "Diode Slide 1",
+			"logic": {
+				"Power": "r",
+				"Setting": "rw",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceSliderDiode2",
+			"hash": -518701409,
+			"title": "Diode Slide 2",
+			"logic": {
+				"Power": "r",
+				"Setting": "rw",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceSquareButton",
+			"hash": 1462769197,
+			"title": "Logic Button Square",
+			"logic": {
+				"Power": "r",
+				"Activate": "rw",
+				"Setting": "r",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceSwitch",
+			"hash": -1612655781,
+			"title": "Logic Switch",
+			"logic": {
+				"Power": "r",
+				"Setting": "r",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceThrottle3x2",
+			"hash": -1649777768,
+			"title": "Logic Throttle",
+			"logic": {
+				"Setting": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceUtilityButton2x2",
+			"hash": -1446063838,
+			"title": "Utility Button",
+			"logic": {
+				"Activate": "rw",
+				"Setting": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "OmniTransmitterLarge",
+			"hash": 691137,
+			"title": "Omni Transmitter Large",
+			"logic": {
+				"Power": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "Rover_MkI",
+			"hash": -2049946335,
+			"title": "Rover MkI",
+			"logic": {
+				"Power": "r",
+				"On": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "Entity",
+					"type": "Entity",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 1,
+					"name": "Entity",
+					"type": "Entity",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 2,
+					"name": "Battery",
+					"type": "Battery",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Charge",
+						"ChargeRatio",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 3,
+					"name": "Battery",
+					"type": "Battery",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Charge",
+						"ChargeRatio",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 4,
+					"name": "Battery",
+					"type": "Battery",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Charge",
+						"ChargeRatio",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 5,
+					"name": "<N:EN:ContainerConnection>",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 6,
+					"name": "<N:EN:ContainerConnection>",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 7,
+					"name": "<N:EN:GasTankConnection>",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 8,
+					"name": "<N:EN:GasTankConnection>",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 9,
+					"name": "<N:EN:GasTankConnection>",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				},
+				{
+					"index": 10,
+					"name": "<N:EN:GasTankConnection>",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"ReferenceId"
+					]
+				}
+			],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "SmallCircuitBreaker",
+			"hash": -2031505105,
+			"title": "Circuit Breaker",
+			"logic": {
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Breaker is Open",
+				"Breaker is Tripped",
+				"Breaker is Closed"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "SmallCircuitBreakerReversed",
+			"hash": 1265361242,
+			"title": "Circuit Breaker (Reversed)",
+			"logic": {
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Breaker is Open",
+				"Breaker is Tripped",
+				"Breaker is Closed"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "SmartCircuitBreaker",
+			"hash": -878236974,
+			"title": "Smart Breaker",
+			"logic": {
+				"Power": "r",
+				"Mode": "r",
+				"Error": "r",
+				"Setting": "r",
+				"Maximum": "r",
+				"Ratio": "r",
+				"PowerPotential": "r",
+				"PowerActual": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PowerRequired": "r",
+				"PowerGeneration": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Breaker is Open",
+				"Breaker is Tripped",
+				"Breaker is Closed"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "SmartCircuitBreakerReversed",
+			"hash": 1476081123,
+			"title": "Smart Breaker (Reversed)",
+			"logic": {
+				"Power": "r",
+				"Mode": "r",
+				"Error": "r",
+				"Setting": "r",
+				"Maximum": "r",
+				"Ratio": "r",
+				"PowerPotential": "r",
+				"PowerActual": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PowerRequired": "r",
+				"PowerGeneration": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Breaker is Open",
+				"Breaker is Tripped",
+				"Breaker is Closed"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "StationBatteryNuclear",
+			"hash": 1558316074,
+			"title": "Nuclear Battery",
+			"logic": {
+				"Power": "r",
+				"Mode": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Charge": "r",
+				"Maximum": "r",
+				"Ratio": "r",
+				"PowerPotential": "r",
+				"PowerActual": "r",
+				"On": "rw",
+				"ImportQuantity": "r",
+				"ExportQuantity": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [
+				"Empty",
+				"Critical",
+				"VeryLow",
+				"Low",
+				"Medium",
+				"High",
+				"Full"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureAdvancedFurnaceMirrored",
+			"hash": -2097628182,
+			"title": "Advanced Furnace (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Mode": "rw",
+				"Error": "r",
+				"Pressure": "r",
+				"Temperature": "r",
+				"Activate": "rw",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Reagents": "r",
+				"RatioOxygen": "r",
+				"RatioCarbonDioxide": "r",
+				"RatioNitrogen": "r",
+				"RatioPollutant": "r",
+				"RatioMethane": "r",
+				"RatioWater": "r",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"RecipeHash": "r",
+				"ClearMemory": "w",
+				"ExportCount": "r",
+				"ImportCount": "r",
+				"TotalMoles": "r",
+				"RatioNitrousOxide": "r",
+				"PrefabHash": "r",
+				"SettingInput": "rw",
+				"SettingOutput": "rw",
+				"Combustion": "r",
+				"RatioLiquidNitrogen": "r",
+				"RatioLiquidOxygen": "r",
+				"RatioLiquidMethane": "r",
+				"RatioSteam": "r",
+				"RatioLiquidCarbonDioxide": "r",
+				"RatioLiquidPollutant": "r",
+				"RatioLiquidNitrousOxide": "r",
+				"ReferenceId": "r",
+				"RatioHydrogen": "r",
+				"RatioLiquidHydrogen": "r",
+				"RatioPollutedWater": "r",
+				"NameHash": "r",
+				"RatioHydrazine": "r",
+				"RatioLiquidHydrazine": "r",
+				"RatioLiquidAlcohol": "r",
+				"RatioHelium": "r",
+				"RatioLiquidSodiumChloride": "r",
+				"RatioSilanol": "r",
+				"RatioLiquidSilanol": "r",
+				"RatioHydrochloricAcid": "r",
+				"RatioLiquidHydrochloricAcid": "r",
+				"RatioOzone": "r",
+				"RatioLiquidOzone": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "Import",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 1,
+					"name": "Export",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [
+				"Mode0",
+				"Mode1"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureAirConditionerMirrored",
+			"hash": 473473186,
+			"title": "Air Conditioner (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Mode": "rw",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"PressureInput": "r",
+				"TemperatureInput": "r",
+				"RatioOxygenInput": "r",
+				"RatioCarbonDioxideInput": "r",
+				"RatioNitrogenInput": "r",
+				"RatioPollutantInput": "r",
+				"RatioMethaneInput": "r",
+				"RatioWaterInput": "r",
+				"RatioNitrousOxideInput": "r",
+				"TotalMolesInput": "r",
+				"PressureOutput": "r",
+				"TemperatureOutput": "r",
+				"RatioOxygenOutput": "r",
+				"RatioCarbonDioxideOutput": "r",
+				"RatioNitrogenOutput": "r",
+				"RatioPollutantOutput": "r",
+				"RatioMethaneOutput": "r",
+				"RatioWaterOutput": "r",
+				"RatioNitrousOxideOutput": "r",
+				"TotalMolesOutput": "r",
+				"PressureOutput2": "r",
+				"TemperatureOutput2": "r",
+				"RatioOxygenOutput2": "r",
+				"RatioCarbonDioxideOutput2": "r",
+				"RatioNitrogenOutput2": "r",
+				"RatioPollutantOutput2": "r",
+				"RatioMethaneOutput2": "r",
+				"RatioWaterOutput2": "r",
+				"RatioNitrousOxideOutput2": "r",
+				"TotalMolesOutput2": "r",
+				"CombustionInput": "r",
+				"CombustionOutput": "r",
+				"CombustionOutput2": "r",
+				"OperationalTemperatureEfficiency": "r",
+				"TemperatureDifferentialEfficiency": "r",
+				"PressureEfficiency": "r",
+				"RatioLiquidNitrogenInput": "r",
+				"RatioLiquidNitrogenOutput": "r",
+				"RatioLiquidNitrogenOutput2": "r",
+				"RatioLiquidOxygenInput": "r",
+				"RatioLiquidOxygenOutput": "r",
+				"RatioLiquidOxygenOutput2": "r",
+				"RatioLiquidMethaneInput": "r",
+				"RatioLiquidMethaneOutput": "r",
+				"RatioLiquidMethaneOutput2": "r",
+				"RatioSteamInput": "r",
+				"RatioSteamOutput": "r",
+				"RatioSteamOutput2": "r",
+				"RatioLiquidCarbonDioxideInput": "r",
+				"RatioLiquidCarbonDioxideOutput": "r",
+				"RatioLiquidCarbonDioxideOutput2": "r",
+				"RatioLiquidPollutantInput": "r",
+				"RatioLiquidPollutantOutput": "r",
+				"RatioLiquidPollutantOutput2": "r",
+				"RatioLiquidNitrousOxideInput": "r",
+				"RatioLiquidNitrousOxideOutput": "r",
+				"RatioLiquidNitrousOxideOutput2": "r",
+				"ReferenceId": "r",
+				"NameHash": "r",
+				"RatioHydrogenInput": "r",
+				"RatioHydrogenOutput": "r",
+				"RatioHydrogenOutput2": "r",
+				"RatioLiquidHydrogenInput": "r",
+				"RatioLiquidHydrogenOutput": "r",
+				"RatioLiquidHydrogenOutput2": "r",
+				"RatioPollutedWaterInput": "r",
+				"RatioPollutedWaterOutput": "r",
+				"RatioPollutedWaterOutput2": "r",
+				"RatioHydrazineInput": "r",
+				"RatioHydrazineOutput": "r",
+				"RatioHydrazineOutput2": "r",
+				"RatioLiquidHydrazineInput": "r",
+				"RatioLiquidHydrazineOutput": "r",
+				"RatioLiquidHydrazineOutput2": "r",
+				"RatioLiquidAlcoholInput": "r",
+				"RatioLiquidAlcoholOutput": "r",
+				"RatioLiquidAlcoholOutput2": "r",
+				"RatioHeliumInput": "r",
+				"RatioHeliumOutput": "r",
+				"RatioHeliumOutput2": "r",
+				"RatioLiquidSodiumChlorideInput": "r",
+				"RatioLiquidSodiumChlorideOutput": "r",
+				"RatioLiquidSodiumChlorideOutput2": "r",
+				"RatioSilanolInput": "r",
+				"RatioSilanolOutput": "r",
+				"RatioSilanolOutput2": "r",
+				"RatioLiquidSilanolInput": "r",
+				"RatioLiquidSilanolOutput": "r",
+				"RatioLiquidSilanolOutput2": "r",
+				"RatioHydrochloricAcidInput": "r",
+				"RatioHydrochloricAcidOutput": "r",
+				"RatioHydrochloricAcidOutput2": "r",
+				"RatioLiquidHydrochloricAcidInput": "r",
+				"RatioLiquidHydrochloricAcidOutput": "r",
+				"RatioLiquidHydrochloricAcidOutput2": "r",
+				"RatioOzoneInput": "r",
+				"RatioOzoneOutput": "r",
+				"RatioOzoneOutput2": "r",
+				"RatioLiquidOzoneInput": "r",
+				"RatioLiquidOzoneOutput": "r",
+				"RatioLiquidOzoneOutput2": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "ProgrammableChip",
+					"type": "ProgrammableChip",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [
+				"Idle",
+				"Active"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureBackLiquidPressureRegulatorMirrored",
+			"hash": 814734931,
+			"title": "Liquid Back Volume Regulator (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureBackPressureRegulatorMirrored",
+			"hash": 767420290,
+			"title": "Back Pressure Regulator (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureCondensationChamberMirrored",
+			"hash": 339338140,
+			"title": "Condensation Chamber (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Error": "r",
+				"Pressure": "r",
+				"Temperature": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"RatioOxygen": "r",
+				"RatioCarbonDioxide": "r",
+				"RatioNitrogen": "r",
+				"RatioPollutant": "r",
+				"RatioMethane": "r",
+				"RatioWater": "r",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"TotalMoles": "r",
+				"RatioNitrousOxide": "r",
+				"PrefabHash": "r",
+				"Combustion": "r",
+				"RatioLiquidNitrogen": "r",
+				"RatioLiquidOxygen": "r",
+				"RatioLiquidMethane": "r",
+				"RatioSteam": "r",
+				"RatioLiquidCarbonDioxide": "r",
+				"RatioLiquidPollutant": "r",
+				"RatioLiquidNitrousOxide": "r",
+				"ReferenceId": "r",
+				"RatioHydrogen": "r",
+				"RatioLiquidHydrogen": "r",
+				"RatioPollutedWater": "r",
+				"NameHash": "r",
+				"RatioHydrazine": "r",
+				"RatioLiquidHydrazine": "r",
+				"RatioLiquidAlcohol": "r",
+				"RatioHelium": "r",
+				"RatioLiquidSodiumChloride": "r",
+				"RatioSilanol": "r",
+				"RatioLiquidSilanol": "r",
+				"RatioHydrochloricAcid": "r",
+				"RatioLiquidHydrochloricAcid": "r",
+				"RatioOzone": "r",
+				"RatioLiquidOzone": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase1",
+			"hash": 42559286,
+			"title": "Console Base 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase1Double",
+			"hash": -1213229589,
+			"title": "Console Base 1 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase2",
+			"hash": -1686096244,
+			"title": "Console Base 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase2Double",
+			"hash": -2042130570,
+			"title": "Console Base 2 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase3",
+			"hash": -326695398,
+			"title": "Console Base 3",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase3Double",
+			"hash": 540050626,
+			"title": "Console Base 3 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase4",
+			"hash": 1927517113,
+			"title": "Console Base 4",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase4Double",
+			"hash": -443041204,
+			"title": "Console Base 4 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase5",
+			"hash": 98870063,
+			"title": "Console Base 5",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase5Double",
+			"hash": 1138799096,
+			"title": "Console Base 5 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase6",
+			"hash": -1662127467,
+			"title": "Console Base 6",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBase6Double",
+			"hash": 1913170789,
+			"title": "Console Base 6 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBaseCorner1",
+			"hash": 55811590,
+			"title": "Console Base Corner 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBaseCorner2",
+			"hash": -1705324612,
+			"title": "Console Base Corner 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBaseCorner3",
+			"hash": -312606934,
+			"title": "Console Base Corner 3",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBaseCorner4",
+			"hash": 1933142665,
+			"title": "Console Base Corner 4",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBaseCorner5",
+			"hash": 71195167,
+			"title": "Console Base Corner 5",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleBaseCorner6",
+			"hash": -1657336923,
+			"title": "Console Base Corner 6",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleCornerInner1",
+			"hash": -1939225579,
+			"title": "Console Corner Inner 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleCornerInner1Center",
+			"hash": -1496094388,
+			"title": "Console Corner Inner 1 Center",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleCornerInner1Double",
+			"hash": 1019506823,
+			"title": "Console Corner Inner 1 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleCornerInner2",
+			"hash": 358651311,
+			"title": "Console Corner Inner 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleCornerInner2Center",
+			"hash": -1757711407,
+			"title": "Console Corner Inner 2 Center",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleCornerInner2Double",
+			"hash": 221014554,
+			"title": "Console Corner Inner 2 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat1",
+			"hash": 1226329381,
+			"title": "Console Flat 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat1Corner",
+			"hash": 460781936,
+			"title": "Console Flat 1 Corner",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat1Corner2",
+			"hash": 1254865352,
+			"title": "Console Flat 1 Corner 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat1Corner3",
+			"hash": 1036814686,
+			"title": "Console Flat 1 Corner 3",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat1Double",
+			"hash": -1062259045,
+			"title": "Console Flat 1 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat2",
+			"hash": -804184929,
+			"title": "Console Flat 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat2Double",
+			"hash": -246993914,
+			"title": "Console Flat 2 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat3",
+			"hash": -1491719159,
+			"title": "Console Flat 3",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat3Double",
+			"hash": 1462773682,
+			"title": "Console Flat 3 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat3x2",
+			"hash": -1913470915,
+			"title": "Console Flat 3x2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlat3x2Double",
+			"hash": 1228430734,
+			"title": "Console Flat 3x2 Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlatCornerInner",
+			"hash": 1942925259,
+			"title": "Console Flat Corner Inner",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlatCornerInnerDouble",
+			"hash": -1808376107,
+			"title": "Console Flat Corner Inner Double",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleFlatCornerInnerDoubleCenter",
+			"hash": -1378441867,
+			"title": "Console Flat Corner Inner Center",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleTerminal",
+			"hash": -1596279553,
+			"title": "Console Terminal",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleTerminal2",
+			"hash": 930581300,
+			"title": "Console Terminal 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleWallMount1",
+			"hash": 4406430,
+			"title": "Console Wall Mount 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureConsoleWallMount2",
+			"hash": -1723175644,
+			"title": "Console Wall Mount 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureDataBridge",
+			"hash": 407786335,
+			"title": "Optoisolator",
+			"logic": {
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureDataDiode",
+			"hash": 346382388,
+			"title": "Data Diode",
+			"logic": {
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureElectrolyzerMirrored",
+			"hash": -248371774,
+			"title": "Electrolyzer (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Mode": "rw",
+				"Error": "r",
+				"Activate": "rw",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"PressureInput": "r",
+				"TemperatureInput": "r",
+				"RatioOxygenInput": "r",
+				"RatioCarbonDioxideInput": "r",
+				"RatioNitrogenInput": "r",
+				"RatioPollutantInput": "r",
+				"RatioMethaneInput": "r",
+				"RatioWaterInput": "r",
+				"RatioNitrousOxideInput": "r",
+				"TotalMolesInput": "r",
+				"PressureOutput": "r",
+				"TemperatureOutput": "r",
+				"RatioOxygenOutput": "r",
+				"RatioCarbonDioxideOutput": "r",
+				"RatioNitrogenOutput": "r",
+				"RatioPollutantOutput": "r",
+				"RatioMethaneOutput": "r",
+				"RatioWaterOutput": "r",
+				"RatioNitrousOxideOutput": "r",
+				"TotalMolesOutput": "r",
+				"CombustionInput": "r",
+				"CombustionOutput": "r",
+				"RatioLiquidNitrogenInput": "r",
+				"RatioLiquidNitrogenOutput": "r",
+				"RatioLiquidOxygenInput": "r",
+				"RatioLiquidOxygenOutput": "r",
+				"RatioLiquidMethaneInput": "r",
+				"RatioLiquidMethaneOutput": "r",
+				"RatioSteamInput": "r",
+				"RatioSteamOutput": "r",
+				"RatioLiquidCarbonDioxideInput": "r",
+				"RatioLiquidCarbonDioxideOutput": "r",
+				"RatioLiquidPollutantInput": "r",
+				"RatioLiquidPollutantOutput": "r",
+				"RatioLiquidNitrousOxideInput": "r",
+				"RatioLiquidNitrousOxideOutput": "r",
+				"ReferenceId": "r",
+				"NameHash": "r",
+				"RatioHydrogenInput": "r",
+				"RatioHydrogenOutput": "r",
+				"RatioLiquidHydrogenInput": "r",
+				"RatioLiquidHydrogenOutput": "r",
+				"RatioPollutedWaterInput": "r",
+				"RatioPollutedWaterOutput": "r",
+				"RatioHydrazineInput": "r",
+				"RatioHydrazineOutput": "r",
+				"RatioLiquidHydrazineInput": "r",
+				"RatioLiquidHydrazineOutput": "r",
+				"RatioLiquidAlcoholInput": "r",
+				"RatioLiquidAlcoholOutput": "r",
+				"RatioHeliumInput": "r",
+				"RatioHeliumOutput": "r",
+				"RatioLiquidSodiumChlorideInput": "r",
+				"RatioLiquidSodiumChlorideOutput": "r",
+				"RatioSilanolInput": "r",
+				"RatioSilanolOutput": "r",
+				"RatioLiquidSilanolInput": "r",
+				"RatioLiquidSilanolOutput": "r",
+				"RatioHydrochloricAcidInput": "r",
+				"RatioHydrochloricAcidOutput": "r",
+				"RatioLiquidHydrochloricAcidInput": "r",
+				"RatioLiquidHydrochloricAcidOutput": "r",
+				"RatioOzoneInput": "r",
+				"RatioOzoneOutput": "r",
+				"RatioLiquidOzoneInput": "r",
+				"RatioLiquidOzoneOutput": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "ProgrammableChip",
+					"type": "ProgrammableChip",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [
+				"Idle",
+				"Active"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureEvaporationChamberMirrored",
+			"hash": 71660882,
+			"title": "Evaporation Chamber (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Error": "r",
+				"Pressure": "r",
+				"Temperature": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"RatioOxygen": "r",
+				"RatioCarbonDioxide": "r",
+				"RatioNitrogen": "r",
+				"RatioPollutant": "r",
+				"RatioMethane": "r",
+				"RatioWater": "r",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"TotalMoles": "r",
+				"RatioNitrousOxide": "r",
+				"PrefabHash": "r",
+				"Combustion": "r",
+				"RatioLiquidNitrogen": "r",
+				"RatioLiquidOxygen": "r",
+				"RatioLiquidMethane": "r",
+				"RatioSteam": "r",
+				"RatioLiquidCarbonDioxide": "r",
+				"RatioLiquidPollutant": "r",
+				"RatioLiquidNitrousOxide": "r",
+				"ReferenceId": "r",
+				"RatioHydrogen": "r",
+				"RatioLiquidHydrogen": "r",
+				"RatioPollutedWater": "r",
+				"NameHash": "r",
+				"RatioHydrazine": "r",
+				"RatioLiquidHydrazine": "r",
+				"RatioLiquidAlcohol": "r",
+				"RatioHelium": "r",
+				"RatioLiquidSodiumChloride": "r",
+				"RatioSilanol": "r",
+				"RatioLiquidSilanol": "r",
+				"RatioHydrochloricAcid": "r",
+				"RatioLiquidHydrochloricAcid": "r",
+				"RatioOzone": "r",
+				"RatioLiquidOzone": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureFiltrationMirrored",
+			"hash": -94400699,
+			"title": "Filtration (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Mode": "rw",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"PressureInput": "r",
+				"TemperatureInput": "r",
+				"RatioOxygenInput": "r",
+				"RatioCarbonDioxideInput": "r",
+				"RatioNitrogenInput": "r",
+				"RatioPollutantInput": "r",
+				"RatioMethaneInput": "r",
+				"RatioWaterInput": "r",
+				"RatioNitrousOxideInput": "r",
+				"TotalMolesInput": "r",
+				"PressureOutput": "r",
+				"TemperatureOutput": "r",
+				"RatioOxygenOutput": "r",
+				"RatioCarbonDioxideOutput": "r",
+				"RatioNitrogenOutput": "r",
+				"RatioPollutantOutput": "r",
+				"RatioMethaneOutput": "r",
+				"RatioWaterOutput": "r",
+				"RatioNitrousOxideOutput": "r",
+				"TotalMolesOutput": "r",
+				"PressureOutput2": "r",
+				"TemperatureOutput2": "r",
+				"RatioOxygenOutput2": "r",
+				"RatioCarbonDioxideOutput2": "r",
+				"RatioNitrogenOutput2": "r",
+				"RatioPollutantOutput2": "r",
+				"RatioMethaneOutput2": "r",
+				"RatioWaterOutput2": "r",
+				"RatioNitrousOxideOutput2": "r",
+				"TotalMolesOutput2": "r",
+				"CombustionInput": "r",
+				"CombustionOutput": "r",
+				"CombustionOutput2": "r",
+				"RatioLiquidNitrogenInput": "r",
+				"RatioLiquidNitrogenOutput": "r",
+				"RatioLiquidNitrogenOutput2": "r",
+				"RatioLiquidOxygenInput": "r",
+				"RatioLiquidOxygenOutput": "r",
+				"RatioLiquidOxygenOutput2": "r",
+				"RatioLiquidMethaneInput": "r",
+				"RatioLiquidMethaneOutput": "r",
+				"RatioLiquidMethaneOutput2": "r",
+				"RatioSteamInput": "r",
+				"RatioSteamOutput": "r",
+				"RatioSteamOutput2": "r",
+				"RatioLiquidCarbonDioxideInput": "r",
+				"RatioLiquidCarbonDioxideOutput": "r",
+				"RatioLiquidCarbonDioxideOutput2": "r",
+				"RatioLiquidPollutantInput": "r",
+				"RatioLiquidPollutantOutput": "r",
+				"RatioLiquidPollutantOutput2": "r",
+				"RatioLiquidNitrousOxideInput": "r",
+				"RatioLiquidNitrousOxideOutput": "r",
+				"RatioLiquidNitrousOxideOutput2": "r",
+				"ReferenceId": "r",
+				"NameHash": "r",
+				"RatioHydrogenInput": "r",
+				"RatioHydrogenOutput": "r",
+				"RatioHydrogenOutput2": "r",
+				"RatioLiquidHydrogenInput": "r",
+				"RatioLiquidHydrogenOutput": "r",
+				"RatioLiquidHydrogenOutput2": "r",
+				"RatioPollutedWaterInput": "r",
+				"RatioPollutedWaterOutput": "r",
+				"RatioPollutedWaterOutput2": "r",
+				"RatioHydrazineInput": "r",
+				"RatioHydrazineOutput": "r",
+				"RatioHydrazineOutput2": "r",
+				"RatioLiquidHydrazineInput": "r",
+				"RatioLiquidHydrazineOutput": "r",
+				"RatioLiquidHydrazineOutput2": "r",
+				"RatioLiquidAlcoholInput": "r",
+				"RatioLiquidAlcoholOutput": "r",
+				"RatioLiquidAlcoholOutput2": "r",
+				"RatioHeliumInput": "r",
+				"RatioHeliumOutput": "r",
+				"RatioHeliumOutput2": "r",
+				"RatioLiquidSodiumChlorideInput": "r",
+				"RatioLiquidSodiumChlorideOutput": "r",
+				"RatioLiquidSodiumChlorideOutput2": "r",
+				"RatioSilanolInput": "r",
+				"RatioSilanolOutput": "r",
+				"RatioSilanolOutput2": "r",
+				"RatioLiquidSilanolInput": "r",
+				"RatioLiquidSilanolOutput": "r",
+				"RatioLiquidSilanolOutput2": "r",
+				"RatioHydrochloricAcidInput": "r",
+				"RatioHydrochloricAcidOutput": "r",
+				"RatioHydrochloricAcidOutput2": "r",
+				"RatioLiquidHydrochloricAcidInput": "r",
+				"RatioLiquidHydrochloricAcidOutput": "r",
+				"RatioLiquidHydrochloricAcidOutput2": "r",
+				"RatioOzoneInput": "r",
+				"RatioOzoneOutput": "r",
+				"RatioOzoneOutput2": "r",
+				"RatioLiquidOzoneInput": "r",
+				"RatioLiquidOzoneOutput": "r",
+				"RatioLiquidOzoneOutput2": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "Gas Filter",
+					"type": "GasFilter",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"FilterType",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 1,
+					"name": "Gas Filter",
+					"type": "GasFilter",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"FilterType",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 2,
+					"name": "ProgrammableChip",
+					"type": "ProgrammableChip",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [
+				"Idle",
+				"Active"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureFPGALogicHousing",
+			"hash": 1529037363,
+			"title": "FPGA Logic Housing",
+			"logic": {
+				"Power": "r",
+				"Error": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r",
+				"StackSize": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "FPGA Chip",
+					"type": null,
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureFPGAReaderHousing",
+			"hash": -1393842787,
+			"title": "FPGA Reader Housing",
+			"logic": {
+				"Power": "r",
+				"Setting": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"Channel0": "r",
+				"Channel1": "r",
+				"Channel2": "r",
+				"Channel3": "r",
+				"Channel4": "r",
+				"Channel5": "r",
+				"Channel6": "r",
+				"Channel7": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "FPGA Chip",
+					"type": null,
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureLargeDirectHeatExchangeGastoLiquidMirrored",
+			"hash": -1178822884,
+			"title": "Large Direct Heat Exchanger - Gas + Liquid (Mirrored)",
+			"logic": {
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureLiquidPressureRegulatorMirrored",
+			"hash": -999845230,
+			"title": "Liquid Volume Regulator (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureLiquidVolumePumpMirrored",
+			"hash": -771864690,
+			"title": "Liquid Volume Pump (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureLogicSorterMirrored",
+			"hash": -2007912349,
+			"title": "Logic Sorter (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"Error": "r",
+				"Lock": "rw",
+				"On": "rw",
+				"RequiredPower": "r",
+				"ClearMemory": "w",
+				"ExportCount": "r",
+				"ImportCount": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r",
+				"StackSize": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "Import",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 1,
+					"name": "Export",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 2,
+					"name": "Export 2",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [
+				"All",
+				"Any",
+				"None"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureNitrolyzerMirrored",
+			"hash": 952761003,
+			"title": "Nitrolyzer (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Open": "rw",
+				"Mode": "rw",
+				"Error": "r",
+				"Pressure": "r",
+				"Temperature": "r",
+				"Activate": "rw",
+				"Setting": "rw",
+				"RatioOxygen": "r",
+				"RatioCarbonDioxide": "r",
+				"RatioNitrogen": "r",
+				"RatioPollutant": "r",
+				"RatioMethane": "r",
+				"RatioWater": "r",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"TotalMoles": "r",
+				"RatioNitrousOxide": "r",
+				"PrefabHash": "r",
+				"Combustion": "r",
+				"PressureInput": "r",
+				"TemperatureInput": "r",
+				"RatioOxygenInput": "r",
+				"RatioCarbonDioxideInput": "r",
+				"RatioNitrogenInput": "r",
+				"RatioPollutantInput": "r",
+				"RatioMethaneInput": "r",
+				"RatioWaterInput": "r",
+				"RatioNitrousOxideInput": "r",
+				"TotalMolesInput": "r",
+				"PressureInput2": "r",
+				"TemperatureInput2": "r",
+				"RatioOxygenInput2": "r",
+				"RatioCarbonDioxideInput2": "r",
+				"RatioNitrogenInput2": "r",
+				"RatioPollutantInput2": "r",
+				"RatioMethaneInput2": "r",
+				"RatioWaterInput2": "r",
+				"RatioNitrousOxideInput2": "r",
+				"TotalMolesInput2": "r",
+				"PressureOutput": "r",
+				"TemperatureOutput": "r",
+				"RatioOxygenOutput": "r",
+				"RatioCarbonDioxideOutput": "r",
+				"RatioNitrogenOutput": "r",
+				"RatioPollutantOutput": "r",
+				"RatioMethaneOutput": "r",
+				"RatioWaterOutput": "r",
+				"RatioNitrousOxideOutput": "r",
+				"TotalMolesOutput": "r",
+				"CombustionInput": "r",
+				"CombustionInput2": "r",
+				"CombustionOutput": "r",
+				"RatioLiquidNitrogen": "r",
+				"RatioLiquidNitrogenInput": "r",
+				"RatioLiquidNitrogenInput2": "r",
+				"RatioLiquidNitrogenOutput": "r",
+				"RatioLiquidOxygen": "r",
+				"RatioLiquidOxygenInput": "r",
+				"RatioLiquidOxygenInput2": "r",
+				"RatioLiquidOxygenOutput": "r",
+				"RatioLiquidMethane": "r",
+				"RatioLiquidMethaneInput": "r",
+				"RatioLiquidMethaneInput2": "r",
+				"RatioLiquidMethaneOutput": "r",
+				"RatioSteam": "r",
+				"RatioSteamInput": "r",
+				"RatioSteamInput2": "r",
+				"RatioSteamOutput": "r",
+				"RatioLiquidCarbonDioxide": "r",
+				"RatioLiquidCarbonDioxideInput": "r",
+				"RatioLiquidCarbonDioxideInput2": "r",
+				"RatioLiquidCarbonDioxideOutput": "r",
+				"RatioLiquidPollutant": "r",
+				"RatioLiquidPollutantInput": "r",
+				"RatioLiquidPollutantInput2": "r",
+				"RatioLiquidPollutantOutput": "r",
+				"RatioLiquidNitrousOxide": "r",
+				"RatioLiquidNitrousOxideInput": "r",
+				"RatioLiquidNitrousOxideInput2": "r",
+				"RatioLiquidNitrousOxideOutput": "r",
+				"ReferenceId": "r",
+				"RatioHydrogen": "r",
+				"RatioLiquidHydrogen": "r",
+				"RatioPollutedWater": "r",
+				"NameHash": "r",
+				"RatioHydrazine": "r",
+				"RatioLiquidHydrazine": "r",
+				"RatioLiquidAlcohol": "r",
+				"RatioHelium": "r",
+				"RatioLiquidSodiumChloride": "r",
+				"RatioSilanol": "r",
+				"RatioLiquidSilanol": "r",
+				"RatioHydrochloricAcid": "r",
+				"RatioLiquidHydrochloricAcid": "r",
+				"RatioOzone": "r",
+				"RatioLiquidOzone": "r",
+				"RatioHydrogenInput": "r",
+				"RatioHydrogenInput2": "r",
+				"RatioHydrogenOutput": "r",
+				"RatioLiquidHydrogenInput": "r",
+				"RatioLiquidHydrogenInput2": "r",
+				"RatioLiquidHydrogenOutput": "r",
+				"RatioPollutedWaterInput": "r",
+				"RatioPollutedWaterInput2": "r",
+				"RatioPollutedWaterOutput": "r",
+				"RatioHydrazineInput": "r",
+				"RatioHydrazineInput2": "r",
+				"RatioHydrazineOutput": "r",
+				"RatioLiquidHydrazineInput": "r",
+				"RatioLiquidHydrazineInput2": "r",
+				"RatioLiquidHydrazineOutput": "r",
+				"RatioLiquidAlcoholInput": "r",
+				"RatioLiquidAlcoholInput2": "r",
+				"RatioLiquidAlcoholOutput": "r",
+				"RatioHeliumInput": "r",
+				"RatioHeliumInput2": "r",
+				"RatioHeliumOutput": "r",
+				"RatioLiquidSodiumChlorideInput": "r",
+				"RatioLiquidSodiumChlorideInput2": "r",
+				"RatioLiquidSodiumChlorideOutput": "r",
+				"RatioSilanolInput": "r",
+				"RatioSilanolInput2": "r",
+				"RatioSilanolOutput": "r",
+				"RatioLiquidSilanolInput": "r",
+				"RatioLiquidSilanolInput2": "r",
+				"RatioLiquidSilanolOutput": "r",
+				"RatioHydrochloricAcidInput": "r",
+				"RatioHydrochloricAcidInput2": "r",
+				"RatioHydrochloricAcidOutput": "r",
+				"RatioLiquidHydrochloricAcidInput": "r",
+				"RatioLiquidHydrochloricAcidInput2": "r",
+				"RatioLiquidHydrochloricAcidOutput": "r",
+				"RatioOzoneInput": "r",
+				"RatioOzoneInput2": "r",
+				"RatioOzoneOutput": "r",
+				"RatioLiquidOzoneInput": "r",
+				"RatioLiquidOzoneInput2": "r",
+				"RatioLiquidOzoneOutput": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "ProgrammableChip",
+					"type": "ProgrammableChip",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [
+				"Idle",
+				"Active"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructurePressurantValveMirrored",
+			"hash": 1092768587,
+			"title": "Pressurant Valve (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructurePressureRegulatorMirrored",
+			"hash": -1803339184,
+			"title": "Pressure Regulator (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructurePurgeValveMirrored",
+			"hash": 235199613,
+			"title": "Purge Valve (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureSorterMirrored",
+			"hash": 1050104094,
+			"title": "Sorter (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"Error": "r",
+				"Lock": "rw",
+				"On": "rw",
+				"RequiredPower": "r",
+				"ClearMemory": "w",
+				"ExportCount": "r",
+				"ImportCount": "r",
+				"Output": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [
+				{
+					"index": 0,
+					"name": "Import",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 1,
+					"name": "Export",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				},
+				{
+					"index": 2,
+					"name": "Export 2",
+					"type": "None",
+					"logic": [
+						"Occupied",
+						"OccupantHash",
+						"Quantity",
+						"Damage",
+						"Class",
+						"MaxQuantity",
+						"PrefabHash",
+						"SortingClass",
+						"ReferenceId",
+						"FreeSlots",
+						"TotalSlots"
+					]
+				}
+			],
+			"modes": [
+				"Split",
+				"Filter",
+				"Logic"
+			],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureSuperLargeDirectHeatExchangeGastoLiquidMirrored",
+			"hash": -1892621573,
+			"title": "Super-Large Direct Heat Exchanger (Gas to Liquid) (Mirrored)",
+			"logic": {
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminal1",
+			"hash": 586823709,
+			"title": "Terminal 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminal2",
+			"hash": -1141675609,
+			"title": "Terminal 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalBase1",
+			"hash": -1334317299,
+			"title": "Terminal Base 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalBase2",
+			"hash": 696172215,
+			"title": "Terminal Base 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalBase3",
+			"hash": 1585024545,
+			"title": "Terminal Base 3",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalBase4",
+			"hash": -1071834238,
+			"title": "Terminal Base 4",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalCorner1",
+			"hash": -1782809989,
+			"title": "Terminal Corner 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalCorner2",
+			"hash": 213199809,
+			"title": "Terminal Corner 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalFlat2",
+			"hash": 1659868324,
+			"title": "Terminal Flat 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalJoint1",
+			"hash": 272710579,
+			"title": "Terminal Joint 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalJoint2",
+			"hash": -1991742967,
+			"title": "Terminal Joint 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalJoint3",
+			"hash": -28353889,
+			"title": "Terminal Joint 3",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalJoint4",
+			"hash": 1613483836,
+			"title": "Terminal Joint 4",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalJoint5",
+			"hash": 388825002,
+			"title": "Terminal Joint 5",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalJoint6",
+			"hash": -1910133232,
+			"title": "Terminal Joint 6",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalJoint7",
+			"hash": -115171706,
+			"title": "Terminal Joint 7",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalJoint8",
+			"hash": 1771930391,
+			"title": "Terminal Joint 8",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalMount1",
+			"hash": 395043628,
+			"title": "Terminal Mount 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalMount2",
+			"hash": -1904037226,
+			"title": "Terminal Mount 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalSplit1",
+			"hash": -457601532,
+			"title": "Terminal Split 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalTop1",
+			"hash": -1864713206,
+			"title": "Terminal Top 1",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureTerminalTop2",
+			"hash": 164883888,
+			"title": "Terminal Top 2",
+			"logic": {
+				"Power": "r",
+				"On": "r",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StructureVolumePumpMirrored",
+			"hash": -444554524,
+			"title": "Volume Pump (Mirrored)",
+			"logic": {
+				"Power": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Setting": "rw",
+				"Maximum": "r",
+				"Ratio": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		}
+	]
+}
