@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildCatalog, parseEnglishXml, type SourceDevice } from "../src/catalog/build.ts";
 import { canAccess, type CatalogPrefab, loadCatalog, prefabInfo } from "../src/catalog/catalog.ts";
-import { parseEnum } from "../tools/import-ic10emu.ts";
 
 const VENT: SourceDevice = {
 	PrefabName: "StructureActiveVent",
@@ -19,7 +18,7 @@ const VENT: SourceDevice = {
 
 describe("buildCatalog", () => {
 	it("keeps each prefab's logic types with Read/Write, its slots and its modes", () => {
-		const { catalog } = buildCatalog({ devices: [VENT], fallback: { logicTypes: {}, slotLogicTypes: {} } });
+		const { catalog } = buildCatalog({ devices: [VENT] });
 		const vent = catalog.prefabs.StructureActiveVent!;
 		expect(vent).toMatchObject({ hash: -1129453144, title: "Active Vent", modes: ["Outward", "Inward"], source: "game" });
 		expect(vent.logic).toEqual({ Mode: "rw", PressureExternal: "rw", Pressure: "r", Lock: "w" });
@@ -29,17 +28,23 @@ describe("buildCatalog", () => {
 		expect(canAccess(vent, "Nonsense", "r")).toBe(false);
 	});
 
-	it("prefers the game's descriptions, falls back to ic10emu's, and lists what neither describes", () => {
+	it("takes descriptions from the game, and lists what it doesn't describe", () => {
 		const { catalog, undescribed } = buildCatalog({
 			devices: [VENT],
-			game: { logicTypes: { Mode: "game mode" }, slotLogicTypes: {} },
-			fallback: { logicTypes: { Mode: "emu mode", Pressure: "emu pressure" }, slotLogicTypes: { Occupied: "emu occupied" } },
+			game: { logicTypes: { Mode: "game mode", Pressure: "game pressure" }, slotLogicTypes: { Occupied: "occupied" } },
 			gameLabel: "game english.xml",
 		});
 		expect(catalog.logicTypes.Mode).toEqual({ text: "game mode", source: "game" });
-		expect(catalog.logicTypes.Pressure).toEqual({ text: "emu pressure", source: "ic10emu" });
 		expect(catalog.sources.descriptions).toBe("game english.xml");
 		expect(undescribed).toEqual({ logicTypes: ["Lock", "PressureExternal"], slotLogicTypes: [] });
+	});
+
+	it("works without the game, with no descriptions", () => {
+		const { catalog, undescribed } = buildCatalog({ devices: [VENT] });
+		expect(catalog.logicTypes).toEqual({});
+		expect(catalog.sources.descriptions).toMatch(/none/);
+		expect(catalog.prefabs.StructureActiveVent?.logic.Mode).toBe("rw");
+		expect(undescribed.logicTypes).toHaveLength(4);
 	});
 
 	it("adds mod prefabs, and refuses one that clashes with a game prefab", () => {
@@ -52,9 +57,8 @@ describe("buildCatalog", () => {
 			modes: [],
 			source: "mod",
 		};
-		const fallback = { logicTypes: {}, slotLogicTypes: {} };
-		expect(buildCatalog({ devices: [VENT], modPrefabs: [mod], fallback }).catalog.prefabs.ModularDeviceRoundButton).toEqual(mod);
-		expect(() => buildCatalog({ devices: [VENT], modPrefabs: [{ ...mod, prefab: "StructureActiveVent" }], fallback })).toThrow(
+		expect(buildCatalog({ devices: [VENT], modPrefabs: [mod] }).catalog.prefabs.ModularDeviceRoundButton).toEqual(mod);
+		expect(() => buildCatalog({ devices: [VENT], modPrefabs: [{ ...mod, prefab: "StructureActiveVent" }] })).toThrow(
 			/clashes/,
 		);
 	});
@@ -69,24 +73,6 @@ describe("description sources", () => {
 		expect(parseEnglishXml(xml)).toEqual({
 			logicTypes: { On: "The current state of the device, 0 for off, 1 for on" },
 			slotLogicTypes: { Quantity: "Stack size & such" },
-		});
-	});
-
-	it("reads an enum from ic10emu's script.rs", () => {
-		const rust = `
-pub enum LogicType {
-    #[strum(serialize = "None")]
-    #[strum(props(deprecated = "true", docs = "No description", value = "0"))]
-    None = 0u16,
-    #[strum(serialize = "RatioNitrogenInput")]
-    #[strum(
-        props(docs = "The ratio of nitrogen in device's input network", value = "110")
-    )]
-    RatioNitrogenInput = 110u16,
-}`;
-		expect(parseEnum(rust, "LogicType")).toEqual({
-			None: { value: 0, description: "No description", deprecated: true },
-			RatioNitrogenInput: { value: 110, description: "The ratio of nitrogen in device's input network" },
 		});
 	});
 });

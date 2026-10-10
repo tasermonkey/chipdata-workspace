@@ -21,10 +21,8 @@ export interface CatalogSources {
 	devices: SourceDevice[];
 	/** Mods' devices (data/mods/), added after the game's; a name clash is an error. */
 	modPrefabs?: CatalogPrefab[];
-	/** From the game's english.xml, when installed. */
+	/** From the game's english.xml, when installed; without it, nothing has a description. */
 	game?: Descriptions;
-	/** ic10emu's copy, used for anything the game's text doesn't cover. */
-	fallback: Descriptions;
 	/** Where `game` came from, for `sources.descriptions`. */
 	gameLabel?: string;
 	builtAt?: Date;
@@ -32,7 +30,7 @@ export interface CatalogSources {
 
 export interface BuildResult {
 	catalog: Catalog;
-	/** Logic types that prefabs use but no source describes. */
+	/** Logic types that prefabs use but have no description. */
 	undescribed: { logicTypes: string[]; slotLogicTypes: string[] };
 }
 
@@ -69,7 +67,6 @@ export function buildCatalog(sources: CatalogSources): BuildResult {
 
 	const describe = (kind: keyof Descriptions): Record<string, CatalogDescription> => {
 		const out: Record<string, CatalogDescription> = {};
-		for (const [name, text] of Object.entries(sources.fallback[kind])) out[name] = { text, source: "ic10emu" };
 		for (const [name, text] of Object.entries(sources.game?.[kind] ?? {})) out[name] = { text, source: "game" };
 		return out;
 	};
@@ -83,7 +80,7 @@ export function buildCatalog(sources: CatalogSources): BuildResult {
 		catalog: {
 			version: 1,
 			builtAt: (sources.builtAt ?? new Date()).toISOString(),
-			sources: { descriptions: sources.game ? (sources.gameLabel ?? "game") : "ic10emu (data/ic10emu)" },
+			sources: { descriptions: sources.game ? (sources.gameLabel ?? "game") : "none (game not found)" },
 			logicTypes,
 			slotLogicTypes,
 			prefabs,

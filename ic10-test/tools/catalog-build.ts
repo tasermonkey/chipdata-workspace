@@ -4,14 +4,14 @@
  *   npm run catalog:build      (node --conditions=source ic10-test/tools/catalog-build.ts)
  *
  * Descriptions come from the game's Language/english.xml, found through STATIONEERS_DIR or the
- * default Steam path; without the game, from ic10emu's copy in data/ic10emu/.
+ * default Steam path. Without the game the catalogue has no descriptions; everything else is the same.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEVICES } from "@stationeers-ic/ic10";
-import { buildCatalog, type Descriptions, parseEnglishXml } from "../src/catalog/build.ts";
+import { buildCatalog, parseEnglishXml } from "../src/catalog/build.ts";
 import { CATALOG_PATH, type CatalogPrefab, GENERATED_DIR } from "../src/catalog/catalog.ts";
 
 const DATA = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
@@ -24,16 +24,6 @@ const ENGLISH_XML = "rocketstation_Data/StreamingAssets/Language/english.xml";
 function findEnglishXml(): string | undefined {
 	const dirs = process.env.STATIONEERS_DIR ? [process.env.STATIONEERS_DIR] : DEFAULT_GAME_DIRS;
 	return dirs.map((dir) => join(dir, ENGLISH_XML)).find((path) => existsSync(path));
-}
-
-function fallbackDescriptions(): Descriptions {
-	type Entries = Record<string, { description: string }>;
-	const data = JSON.parse(readFileSync(join(DATA, "ic10emu", "descriptions.json"), "utf8")) as {
-		logicTypes: Entries;
-		slotLogicTypes: Entries;
-	};
-	const texts = (entries: Entries) => Object.fromEntries(Object.entries(entries).map(([k, v]) => [k, v.description]));
-	return { logicTypes: texts(data.logicTypes), slotLogicTypes: texts(data.slotLogicTypes) };
 }
 
 /** data/mods/*.json: each a list of mod prefabs. */
@@ -51,7 +41,6 @@ const { catalog, undescribed } = buildCatalog({
 	modPrefabs: modPrefabs(),
 	game: xmlPath ? parseEnglishXml(readFileSync(xmlPath, "utf8")) : undefined,
 	gameLabel: xmlPath && `game english.xml (${statSync(xmlPath).mtime.toISOString().slice(0, 10)})`,
-	fallback: fallbackDescriptions(),
 });
 
 await mkdir(GENERATED_DIR, { recursive: true });

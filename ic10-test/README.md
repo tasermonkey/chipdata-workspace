@@ -124,9 +124,9 @@ value), and a description of each logic type.
 
 - **Prefabs** come from the emulator's game data, plus mods' devices listed in `data/mods/`.
 - **Descriptions** come from the installed game's `Language/english.xml`, found through
-  `STATIONEERS_DIR` or the default Steam path. Without the game (e.g. in CI) they come from
-  ic10emu's copy in `data/ic10emu/`, which is older and misses some newer logic types. The build
-  says which it used and lists logic types that have no description.
+  `STATIONEERS_DIR` or the default Steam path. Without the game (e.g. in CI) there are none;
+  everything else is the same. The build says which it used and lists logic types that have no
+  description.
 - `generated/` is gitignored, because the descriptions are the game's own text.
 
 ```ts

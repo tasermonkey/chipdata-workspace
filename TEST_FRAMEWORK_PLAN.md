@@ -469,12 +469,21 @@ This makes it easy to see what properties a device has, and to validate that scr
 | Source | What it gives | Freshness / licence |
 |---|---|---|
 | Fork's game data (`assets.ic10.dev`, via `tools/download.ts`) | Per prefab: logic types with Read/Write, slots and their logic types, modes, connections. | Kept current by the fork's download tool. |
-| **Your game install:** `…/Stationeers/rocketstation_Data/StreamingAssets/Language/english.xml` | **Descriptions:** 388 `LogicType…` records, e.g. `LogicTypeRatioNitrogenInput` → "The ratio of nitrogen in device's input network". It also has slot types and device descriptions. | Always matches your game version (file dated 2026-08-22). It's game text owned by RocketWerkz, so **extract at build time and gitignore the output**; don't commit it. |
-| Fallback: [Ryex/ic10emu](https://github.com/Ryex/ic10emu) (`stationeers_data/src/enums/script.rs`) | The same LogicType descriptions, already extracted. | MIT/Apache, so OK for CI. Last updated 2025-10, so it may lag new properties. |
+| **Your game install:** `…/Stationeers/rocketstation_Data/StreamingAssets/Language/english.xml` | **Descriptions:** 287 `LogicType…` records, e.g. `LogicTypeRatioNitrogenInput` → "The ratio of nitrogen in device's input network". It also has slot types and device descriptions. | Always matches your game version (file dated 2026-08-22). It's game text owned by RocketWerkz, so **extract at build time and gitignore the output**; don't commit it. |
+| **Stationpedia export** ([Ryex/StationeersStationpediaExtractor](https://github.com/Ryex/StationeersStationpediaExtractor), a BepInEx plugin; `stationpedia_export` in the F3 console writes `Stationpedia/Enums.json` and `Stationpedia.json`) | A description for every logic type, and each loaded prefab's logic types and slots, possibly including mods' devices. | Your game version, whenever you run it. Game data: the descriptions stay local; mod devices' names and Read/Write go into committed `ic10-test/data/mods/`. |
 | [Stationeers wiki](https://stationeers-wiki.com/Filtration) device pages | **Per-device**, human-written descriptions with units and ranges, e.g. Filtration → `RatioNitrogenInput`: "Percentage of Nitrogen in input as ratio between 0 and 1". Richer than the game's generic one-liners. | Community-maintained: some entries are "Unknown", a few disagree with other pages or the game, and some may lag game updates. The site's Cloudflare bot check blocks scripted access. **Licensed CC BY-SA and GFDL** (from the site's disclaimer). |
 
 A `catalog:build` script merges these into `ic10-test/generated/catalog.json`. It finds the game
-through `STATIONEERS_DIR` or the default Steam path, and falls back to ic10emu's data in CI.
+through `STATIONEERS_DIR` or the default Steam path. Without the game or an export (e.g. in CI)
+there are no descriptions; types and Read/Write checks work the same.
+
+ic10emu's descriptions were used as a fallback in step 1, then dropped: they're an older run of the
+same Stationpedia export (ic10emu's `xtask generate` reads `Enums.json` and `Stationpedia.json`).
+
+**Working from a clean clone** needs neither the mod nor an export: `npm install`, then `npm test`.
+The committed fork data and `data/mods/` give every type. **Refreshing** after a game update or a
+new mod: run the export in game, then `npm run catalog:import-export` to regenerate `data/mods/`,
+and commit it. Whoever has an export locally also gets its descriptions in their build.
 
 **How descriptions combine.** The catalogue keeps every source's text with a source label instead of
 picking one winner:
@@ -617,7 +626,7 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 | **2 Harness core** | Workspace layout, engine adapter, World builder, tick scheduler with 128-line auto-yield, budgets, halt-on-error, accessors with aliases, snapshots and history. Scripted events (§5.1) and the debug gate (§6b) start here too, since later phases depend on them. | The VCCR test in §4.4 passes. An infinite `runUntil` fails with a trace in milliseconds. |
 | **3 Matchers and reports** | §4.6, including the auto-yield matchers and failure reports. | Failure output is readable without a debugger. |
 | **4 Tests for your scripts** | Write failing regression tests for [CODE_REVIEW.md](CODE_REVIEW.md) §1 first, then fix the scripts. Then add behaviour tests for the simpler scripts. | The review bugs are covered and fixed. |
-| **5 Catalogue** | §6 sources (game, fork data, ic10emu fallback, wiki `Special:Export` import), generated `.d.ts`, CLI lookup, runtime surfacing, static batch-op checks. | Mistyped properties in tests fail to compile, and 1.4-style misuse is flagged. |
+| **5 Catalogue** | §6 sources (game, fork data, Stationpedia export, wiki `Special:Export` import), generated `.d.ts`, CLI lookup, runtime surfacing, static batch-op checks. | Mistyped properties in tests fail to compile, and 1.4-style misuse is flagged. |
 | **6 World behaviour** | §5 model library, pipe and room atmospheres, and the Logic Mirror proxy device (§5.4). | An Alaska Cooler test cools a pipe over N ticks through the vent model. |
 | **7 VS Code debugger** | §6b. Build the adapter and a small extension in `ic10-test/vscode/`, reusing vscode-ic10's grammar and adapter pieces. Add the CodeLens on tests and the scopes from the table. | Breakpoint in an `.ic10` file, "Debug IC10" on a test, step line by line, and watch registers and `vent.On` change. |
 | **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, and extracting `ic10-test/` to its own repo. | — |
@@ -727,6 +736,15 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   the round buttons every tick and scans them all on a press. 2.1 is left as is: the only jump of
   5 or more lines is in Suit MKII, which is over the line limit. All of review §2 is dealt with.
   Next is Phase 5, the catalogue (§6).
+
+- **Phase 5 is in progress (2026-10-10).** Decisions: the generated catalogue is gitignored and
+  built before `npm test` and `npm run typecheck`; mods' devices get their properties from the
+  Stationpedia export (or the mod's DLL if the export leaves them out), committed to `data/mods/`;
+  the wiki import is deferred. Steps: 1 `catalog:build`, 2 typed builder, 3 static batch-op check,
+  4 CLI, 5 runtime messages.
+  - Step 1 is done: `catalog:build` writes `ic10-test/generated/catalog.json` from the fork's 407
+    prefabs and the game's `english.xml`. ic10emu's descriptions were tried as a fallback and
+    dropped, since they come from the same export.
 
 Suggested first regression tests (Phase 4):
 

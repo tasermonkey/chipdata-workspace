@@ -4,7 +4,7 @@
  *
  * `npm run catalog:build` writes it to ic10-test/generated/ (gitignored: the descriptions are the
  * game's text). Prefabs come from the emulator's game data plus the console mod's devices;
- * descriptions from the installed game's english.xml, else from ic10emu's copy (data/ic10emu/).
+ * descriptions from the installed game's english.xml (none without the game).
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -34,7 +34,7 @@ export interface CatalogPrefab {
 
 export interface CatalogDescription {
 	text: string;
-	source: "game" | "ic10emu";
+	source: "game";
 }
 
 export interface Catalog {
