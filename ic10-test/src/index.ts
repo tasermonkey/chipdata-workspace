@@ -43,6 +43,9 @@ export { SimBudgetError, SimHaltError, SimRunError } from "./scheduler/errors.ts
 export type { Halt } from "./scheduler/scheduler.ts";
 export { findScripts, readScript } from "./scripts.ts";
 export type { Cancel, Interval, When, WorldEvent } from "./world/events.ts";
+export type { DeviceModel, WorldModel } from "./world/models.ts";
+export { activeVent, poweredVent, type VentOptions } from "./models/vents.ts";
+export { heatExchange, type HeatExchangeOptions } from "./models/heat.ts";
 export {
 	type DeviceOptions,
 	type HousingOptions,

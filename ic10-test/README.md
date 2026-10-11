@@ -259,6 +259,34 @@ const world = await sim()
   `coolant.RatioNitrogen` or `coolant.Nitrogen` (moles) work in `value`, `record` and snapshots,
   and failure reports list every pipe and room.
 
+### Models: how devices behave
+
+```ts
+world.model("vent", activeVent());                                // a library model
+world.model(heatExchange("coolant", "waste", { fraction: 0.1 })); // world-wide: a radiator
+world.model("lamp", (lamp, dt, w) => { /* your own */ });
+```
+
+A model runs at the start of every tick, after scripted events and before readings refresh and
+chips run, so a setting a script writes in one tick acts in the next. `world.model(key, fn)` gets
+the device handle, the tick's length in seconds and the world; `world.model(fn)` gets `dt` and the
+world. Both return a function that removes the model. An error in a model fails the run, naming it.
+While there are models, `runUntil` doesn't give up when every chip has stopped.
+
+The library (plausible, not exact):
+
+- `activeVent({ pressurePerTick })`, following the game's `ActiveVent`: attach it with
+  `{ ports: { output }, room }`. While `On`, Outward (Mode 0) moves pipe gas into the room until
+  the room reaches `PressureExternal`, keeping the pipe above `PressureInternal`; Inward (Mode 1)
+  moves room gas into the pipe until the room falls to `PressureExternal`, keeping the pipe below
+  `PressureInternal`. Each tick it moves at most `pressurePerTick` kPa of one grid cell (default
+  10, a guess: the game keeps it in asset files). Changing `Mode` resets both limits to that
+  mode's defaults (Outward 101.325 / 0 kPa, Inward 0 / 50,662.5), unless the script set one in the
+  same tick.
+- `poweredVent({ pressurePerTick })`: the same, with only `PressureExternal` (default 50 kPa a tick).
+- `heatExchange(a, b, { fraction })`: two pipes, or a pipe and a room, move `fraction` of the way to
+  a shared temperature each game tick, conserving energy.
+
 ## Env files
 
 `World.fromEnv(env, options)` builds a world from the emulator's env JSON: an object, JSON text, or a

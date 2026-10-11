@@ -15,6 +15,7 @@ import { describeChip, SimBudgetError, SimRunError } from "../scheduler/errors.t
 import type { AutoYield, ChipState, Halt, Scheduler, TraceEntry } from "../scheduler/scheduler.ts";
 import { secondsToTicks } from "../scheduler/time.ts";
 import type { Cancel, EventQueue, Interval, When, WorldEvent } from "./events.ts";
+import { type DeviceModel, ModelList, type WorldModel } from "./models.ts";
 import { type EnvWorldOptions, worldFromEnv } from "./from-env.ts";
 import { type Change, diffSnapshots, Recording, type Snapshot } from "./snapshot.ts";
 import type { Mixture, Reservoir } from "../atmos/mixture.ts";
@@ -432,6 +433,7 @@ export class World {
 	}
 
 	private readonly atmospheres = new Map<string, AtmosphereEntry>();
+	private readonly models = new ModelList();
 
 	constructor(devices: DeviceEntry[], events: EventQueue, atmospheres: AtmosphereEntry[], options: WorldOptions) {
 		this.events = events;
@@ -447,11 +449,12 @@ export class World {
 	}
 
 	/**
-	 * @internal Scheduler hook: start of a tick. Scripted events run, then devices update their
-	 * readings from their pipes and rooms, so chips see this tick's atmosphere.
+	 * @internal Scheduler hook: start of a tick. Scripted events run, then models, then devices
+	 * update their readings from their pipes and rooms, so chips see this tick's atmosphere.
 	 */
 	async beginTick(tick: number): Promise<void> {
 		await this.events.fire(tick, this);
+		this.models.run(this.options.tickSeconds, this, tick);
 		this.refreshReadings();
 	}
 
@@ -515,6 +518,13 @@ export class World {
 	/** A room, by key: a `Mixture` for a sealed room, a `Reservoir` for outside air. */
 	room(key: string): Mixture | Reservoir {
 		return this.atmosphereEntry(key, "room").atmosphere;
+	}
+
+	/** A pipe or room, by key. */
+	atmosphere(key: string): Mixture | Reservoir {
+		const entry = this.atmospheres.get(key);
+		if (!entry) throw new Error(`no pipe or room "${key}" (pipes and rooms: ${[...this.atmospheres.keys()].join(", ") || "none"})`);
+		return entry.atmosphere;
 	}
 
 	/** Report lines for the pipes and rooms: `pipes and rooms:` then one line each. None if there are none. */
@@ -704,6 +714,22 @@ export class World {
 		return this.events.when(condition, event);
 	}
 
+	// --- models ----------------------------------------------------------------------------------
+
+	/**
+	 * Give a device behaviour: `run(device, dt, world)` runs at the start of every tick, after
+	 * scripted events and before chips, so what a script sets in one tick acts in the next.
+	 */
+	model(device: string, run: DeviceModel): Cancel;
+	/** Add world behaviour that isn't one device's: `run(dt, world)` every tick, as above. */
+	model(run: WorldModel): Cancel;
+	model(target: string | WorldModel, run?: DeviceModel): Cancel {
+		if (typeof target === "function") return this.models.add("world", target);
+		const handle = this.device(target);
+		if (!run) throw new Error(`model: no model given for "${target}"`);
+		return this.models.add(`"${target}"`, (dt, world) => run(handle, dt, world));
+	}
+
 	// --- snapshots and history -------------------------------------------------------------------
 
 	/** Every device property and chip register now. */
@@ -751,8 +777,11 @@ export class World {
 		return this.scheduler.tickInProgress ? this.scheduler.tick + 1 : this.scheduler.tick;
 	}
 
+	/** Nothing can change any more: every chip has stopped, no events are due and there are no models. */
 	private idle(): boolean {
-		return this.scheduler.chips.every((c) => c.stopped) && !this.events.pending(this.scheduler.tick);
+		return (
+			this.scheduler.chips.every((c) => c.stopped) && !this.events.pending(this.scheduler.tick) && this.models.size === 0
+		);
 	}
 
 	private pickChip(key: string | undefined, call: string): ChipState {

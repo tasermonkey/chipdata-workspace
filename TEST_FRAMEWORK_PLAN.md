@@ -816,6 +816,19 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     error. A room's `TotalMoles` is per grid cell, as a gas sensor reads its cell. `Combustion` and
     `VolumeOfLiquid` aren't modelled. Atmospheres show in `value`/`record` paths
     (`coolant.Temperature`), snapshots and failure reports.
+  - Step 4 is done: `world.model(key, (device, dt, world) => …)` and `world.model((dt, world) => …)`
+    run each tick after scripted events, before readings refresh and chips run, so a script's
+    setting acts in the next tick. An error names the model; `runUntil` keeps going while models
+    exist.
+  - Step 5 is done, and with it Phase 6's "done when": `activeVent()`, `poweredVent()` and
+    `heatExchange()`. The vents follow the game's `ActiveVent` and `PoweredVent` code (read from the
+    DLL): Outward fills the room up to `PressureExternal` without taking the pipe below
+    `PressureInternal`; Inward the reverse; changing `Mode` resets both to that mode's defaults
+    (Outward 101.325 / 0 kPa, Inward 0 / 50,662.5); the powered vent has no pipe-side limit. Their
+    flow per tick is a field in the game's asset files, not the DLL, so it's a tunable guess (10 and
+    50 kPa of a grid cell). The new Alaska tests build the furnace pipe, coolant pipe, outside air
+    and a radiator: the gas cools below 290 K in under 60 ticks, then the coolant pipe drains to
+    ≤ 1 kPa and the vent goes off. With the pre-1.3 script both fail.
 
 Suggested first regression tests (Phase 4):
 

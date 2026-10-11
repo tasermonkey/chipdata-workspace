@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-test";
+import { activeVent, heatExchange, PIPE_VOLUME, sim } from "@tasermonkey/ic10-test";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const SCRIPT = "ic10/ClimateControl/Alaska IC Cooler [101290].ic10";
@@ -81,6 +81,61 @@ describe("Alaska IC Cooler", () => {
 		await world.runUntil((w) => w.chip("ic").reg("r15") === 1, { maxTicks: 10 });
 		await world.runTicks(1); // the vent goes off after the stage changes, past a yield
 		expect(world.device("vent")).toHaveProps({ On: 0 });
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
+});
+
+/**
+ * The build with gas in it: hot CO2 from the furnaces in a pipe (PA_SRC), a coolant pipe (PA_ATMO)
+ * that the vent fills from the cold outside, and a radiator passing heat between them. The numbers
+ * are illustrative, not from the save.
+ */
+async function buildWithGas() {
+	const world = await sim({ root: REPO_ROOT })
+		.room("outside", { temperature: 120, pressure: 30, ratios: { Nitrogen: 1 } })
+		.pipe("waste", { volume: 20 * PIPE_VOLUME, temperature: 330, pressure: 2000, ratios: { CarbonDioxide: 1 } })
+		.pipe("coolant", { volume: 10 * PIPE_VOLUME, temperature: 120 })
+		.device("source", "StructurePipeAnalysizer", {}, { pipe: "waste" })
+		.device("atmo", "StructurePipeAnalysizer", {}, { pipe: "coolant" })
+		.device("vent", "StructureActiveVent", {}, { ports: { output: "coolant" }, room: "outside" })
+		.housing("ic", { file: SCRIPT, pins: { d0: "source", d1: "atmo", d2: "vent" } })
+		.build();
+	world.model("vent", activeVent());
+	world.model(heatExchange("coolant", "waste", { fraction: 0.1 }));
+	return world;
+}
+
+describe("Alaska IC Cooler, with gas", () => {
+	it("cools the hot gas below 290 K by drawing cold outside air through the radiator", async () => {
+		const world = await buildWithGas();
+		await world.runUntil((w) => w.chip("ic").reg("r15") === 2, { maxTicks: 30 });
+		const start = world.tick;
+		const waste = world.record("waste.Temperature");
+
+		await world.runUntil((w) => w.chip("ic").reg("r15") === 0, { maxTicks: 120 });
+		expect(world.pipe("waste").temperature).toBeLessThan(290);
+		expect(world.tick - start).toBeLessThan(60);
+		// It only ever falls while cooling.
+		for (let i = 1; i < waste.values.length; i++) expect(waste.values[i]).toBeLessThanOrEqual(waste.values[i - 1]!);
+		expect(world.pipe("coolant").pressure).toBeGreaterThan(30); // full of outside air
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
+
+	it("then empties the coolant pipe back outside and switches the vent off", async () => {
+		const world = await buildWithGas();
+		await world.runUntil((w) => w.chip("ic").reg("r15") === 2, { maxTicks: 30 });
+		await world.runUntil((w) => w.chip("ic").reg("r15") === 0, { maxTicks: 120 });
+		await world.runTicks(2); // stage 0 sets Outward on its next pass
+		expect(world.device("vent")).toHaveProps({ Mode: 0, On: 1 });
+		const full = world.pipe("coolant").pressure;
+
+		await world.runTicks(2);
+		expect(world.pipe("coolant").pressure).toBeLessThan(full); // draining
+		await world.runUntil((w) => w.chip("ic").reg("r15") === 1, { maxTicks: 200 });
+		expect(world.pipe("coolant").pressure).toBeLessThanOrEqual(1);
+		await world.runTicks(2);
+		expect(world.device("vent")).toHaveProps({ On: 0 });
+		expect(world.pipe("waste").temperature).toBeLessThan(290);
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 });
