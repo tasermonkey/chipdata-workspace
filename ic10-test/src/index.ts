@@ -47,6 +47,23 @@ export type { DeviceModel, WorldModel } from "./world/models.ts";
 export { activeVent, poweredVent, type VentOptions } from "./models/vents.ts";
 export { heatExchange, type HeatExchangeOptions } from "./models/heat.ts";
 export {
+	backPressureRegulator,
+	pressureRegulator,
+	type RegulatorOptions,
+	volumePump,
+	type VolumePumpOptions,
+} from "./models/pumps.ts";
+export { filtration, type FiltrationOptions } from "./models/filtration.ts";
+export { airConditioner, type AirConditionerOptions } from "./models/air-conditioner.ts";
+export { battery, type BatteryOptions, type PowerSource } from "./models/battery.ts";
+export {
+	type DayNightOptions,
+	dayNight,
+	type OccupancyOptions,
+	type OccupancyWindow,
+	occupancySchedule,
+} from "./models/schedules.ts";
+export {
 	type DeviceOptions,
 	type HousingOptions,
 	type KnownPrefab,

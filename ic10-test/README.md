@@ -248,7 +248,8 @@ const world = await sim()
   port's suffix (`PressureOutput`, `RatioNitrogenInput`), plus `Volume` on a pipe. A device's own
   readings come from its `pipe`, or else its `room`. A room's `TotalMoles` is per grid cell, as a
   gas sensor reads the cell it's in. A vent's one pipe is its `output`; an attachment that gives a
-  device no readings is an error that says which ports it has.
+  device no readings is an error that says which ports it has. A device with no pipe readings at
+  all (a volume pump, a regulator) takes pipes on any port, for its model.
 - Those readings can't be set on the device, in the builder or with `set`: change the gas instead.
   `Combustion` and `VolumeOfLiquid` aren't modelled and stay settable. Devices with nothing attached
   work as before.
@@ -273,7 +274,10 @@ the device handle, the tick's length in seconds and the world; `world.model(fn)`
 world. Both return a function that removes the model. An error in a model fails the run, naming it.
 While there are models, `runUntil` doesn't give up when every chip has stopped.
 
-The library (plausible, not exact):
+The library (plausible, not exact). Each follows the game's code where it's in `Assembly-CSharp.dll`;
+per-prefab figures (a device's `pressurePerTick`, its efficiency curves) live in the game's asset
+files, so those are guesses a test can tune. A device only works while `On` is 1; power and errors
+aren't modelled. Rates are per game tick (0.5 s) and scale with `dt`.
 
 - `activeVent({ pressurePerTick })`, following the game's `ActiveVent`: attach it with
   `{ ports: { output }, room }`. While `On`, Outward (Mode 0) moves pipe gas into the room until
@@ -286,6 +290,37 @@ The library (plausible, not exact):
 - `poweredVent({ pressurePerTick })`: the same, with only `PressureExternal` (default 50 kPa a tick).
 - `heatExchange(a, b, { fraction })`: two pipes, or a pipe and a room, move `fraction` of the way to
   a shared temperature each game tick, conserving energy.
+- `volumePump({ maxSetting })`, `{ ports: { input, output } }`: moves `Setting` litres of the
+  input's gas a tick (that share of its moles), against any pressure. `Setting` caps at 10.
+- `pressureRegulator({ pressurePerTick })` and `backPressureRegulator(…)`, `{ ports: { input, output } }`:
+  move gas until the output rises to `Setting` kPa (back pressure: until the input falls to it).
+  Each tick at least `pressurePerTick` kPa of a 10 L segment (default 101.325, the code's default),
+  or a quarter of what would even the pipes out when the input is higher.
+- `filtration({ gases, pressurePerTick })`, `{ ports: { input, output, output2 } }`: while `On`
+  with `Mode` 1, draws input gas (more the higher the input is above both outputs), sends the
+  filtered gases and their liquid forms to `output` (the game's filter output) and the rest to
+  `output2` (its waste). It reads the gas filters in slots 0 and 1 (`slot(0).put("ItemGasFilterOxygen")`;
+  `Quantity` 0 is spent) unless `gases` names them. Filters don't wear out.
+- `airConditioner({ pressurePerTick, temperatureDifferentialEfficiency, operationalTemperatureEfficiency })`,
+  `{ ports: { input, output, output2 } }`: while `On` with `Mode` 1 and the input 1 K or more from
+  `Setting` (kelvin), passes `pressurePerTick` kPa of 100 L of input gas to the output each tick,
+  moving up to 14 kJ between it and the waste pipe (`output2`). Otherwise no gas passes. The
+  efficiencies are set on the device: pressure (the game's: full with input and waste at 111 kPa or
+  more), temperature differential (a guess: 1, falling to 0 at 200 K uphill) and operational
+  temperature (a guess: 1). As in the game's code, a small flow can overshoot `Setting`.
+- `battery({ generation, usage, capacity, lossPerTick })`: while `On`, charges from `generation`
+  and supplies `usage` (watts, counted as joules per tick as the game does), each a number, device
+  keys (their `PowerGeneration` / `RequiredPower`), `"key.Prop"` paths, or a function of the world.
+  Sets `Charge`, `Maximum` (Station Battery 3.6 MJ, large 9 MJ, else the device's or `capacity`),
+  `Ratio`, `PowerPotential`, `PowerActual` and the game's charge state in `Mode` (0 empty … 6 full).
+  It loses 10 J a tick. No cable networks: name the devices.
+- `dayNight({ dayTicks, startAt, room, temperature, sensors, irradiance })`, a world model: the
+  weather timer. Over `dayTicks` (default 2400, the game's 1200 s day) a room's temperature follows a
+  sine from `temperature.night` at midnight to `.day` at noon, and daylight sensors get `Activate`
+  (sun up), `Vertical`/`SolarAngle` (from straight up; a guess at the game's convention),
+  `Horizontal` and `SolarIrradiance`. `startAt` is where tick 0 falls: 0 midnight, 0.5 noon.
+- `occupancySchedule(windows, { everyTicks })` for an occupancy sensor: `[{ from, to, people }]` in
+  ticks sets `Quantity` and `Activate`, repeating every `everyTicks` if given.
 
 ## Env files
 

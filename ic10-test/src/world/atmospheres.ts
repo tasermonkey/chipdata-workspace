@@ -102,29 +102,39 @@ function readingsWith(suffix: string, source: AtmosphereEntry): Reading[] {
 
 /**
  * Every reading the device takes from its attachments, keeping those it has. Throws if an
- * attachment gives the device no readings at all, with a hint at what it does have.
+ * attachment gives the device no readings while another would, with a hint at what it has. A
+ * device with no pipe readings at all (a volume pump, a regulator) takes pipes on any port, for
+ * its model to use.
  */
 export function deviceReadings(key: string, device: Device, prefab: string, attached: Attachments): Reading[] {
 	const out: Reading[] = [];
+	const has = readingOptions(device);
 	const own = attached.pipe ?? attached.room;
 	if (own) {
 		const readings = readingsWith("", own).filter((r) => hasProp(device, r.prop));
-		if (readings.length === 0 && attached.pipe) throw new Error(noReadings(key, prefab, device, "pipe", ""));
+		if (readings.length === 0 && attached.pipe) throw new Error(noReadings(key, prefab, has, "pipe", ""));
 		out.push(...readings);
 	}
 	for (const [port, source] of Object.entries(attached.ports) as [Port, AtmosphereEntry][]) {
 		const readings = readingsWith(PORT_SUFFIX[port], source).filter((r) => hasProp(device, r.prop));
-		if (readings.length === 0) throw new Error(noReadings(key, prefab, device, `ports.${port}`, PORT_SUFFIX[port]));
+		if (readings.length === 0 && has.length > 0) {
+			throw new Error(noReadings(key, prefab, has, `ports.${port}`, PORT_SUFFIX[port]));
+		}
 		out.push(...readings);
 	}
 	return out;
 }
 
-function noReadings(key: string, prefab: string, device: Device, option: string, suffix: string): string {
+/** The attachments that give the device readings: `pipe`, `ports.input`, …. */
+function readingOptions(device: Device): string[] {
 	const has = (Object.entries(PORT_SUFFIX) as [Port, string][])
 		.filter(([, s]) => hasProp(device, `Pressure${s}`))
 		.map(([port]) => `ports.${port}`);
 	if (hasProp(device, "Pressure")) has.unshift("pipe");
+	return has;
+}
+
+function noReadings(key: string, prefab: string, has: string[], option: string, suffix: string): string {
 	const hint = has.length > 0 ? `; it has ${has.join(", ")}` : "; it has no pipe readings";
 	return `sim: "${key}": ${prefab} has no Pressure${suffix}, so { ${option} } gives it nothing${hint}`;
 }

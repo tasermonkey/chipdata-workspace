@@ -1,10 +1,9 @@
-import { GRID_VOLUME, IDEAL_GAS_CONSTANT, ONE_ATMOSPHERE } from "../atmos/gases.ts";
+import { GRID_VOLUME, ONE_ATMOSPHERE } from "../atmos/gases.ts";
 import { Reservoir } from "../atmos/mixture.ts";
 import type { DeviceModel } from "../world/models.ts";
 import type { DeviceHandle } from "../world/world.ts";
+import { clamp, gameTicks, molesFor as moles } from "./flow.ts";
 
-/** The game's tick, which the per-tick rates are given for. */
-const GAME_TICK_SECONDS = 0.5;
 /** An active vent's pipe-side limit in Inward mode: 500 atmospheres. */
 const MAX_PIPE_PRESSURE = 500 * ONE_ATMOSPHERE;
 
@@ -66,7 +65,7 @@ function ventModel(kind: "active" | "powered", pressurePerTick: number): DeviceM
 		const limits = currentLimits(kind, vent, seen);
 		if (vent.get("On") !== 1) return;
 
-		const chunk = pressurePerTick * (dt / GAME_TICK_SECONDS);
+		const chunk = pressurePerTick * gameTicks(dt);
 		const cell = room instanceof Reservoir ? GRID_VOLUME : Math.min(room.volume, GRID_VOLUME);
 		if (vent.get("Mode") === 1) {
 			// Inward: lower the room's cell by up to `chunk`, down to External; fill the pipe up to Internal.
@@ -106,15 +105,5 @@ function currentLimits(kind: "active" | "powered", vent: DeviceHandle, seen: Map
 	if (hasInternal) vent.set("PressureInternal", internal);
 	seen.set(vent.key, { mode, external, internal: hasInternal ? internal : 0 });
 	return { external, internal };
-}
-
-/** Moles that give `kPa` in `litres` at `kelvin` (0 if any is 0 or less). */
-function moles(kPa: number, litres: number, kelvin: number): number {
-	if (!(kPa > 0) || !(litres > 0) || !(kelvin > 0)) return 0;
-	return Number.isFinite(kPa) ? (kPa * litres) / (IDEAL_GAS_CONSTANT * kelvin) : Infinity;
-}
-
-function clamp(value: number, low: number, high: number): number {
-	return Math.min(Math.max(value, low), high);
 }
 

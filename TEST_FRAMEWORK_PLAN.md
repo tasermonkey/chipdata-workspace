@@ -389,9 +389,9 @@ world.model("vent", (v, dt, w) => {
 });
 ```
 
-Ship a small library of reusable models: active and powered vents, pumps, filtration (moves one gas
-type), AC (moves heat), battery (charge from generation minus usage), occupancy schedule, and
-weather timer.
+Ship a small library of reusable models: active and powered vents, pumps, filtration (moves the
+filtered gases to the filter output, the rest to waste), AC (moves heat), battery (charge from
+generation minus usage), occupancy schedule, and weather timer (a day/night cycle).
 
 ### 5.3 Atmospheres: pipes and rooms
 This covers changing gas ratios and temperature:
@@ -794,7 +794,8 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   - The Larre model moves into the shared library, rebuilt on the model API, with its guesses
     written down.
   - Order: 1.3 fix, the gas core, pipes and rooms in the world, the model API, vents and a heat
-    exchange model (then the Alaska test), the rest of the library, the Logic Mirror, docs.
+    exchange model (then the Alaska test), the rest of the library, the Larre model, the climate
+    tests on pipes and rooms, the Logic Mirror, docs.
   - The Stationpedia export has `StructureLogicMirror` (a real hash, no logic types, no
     description), so §5.4's "neither source has it" only holds for the fork's data.
   - Review 1.3 (Alaska vent modes) is fixed. It was settled by the game's Stationpedia text for the
@@ -829,6 +830,26 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     50 kPa of a grid cell). The new Alaska tests build the furnace pipe, coolant pipe, outside air
     and a radiator: the gas cools below 290 K in under 60 ticks, then the coolant pipe drains to
     ≤ 1 kPa and the vent goes off. With the pre-1.3 script both fail.
+  - The rest of the library, decided 2026-10-11: the battery takes its generation and usage from
+    named devices, `"key.Prop"` paths, numbers or functions (no cable networks); the weather timer
+    is a day/night cycle; pumps, filtration and the occupancy schedule are built now although no
+    script uses them yet; the vents' flow guesses (10 and 50 kPa) stay.
+  - Step 6 is done: `volumePump`, `pressureRegulator`, `backPressureRegulator`, `filtration`,
+    `airConditioner`, `battery`, `dayNight` and `occupancySchedule`, each with tests. From the DLL:
+    the volume pump moves `Setting` litres of the input a tick, against any pressure (`Setting`
+    caps at 10); the regulators move at least `pressurePerTick` kPa of a 10 L segment, or a quarter
+    of what would even the pipes out (`AtmosphereHelper.MoveRegulatedGas`); filtration draws more
+    the higher the input is above both outputs, up to a third of the 60,795 kPa pipe limit, and
+    takes a filtered gas's liquid form and its last trace in the input; the AC passes 100 L of input
+    gas a tick at `pressurePerTick` and moves up to 14 kJ with the waste pipe, and only while
+    `Mode` is 1 and the input is 1 K or more from `Setting`; filtration and the AC need `Mode` set
+    (the unit's button, in game); the battery's charge states and its 10 J/tick loss; the game's
+    day is 1200 s. Code defaults stand in for per-prefab asset values: `pressurePerTick` 101.325
+    kPa (the vents keep their own guesses). Guesses, tunable: the AC's temperature differential
+    and operational temperature efficiency curves, and the daylight sensor's angle conventions.
+    The game's filtration sends the **filtered** gas to Pipe Output (`…Output`) and the rest to
+    Pipe Waste (`…Output2`), so the model does too (its Stationpedia page agrees). Devices with no
+    pipe readings (pumps, regulators) now take pipes on their ports.
 
 Suggested first regression tests (Phase 4):
 
