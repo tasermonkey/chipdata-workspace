@@ -17,6 +17,9 @@ import { secondsToTicks } from "../scheduler/time.ts";
 import type { Cancel, EventQueue, Interval, When, WorldEvent } from "./events.ts";
 import { type EnvWorldOptions, worldFromEnv } from "./from-env.ts";
 import { type Change, diffSnapshots, Recording, type Snapshot } from "./snapshot.ts";
+import type { Mixture, Reservoir } from "../atmos/mixture.ts";
+import { GASES, type GasName, isGasName } from "../atmos/gases.ts";
+import { type AtmosphereEntry, type Attachments, applyReadings, type Port, type Reading } from "./atmospheres.ts";
 
 /** Settings a built world runs with (see `SimOptions` for what each means). */
 export interface WorldOptions {
@@ -36,6 +39,10 @@ export interface DeviceEntry {
 	device: Device;
 	prefab: string;
 	network: string;
+	/** The pipes and room it's attached to. */
+	attached?: Attachments;
+	/** What it reads from them, refreshed every tick. */
+	readings?: Reading[];
 }
 
 /** A device in the world (a housing too), found by its test-side key. */
@@ -88,10 +95,45 @@ export class DeviceHandle {
 		return readProp(this.entry.device, prop);
 	}
 
-	/** Set a logic property, read-only ones included, as the game does when it updates readings. */
+	/**
+	 * Set a logic property, read-only ones included, as the game does when it updates readings.
+	 * Throws for a reading that comes from an attached pipe or room: change the gas there instead.
+	 */
 	set(prop: string, value: number): this {
+		const reading = this.entry.readings?.find((r) => r.prop === prop);
+		if (reading) {
+			const { kind, key } = reading.source;
+			throw new Error(
+				`"${this.key}".${prop} comes from ${kind} "${key}", so it can't be set on the device; change world.${kind}("${key}") instead`,
+			);
+		}
 		writeProp(this.entry.device, prop, value);
 		return this;
+	}
+
+	/** The pipe it sits on (`{ pipe }`), or undefined. */
+	get pipe(): Mixture | undefined {
+		return this.entry.attached?.pipe?.atmosphere as Mixture | undefined;
+	}
+
+	/** The room it's in (`{ room }`), or undefined. */
+	get room(): Mixture | Reservoir | undefined {
+		return this.entry.attached?.room?.atmosphere;
+	}
+
+	/** The pipe on one of its ports (`{ ports }`), or undefined. */
+	port(port: Port): Mixture | undefined {
+		return this.entry.attached?.ports[port]?.atmosphere as Mixture | undefined;
+	}
+
+	/** Properties that come from its pipes and room, which `set` refuses. */
+	get readings(): string[] {
+		return (this.entry.readings ?? []).map((r) => r.prop);
+	}
+
+	/** @internal Update its readings from its pipes and room. */
+	refreshReadings(): void {
+		if (this.entry.readings) applyReadings(this.entry.device, this.entry.readings);
 	}
 
 	/** Add to a logic property. */
@@ -389,10 +431,13 @@ export class World {
 		return worldFromEnv(env, options);
 	}
 
-	constructor(devices: DeviceEntry[], events: EventQueue, options: WorldOptions) {
+	private readonly atmospheres = new Map<string, AtmosphereEntry>();
+
+	constructor(devices: DeviceEntry[], events: EventQueue, atmospheres: AtmosphereEntry[], options: WorldOptions) {
 		this.events = events;
 		this.options = options;
 		for (const entry of devices) this.devices.set(entry.key, new DeviceHandle(this, entry));
+		for (const entry of atmospheres) this.atmospheres.set(entry.key, entry);
 	}
 
 	/** @internal */
@@ -401,9 +446,21 @@ export class World {
 		for (const state of scheduler.chips) this.chips.set(state.key, new ChipHandle(this, state));
 	}
 
-	/** @internal Scheduler hook: start of a tick. */
+	/**
+	 * @internal Scheduler hook: start of a tick. Scripted events run, then devices update their
+	 * readings from their pipes and rooms, so chips see this tick's atmosphere.
+	 */
 	async beginTick(tick: number): Promise<void> {
 		await this.events.fire(tick, this);
+		this.refreshReadings();
+	}
+
+	/**
+	 * Update every attached device's readings from its pipes and rooms now. The world does this at
+	 * the start of every tick; call it to see a change to a pipe on a device before the next tick.
+	 */
+	refreshReadings(): void {
+		for (const device of this.devices.values()) device.refreshReadings();
 	}
 
 	/** @internal Scheduler hook: end of a tick. */
@@ -450,6 +507,37 @@ export class World {
 		return this.listDevices().find((d) => d.id === id);
 	}
 
+	/** A pipe network, by key. */
+	pipe(key: string): Mixture {
+		return this.atmosphereEntry(key, "pipe").atmosphere as Mixture;
+	}
+
+	/** A room, by key: a `Mixture` for a sealed room, a `Reservoir` for outside air. */
+	room(key: string): Mixture | Reservoir {
+		return this.atmosphereEntry(key, "room").atmosphere;
+	}
+
+	/** Report lines for the pipes and rooms: `pipes and rooms:` then one line each. None if there are none. */
+	describeAtmospheres(): string[] {
+		if (this.atmospheres.size === 0) return [];
+		const width = Math.max(...[...this.atmospheres.keys()].map((k) => k.length), 4);
+		const lines = [...this.atmospheres.values()].map((entry) => {
+			const values = atmosphereValues(entry);
+			const gases = Object.entries(values)
+				.filter(([name]) => name.startsWith("Ratio"))
+				.map(([name, ratio]) => `${name.slice(5)} ${(ratio * 100).toFixed(1)}%`);
+			const moles = values.TotalMoles === undefined ? "" : ` ${round(values.TotalMoles)} mol,`;
+			const kind = entry.atmosphere.volume === Infinity ? "outside" : `${entry.kind} ${round(entry.atmosphere.volume)} L`;
+			return `  ${entry.key.padEnd(width)}  ${kind}: ${round(values.Pressure!)} kPa, ${round(values.Temperature!)} K,${moles} ${gases.join(", ") || "empty"}`;
+		});
+		return ["pipes and rooms:", ...lines];
+	}
+
+	/** Every pipe and room, in declaration order. */
+	listAtmospheres(): readonly AtmosphereEntry[] {
+		return [...this.atmospheres.values()];
+	}
+
 	/** A chip's housing, i.e. its `db`. */
 	db(key: string): DeviceHandle {
 		return this.chip(key).db;
@@ -463,10 +551,14 @@ export class World {
 
 	/**
 	 * A value by path: `vent.On` (a device property), `ic.Stage` or `ic.r15` (a chip register or
-	 * alias; anything else on a chip key is its housing's property, e.g. `ic.Setting`).
+	 * alias; anything else on a chip key is its housing's property, e.g. `ic.Setting`), or
+	 * `coolant.Temperature` (a pipe or room: `Pressure`, `Temperature`, `TotalMoles`, `Volume`,
+	 * `Ratio<Gas>`, or a gas's moles by name, e.g. `coolant.Nitrogen`).
 	 */
 	value(path: string): number {
 		const { key, name } = splitPath(path);
+		const atmosphere = this.atmospheres.get(key);
+		if (atmosphere) return atmosphereValue(atmosphere, name);
 		const chip = this.chips.get(key);
 		if (chip?.hasRegister(name)) return chip.reg(name);
 		return this.device(key).get(name);
@@ -623,6 +715,9 @@ export class World {
 		for (const [key, chip] of this.chips) {
 			for (const [reg, value] of Object.entries(chip.registers())) values[`${key}.${reg}`] = value;
 		}
+		for (const [key, entry] of this.atmospheres) {
+			for (const [name, value] of Object.entries(atmosphereValues(entry))) values[`${key}.${name}`] = value;
+		}
 		return { tick: this.tick, values };
 	}
 
@@ -643,6 +738,14 @@ export class World {
 	}
 
 	// --- helpers ---------------------------------------------------------------------------------
+
+	private atmosphereEntry(key: string, kind: AtmosphereEntry["kind"]): AtmosphereEntry {
+		const entry = this.atmospheres.get(key);
+		if (entry?.kind === kind) return entry;
+		const all = [...this.atmospheres.values()].filter((a) => a.kind === kind).map((a) => a.key);
+		const other = entry ? ` ("${key}" is a ${entry.kind})` : "";
+		throw new Error(`no ${kind} "${key}"${other} (${kind}s: ${all.join(", ") || "none"})`);
+	}
 
 	private nextTickToStart(): number {
 		return this.scheduler.tickInProgress ? this.scheduler.tick + 1 : this.scheduler.tick;
@@ -684,6 +787,45 @@ export class World {
 			this.running = false;
 		}
 	}
+}
+
+/**
+ * A pipe's or room's values as snapshots and reports show them: pressure, temperature, moles (not
+ * for outside air, which has no end) and the ratio of each gas present.
+ */
+export function atmosphereValues(entry: AtmosphereEntry): Record<string, number> {
+	const atmos = entry.atmosphere;
+	const out: Record<string, number> = { Pressure: atmos.pressure, Temperature: atmos.temperature };
+	if (Number.isFinite(atmos.totalMoles)) out.TotalMoles = atmos.totalMoles;
+	for (const gas of GASES) {
+		const ratio = atmos.ratio(gas.name);
+		if (ratio > 0) out[`Ratio${gas.name}`] = ratio;
+	}
+	return out;
+}
+
+/** A number to 4 significant figures, for reports. */
+function round(value: number): string {
+	return Number.isFinite(value) ? String(Number(value.toPrecision(4))) : String(value);
+}
+
+function atmosphereValue(entry: AtmosphereEntry, name: string): number {
+	const atmos = entry.atmosphere;
+	switch (name) {
+		case "Pressure":
+			return atmos.pressure;
+		case "Temperature":
+			return atmos.temperature;
+		case "TotalMoles":
+			return atmos.totalMoles;
+		case "Volume":
+			return atmos.volume;
+	}
+	if (name.startsWith("Ratio") && isGasName(name.slice(5))) return atmos.ratio(name.slice(5) as GasName);
+	if (isGasName(name)) return atmos.moles(name);
+	throw new Error(
+		`${entry.kind} "${entry.key}" has no value "${name}" (use Pressure, Temperature, TotalMoles, Volume, Ratio<Gas>, or a gas's name for its moles)`,
+	);
 }
 
 function splitPath(path: string): { key: string; name: string } {

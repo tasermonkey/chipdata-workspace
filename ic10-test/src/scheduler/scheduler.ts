@@ -115,6 +115,8 @@ export interface SchedulerHooks {
 	beginTick(tick: number): Promise<void>;
 	/** Runs after every chip in a tick: recordings. `tick` is the number of ticks completed. */
 	endTick(tick: number): Promise<void>;
+	/** Extra report lines about the world (its pipes and rooms). */
+	describeWorld?(): string[];
 }
 
 /** What one `advance()` did. */
@@ -152,6 +154,11 @@ export class Scheduler {
 	/** Game time at the start of the tick in progress (or the next one), in seconds. */
 	get time(): number {
 		return this.tick * this.options.tickSeconds;
+	}
+
+	/** Report lines about the world beyond its chips (pipes and rooms), if any. */
+	describeWorld(): string[] {
+		return this.hooks.describeWorld?.() ?? [];
 	}
 
 	/** Whether a tick has started and not finished (a run stopped in the middle of it). */

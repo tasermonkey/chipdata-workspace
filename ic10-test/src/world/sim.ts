@@ -7,6 +7,18 @@ import { hasDeviceData, isCatalogued } from "../engine/device.ts";
 import { parseId, type ReferenceId } from "../engine/ids.ts";
 import { ChipState, Scheduler } from "../scheduler/scheduler.ts";
 import { readScript } from "../scripts.ts";
+import {
+	type AtmosphereEntry,
+	type AttachOptions,
+	type Attachments,
+	applyReadings,
+	deviceReadings,
+	makePipe,
+	makeRoom,
+	type PipeInit,
+	type Port,
+	type RoomInit,
+} from "./atmospheres.ts";
 import { EventQueue } from "./events.ts";
 import { type DeviceEntry, World } from "./world.ts";
 
@@ -50,8 +62,8 @@ export interface SimOptions {
 	restartClearsState?: boolean;
 }
 
-/** Where a device is and what it's called in game. */
-export interface DeviceOptions {
+/** Where a device is, what it's called in game, and the pipes and room it's attached to. */
+export interface DeviceOptions extends AttachOptions {
 	/** Reference ID: a number or the game's `$hex` form. Default: the next one in a fixed sequence. */
 	id?: ReferenceId;
 	/** In-game name, for `lbn` / `sbn`. Default: the prefab name. */
@@ -104,6 +116,7 @@ const PIN = /^d[0-5]$/;
 export class SimBuilder {
 	private readonly networks: string[] = [];
 	private readonly decls: DeviceDecl[] = [];
+	private readonly atmospheres: AtmosphereEntry[] = [];
 
 	private readonly options: SimOptions;
 
@@ -130,6 +143,24 @@ export class SimBuilder {
 		return this;
 	}
 
+	/**
+	 * Add a pipe network, by moles (`gases`) or by `pressure` and `ratios`. Devices attach to it with
+	 * `{ pipe }` or `{ ports }`, and read it from then on.
+	 */
+	pipe(key: string, init: PipeInit): this {
+		this.atmospheres.push(makePipe(key, init));
+		return this;
+	}
+
+	/**
+	 * Add a room. With a `volume`, a sealed room; without one, outside air too big to change, given
+	 * by `temperature`, `pressure` and `ratios`. Devices attach to it with `{ room }`.
+	 */
+	room(key: string, init: RoomInit): this {
+		this.atmospheres.push(makeRoom(key, init));
+		return this;
+	}
+
 	/** Add a chip housing running a program, with devices on its pins. */
 	housing<P extends KnownPrefab = "StructureCircuitHousing">(key: string, options: HousingOptions<P>): this {
 		this.decls.push({
@@ -148,6 +179,10 @@ export class SimBuilder {
 		const root = opts.root ?? process.cwd();
 
 		const keys = new Set<string>();
+		for (const { key } of this.atmospheres) {
+			if (keys.has(key)) throw new Error(`sim: "${key}" is declared twice`);
+			keys.add(key);
+		}
 		for (const decl of this.decls) {
 			if (keys.has(decl.key)) throw new Error(`sim: "${decl.key}" is declared twice`);
 			keys.add(decl.key);
@@ -199,12 +234,22 @@ export class SimBuilder {
 			seed: opts.seed ?? 1,
 		});
 
-		const entries: DeviceEntry[] = specs.map((s) => ({
-			key: s.key,
-			device: engine.devices.get(s.id)!,
-			prefab: s.prefab,
-			network: s.network,
-		}));
+		const entries: DeviceEntry[] = specs.map((s) => {
+			const decl = this.decls.find((d) => d.key === s.key)!;
+			const device = engine.devices.get(s.id)!;
+			const attached = this.attachmentsOf(decl);
+			if (!attached) return { key: s.key, device, prefab: s.prefab, network: s.network };
+			const readings = deviceReadings(s.key, device, s.prefab, attached);
+			for (const reading of readings) {
+				if (Object.hasOwn(decl.props, reading.prop)) {
+					throw new Error(
+						`sim: "${s.key}": ${reading.prop} comes from ${reading.source.kind} "${reading.source.key}", so it can't be set on the device; set the ${reading.source.kind}'s gas instead`,
+					);
+				}
+			}
+			applyReadings(device, readings);
+			return { key: s.key, device, prefab: s.prefab, network: s.network, attached, readings };
+		});
 		const keyOfId = new Map(specs.map((s) => [s.id, s.key]));
 		const chips = housingSpecs.map((spec): ChipDecl => {
 			const housing = this.decls.find((d) => d.key === spec.key)!.housing!;
@@ -220,7 +265,30 @@ export class SimBuilder {
 				...(housing.restartClearsState !== undefined && { restartClearsState: housing.restartClearsState }),
 			};
 		});
-		return assembleWorld(engine, entries, chips, opts);
+		return assembleWorld(engine, entries, chips, opts, this.atmospheres);
+	}
+
+	/** The pipes and room a device is attached to, or undefined if none. */
+	private attachmentsOf(decl: DeviceDecl): Attachments | undefined {
+		const { pipe, room, ports = {} } = decl.options;
+		if (pipe === undefined && room === undefined && Object.keys(ports).length === 0) return undefined;
+		const find = (key: string, kind: AtmosphereEntry["kind"], option: string): AtmosphereEntry => {
+			const entry = this.atmospheres.find((a) => a.key === key);
+			if (!entry) throw new Error(`sim: "${decl.key}" { ${option} }: no ${kind} "${key}"`);
+			if (entry.kind !== kind) throw new Error(`sim: "${decl.key}" { ${option} }: "${key}" is a ${entry.kind}, not a ${kind}`);
+			return entry;
+		};
+		const attached: Attachments = { ports: {} };
+		if (pipe !== undefined) attached.pipe = find(pipe, "pipe", "pipe");
+		if (room !== undefined) attached.room = find(room, "room", "room");
+		for (const [port, key] of Object.entries(ports) as [Port, string | undefined][]) {
+			if (key === undefined) continue;
+			if (!["input", "input2", "output", "output2"].includes(port)) {
+				throw new Error(`sim: "${decl.key}": no port "${port}" (use input, input2, output, output2)`);
+			}
+			attached.ports[port] = find(key, "pipe", `ports.${port}`);
+		}
+		return attached;
 	}
 
 	/** Explicit IDs first (checking for duplicates), then a fixed sequence for the rest. */
@@ -268,8 +336,14 @@ export interface ChipDecl {
 }
 
 /** @internal Wrap built emulator objects in a World with its scheduler. */
-export function assembleWorld(engine: Engine, entries: DeviceEntry[], chipDecls: ChipDecl[], opts: SimOptions): World {
-	const world = new World(entries, new EventQueue(), {
+export function assembleWorld(
+	engine: Engine,
+	entries: DeviceEntry[],
+	chipDecls: ChipDecl[],
+	opts: SimOptions,
+	atmospheres: AtmosphereEntry[] = [],
+): World {
+	const world = new World(entries, new EventQueue(), atmospheres, {
 		tickSeconds: opts.tickSeconds ?? 0.5,
 		maxTicks: opts.maxTicks ?? 10_000,
 		maxLinesPerRun: opts.maxLinesPerRun ?? 1_000_000,
@@ -300,6 +374,7 @@ export function assembleWorld(engine: Engine, entries: DeviceEntry[], chipDecls:
 			...(gate && { gate }),
 			beginTick: (tick) => world.beginTick(tick),
 			endTick: (tick) => world.endTick(tick),
+			describeWorld: () => world.describeAtmospheres(),
 		},
 	);
 	world.attach(scheduler);

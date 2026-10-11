@@ -227,6 +227,38 @@ exchangeHeat(waste, air, 0.1);   // 10% of the way to a shared temperature, ener
 - Liquids count toward moles and ratios, not pressure. Gases don't condense or boil yet (they do
   in game); that's planned for later.
 
+### Pipes and rooms in a world
+
+```ts
+const world = await sim()
+  .pipe("coolant", { volume: 10 * PIPE_VOLUME, temperature: 150, pressure: 50, ratios: { CarbonDioxide: 1 } })
+  .room("outside", { temperature: 150, pressure: 20, ratios: { CarbonDioxide: 95, Nitrogen: 5 } })
+  .device("pa",   "StructurePipeAnalysizer", {}, { pipe: "coolant" })
+  .device("vent", "StructureActiveVent",     {}, { ports: { output: "coolant" }, room: "outside" })
+  .device("out",  "StructureGasSensor",      {}, { room: "outside" })
+  .build();
+```
+
+- `.pipe(key, …)` takes `gases` (moles) or `pressure` and `ratios`, and needs a `volume`.
+  `.room(key, …)` with a `volume` is a sealed room; without one it's outside air (a `Reservoir`).
+  Keys are shared with devices, so each must be unique.
+- A device attaches with `{ pipe }` (the pipe it sits on: a pipe analyzer), `{ room }` (a gas
+  sensor's room, or where a vent blows) and `{ ports: { input, input2, output, output2 } }`. Its
+  readings come from them: `Pressure`, `Temperature`, `TotalMoles` and `Ratio<Gas>`, with the
+  port's suffix (`PressureOutput`, `RatioNitrogenInput`), plus `Volume` on a pipe. A device's own
+  readings come from its `pipe`, or else its `room`. A room's `TotalMoles` is per grid cell, as a
+  gas sensor reads the cell it's in. A vent's one pipe is its `output`; an attachment that gives a
+  device no readings is an error that says which ports it has.
+- Those readings can't be set on the device, in the builder or with `set`: change the gas instead.
+  `Combustion` and `VolumeOfLiquid` aren't modelled and stay settable. Devices with nothing attached
+  work as before.
+- Readings update at the start of every tick, after scripted events, so chips see that tick's
+  gas. After changing a pipe between ticks, `world.refreshReadings()` shows it on devices at once.
+- `world.pipe(key)` and `world.room(key)` return the atmosphere; a device handle has `.pipe`,
+  `.room`, `.port("output")` and `.readings`. Paths such as `coolant.Temperature`,
+  `coolant.RatioNitrogen` or `coolant.Nitrogen` (moles) work in `value`, `record` and snapshots,
+  and failure reports list every pipe and room.
+
 ## Env files
 
 `World.fromEnv(env, options)` builds a world from the emulator's env JSON: an object, JSON text, or a

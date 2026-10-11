@@ -28,6 +28,7 @@ export function formatReport(scheduler: Scheduler): string {
 	for (const chip of scheduler.chips) {
 		out.push(`  ${chip.key.padEnd(width)}  ${describeChip(chip, scheduler)}  [${chip.source}]`);
 	}
+	out.push(...scheduler.describeWorld());
 	const trace = scheduler.trace.slice(-REPORT_LINES);
 	if (trace.length > 0) {
 		out.push(`last ${trace.length} lines run:`);

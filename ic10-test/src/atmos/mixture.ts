@@ -160,7 +160,8 @@ export class Mixture implements Atmosphere {
 		const before = this.heatCapacity;
 		const added = parcelCapacity(parcel);
 		if (before + added > 0) {
-			this.kelvin = (before * this.kelvin + added * parcel.temperature) / (before + added);
+			// As a shift from the current temperature, so equal temperatures mix exactly.
+			this.kelvin += (added * (parcel.temperature - this.kelvin)) / (before + added);
 		}
 		for (const [gas, n] of entries(parcel.gases)) {
 			gasInfo(gas);

@@ -807,6 +807,15 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     8000 L, one atmosphere 101.325 kPa. The 28 gases match the catalogue's `Ratio<Gas>` logic
     types one for one, and a test pins that. Liquids count toward moles and ratios, not pressure.
     Gases don't change phase yet, unlike in game; that moves to Phase 8 (your decision).
+  - Step 3 is done: pipes and rooms in the world. `sim().pipe(key, …)` and `.room(key, …)` (a room
+    without a volume is outside air). Devices attach with `{ pipe }`, `{ room }` and
+    `{ ports: { input, input2, output, output2 } }`, named by the readings' suffix rather than the
+    game's port names (a filtration unit's "Pipe Waste" gives `…Output2`). Attached devices get
+    `Pressure`, `Temperature`, `TotalMoles`, `Ratio<Gas>` (and a pipe analyzer's `Volume`) from
+    their atmospheres at the start of every tick, after scripted events; setting one by hand is an
+    error. A room's `TotalMoles` is per grid cell, as a gas sensor reads its cell. `Combustion` and
+    `VolumeOfLiquid` aren't modelled. Atmospheres show in `value`/`record` paths
+    (`coolant.Temperature`), snapshots and failure reports.
 
 Suggested first regression tests (Phase 4):
 

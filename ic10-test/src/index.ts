@@ -55,4 +55,5 @@ export {
 } from "./world/sim.ts";
 export type { Change, Recording, Snapshot } from "./world/snapshot.ts";
 export type { EnvWorldOptions } from "./world/from-env.ts";
+export type { AtmosphereEntry, AtmosphereKind, AttachOptions, PipeInit, Port, RoomInit } from "./world/atmospheres.ts";
 export { ChipHandle, DeviceHandle, NetworkHandle, type RunBudget, SlotHandle, World } from "./world/world.ts";
