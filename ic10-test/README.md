@@ -49,6 +49,17 @@ name; `ld` / `sd` find it by reference ID, and it can go on a pin. It has **ever
 readable and writable. `custom` on a known prefab, or on a housing, is a build error. Better than
 `custom`: refresh `data/mods/` from a new export.
 
+When a script touches a property a device doesn't have, or writes a read-only one, the error names
+the device and says what it does have, in halt messages, `toHaveNoErrors` and `toHaveHalted`:
+
+```
+"switch" (ModularDeviceFlipCoverSwitch $AE87A) has no logic type Color; it has NameHash, On, Open, PrefabHash, ReferenceId, Setting
+"battery" (StationBatteryNuclear $1001) can't write Ratio: it's read-only; writable: Lock, On
+```
+
+(The emulator's own message was "Device -236516384 property 38 not found".) As in the emulator, a
+bad write halts the chip and a bad read is a warning, which `toHaveNoErrors` still reports.
+
 ## Execution model
 
 - **Ticks.** Each tick (0.5 s of game time by default), every chip in declaration order runs until it

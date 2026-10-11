@@ -739,7 +739,7 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   5 or more lines is in Suit MKII, which is over the line limit. All of review §2 is dealt with.
   Next is Phase 5, the catalogue (§6).
 
-- **Phase 5 is in progress (2026-10-10).** Decisions: the generated catalogue is gitignored and
+- **Phase 5 (2026-10-10 to 11).** Decisions: the generated catalogue is gitignored and
   built before `npm test` and `npm run typecheck`; mods' devices get their properties from the
   Stationpedia export (or the mod's DLL if the export leaves them out), committed to `data/mods/`;
   the wiki import is deferred. Steps: 1 `catalog:build`, 2 typed builder, 3 static batch-op check,
@@ -771,6 +771,14 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   - Step 4 is done: `npx ic10-test props <prefab | words | hash>` and `npx ic10-test logic <name>`
     (`ic10-test/bin/ic10-test.ts`, building the catalogue if it's missing). The catalogue now strips
     the game's rich-text tags (`<link=…><color=…>`) from descriptions, for hovers too.
+  - Step 5 is done: the emulator's property errors ("Device -236516384 property 38 not found") are
+    rewritten as they're recorded, naming the device by test key, prefab and reference ID, and
+    listing what it has (`"switch" (ModularDeviceFlipCoverSwitch $AE87A) has no logic type Color;
+    it has …`, `… can't write Ratio: it's read-only; writable: Lock, On`).
+
+- **Phase 5 is done (2026-10-11).** Deferred: the wiki import (§6), and typing property names on
+  handles after `build()` (`world.device("vent").set(…)`, `toHaveProps`), which would need the
+  builder to remember each key's prefab. Next is Phase 6, world behaviour (§5).
 
 Suggested first regression tests (Phase 4):
 

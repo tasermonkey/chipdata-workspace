@@ -188,7 +188,8 @@ function prepareEngine(builder: Builder, seed: number, keyOf: (id: number) => st
 		for (const [prop, value] of Object.entries(props)) writePropIfPresent(device, prop, value);
 		// A housing someone built a chip into is normally switched on; the emulator leaves On at 0.
 		if (!("On" in props)) writePropIfPresent(device, "On", 1);
-		chips.set(id, new EngineChip(runner, device));
+		const testKey = (deviceId: number) => (keyOf(deviceId) === String(deviceId) ? undefined : keyOf(deviceId));
+		chips.set(id, new EngineChip(runner, device, testKey));
 	}
 
 	// The game sets these on every device; the emulator leaves them unset (or reset).

@@ -7,6 +7,7 @@ import {
 	InstructionLine,
 	LabelLine,
 } from "@stationeers-ic/ic10";
+import { describePropertyError } from "./describe.ts";
 import { hasProp, listProps, readProp, writePropIfPresent } from "./device.ts";
 
 /** What happened when a chip executed one line. */
@@ -41,9 +42,13 @@ export class EngineChip {
 	 */
 	private readonly earlierErrors: Ic10Error[] = [];
 
-	constructor(runner: Ic10Runner, housing: Housing) {
+	/** A device's test-side key, for error messages. */
+	private readonly keyOf: (id: number) => string | undefined;
+
+	constructor(runner: Ic10Runner, housing: Housing, keyOf: (id: number) => string | undefined = () => undefined) {
 		this.runner = runner;
 		this.housing = housing;
+		this.keyOf = keyOf;
 	}
 
 	private get chip(): Chip {
@@ -154,6 +159,10 @@ export class EngineChip {
 		const line = this.nextLine;
 		const errorsBefore = this.runner.context.errors.length;
 		const ok = await this.runner.step();
+		for (const error of this.runner.context.errors.slice(errorsBefore)) {
+			const message = describePropertyError(error, this.keyOf);
+			if (message) error.message = message;
+		}
 
 		const critical = this.runner.context.criticalError;
 		if (critical) return this.halted(critical, line);
