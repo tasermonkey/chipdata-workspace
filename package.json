@@ -5,6 +5,7 @@
 	"description": "Stationeers IC10 scripts and their tests",
 	"workspaces": [
 		"ic10-test",
+		"ic10-test-vscode",
 		"vendor/ic10"
 	],
 	"scripts": {

@@ -984,6 +984,22 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
       socket. It stops at a breakpoint, steps, sets a register (which makes the test's expectation
       fail, so the edit really reaches the test), continues, and checks that the run ends with
       "terminated" and only that test run.
+  - Step 5 is done: the adapter, in the new sibling package `ic10-test-vscode/` (a workspace member,
+    `@vscode/debugadapter` 1.68). `src/adapter.ts` imports nothing from `vscode`.
+    - It turns a launch config (`test`, `line`, `stopOnEntry`, `cwd`, `runtimeExecutable`, `args`,
+      `env`) into `node vitest.mjs run <test>:<line> --testTimeout=0` with `IC10_DEBUG` set. It runs
+      in the folder of the nearest `vitest.config.*`, and the output goes to the Debug Console.
+    - It translates DAP to the protocol and back: 1-based lines, one frame per chip (named by its
+      line's text), and halts and automatic yields as exception stops with two exception filters.
+    - The agent is used only after its `hello`, and breakpoints set before then are sent first. If
+      the versions differ, the run stops with a message.
+    - How Vitest is started is a parameter, so the extension can start it under the Node debugger
+      later (step 11).
+    - `ic10-test-vscode/test/adapter.test.ts` drives it with `DebugClient`, as VS Code would,
+      against real Vitest runs of fixture tests that use the harness through its package names. It
+      covers a breakpoint in an `.ic10` file, Step Over, variables, hover, a register edit, the run
+      ending with the test's exit code, a halt as an exception with an inline program's source,
+      stop on entry, and a bad launch.
 
 Suggested first regression tests (Phase 4):
 

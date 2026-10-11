@@ -1,0 +1,18 @@
+{
+	"name": "ic10-test-vscode",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"description": "Step through Stationeers IC10 scripts while their @tasermonkey/ic10-test tests run",
+	"dependencies": {
+		"@vscode/debugadapter": "^1.68.0",
+		"@vscode/debugprotocol": "^1.68.0"
+	},
+	"devDependencies": {
+		"@tasermonkey/ic10-test": "*",
+		"@vscode/debugadapter-testsupport": "^1.68.0"
+	},
+	"engines": {
+		"node": ">=24"
+	}
+}
