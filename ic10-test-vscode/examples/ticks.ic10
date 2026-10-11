@@ -1,0 +1,26 @@
+# Tick commands: the watch, run-all and bell buttons on the debug toolbar
+# (also "IC10 Test: ..." in the command palette) while stopped.
+# Set a breakpoint on "move Phase 1" (it runs once, at the start), then:
+# - Step Tick: on to this chip's next turn. The first one waits out the sleep
+#   (4 ticks). After that, one tick each.
+# - Run N Ticks: try 10. World in Variables shows the tick count.
+# - Run Until Event: pick "dusk" (tick 20; the light comes on in that tick),
+#   "drain" (every 15 ticks), or "generator" (when the charge drops below 2500).
+alias Phase r15
+alias Sensor d0
+alias Light d1
+alias Battery d2
+define Freezing 273
+define Spare 2000
+move Phase 1
+sleep 2 # 4 ticks of 0.5 s
+move Phase 2
+loop:
+l r0 Sensor Temperature
+slt r1 r0 Freezing # night
+l r2 Battery Charge
+sgt r3 r2 Spare # and charge to spare
+and r1 r1 r3
+s Light On r1
+yield
+j loop

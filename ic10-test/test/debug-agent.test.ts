@@ -102,7 +102,7 @@ describe("debug agent", () => {
 		const { adapter, world, ic } = await debugged();
 		const run = world.runTicks(1);
 		await new Promise((resolve) => setTimeout(resolve, 20));
-		expect(adapter.events[0]).toMatchObject({ event: "hello", version: 1 });
+		expect(adapter.events[0]).toMatchObject({ event: "hello", version: 2 });
 		expect(ic.linesExecuted).toBe(0);
 		await adapter.request("configurationDone", {});
 		await run;
@@ -520,6 +520,138 @@ describe("debug agent", () => {
 	it("answers a bad request with an error", async () => {
 		const { adapter } = await debugged();
 		await expect(adapter.request("stackTrace", { thread: 99 })).rejects.toThrow("no thread 99");
+	});
+});
+
+describe("debug agent: tick commands", () => {
+	it("Step Tick runs to the chip's first instruction in its next turn", async () => {
+		const { adapter, world, file, ic } = await debugged();
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 3 }] });
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(5);
+		await adapter.nextStop(); // mid-turn in tick 0
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [] });
+		for (const tick of [1, 2]) {
+			await adapter.request("stepTick", { thread: 1 });
+			expect(await adapter.nextStop()).toMatchObject({ reason: "tick", thread: 1 });
+			expect(await lineOf(adapter, 1)).toBe(6); // after the yield
+			expect([world.tick, ic.reg("Stage")]).toEqual([tick, tick]);
+		}
+		// Each said it ran on, ahead of its stop (VS Code doesn't know a custom request runs on).
+		expect(adapter.events.filter((e) => e.event === "continued" || e.event === "stopped").map((e) => e.event)).toEqual([
+			"stopped",
+			"continued",
+			"stopped",
+			"continued",
+			"stopped",
+		]);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("Step Tick waits out a sleep and an automatic yield", async () => {
+		const sleeper = await debugged(scriptFile("move r0 1\nsleep 1\nmove r0 2\nyield")); // 2 ticks of 0.5 s
+		await sleeper.adapter.request("configurationDone", { stopOnEntry: true });
+		const run = sleeper.world.runTicks(5);
+		await sleeper.adapter.nextStop();
+		await sleeper.adapter.request("stepTick", { thread: 1 });
+		await sleeper.adapter.nextStop();
+		expect([await lineOf(sleeper.adapter, 1), sleeper.world.tick]).toEqual([2, 2]);
+		await sleeper.adapter.request("continue", {});
+		await run;
+
+		const busy = await debugged(scriptFile("move r0 1\nmove r0 2\n# full\nmove r0 3\nyield"), { linesPerTick: 2 });
+		await busy.adapter.request("configurationDone", { stopOnEntry: true });
+		const run2 = busy.world.runTicks(2);
+		await busy.adapter.nextStop();
+		await busy.adapter.request("stepTick", { thread: 1 });
+		await busy.adapter.nextStop();
+		expect([await lineOf(busy.adapter, 1), busy.world.tick]).toEqual([3, 1]); // past the comment
+		await busy.adapter.request("continue", {});
+		await run2;
+	});
+
+	it("Step Tick on a chip yet to run in this tick stops at its turn in this tick", async () => {
+		const adapter = new FakeAdapter();
+		const agent = new DebugAgent(adapter.transport);
+		const world = await sim({ debug: agent.gate })
+			.housing("a", { code: "move r0 1\nyield" })
+			.housing("b", { code: "move r0 2\nyield" })
+			.build();
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		const run = world.runTicks(2);
+		expect(await adapter.nextStop()).toMatchObject({ reason: "entry", thread: 1 });
+		await adapter.request("stepTick", { thread: 2 });
+		expect(await adapter.nextStop()).toMatchObject({ reason: "tick", thread: 2 });
+		expect([await lineOf(adapter, 2), world.tick]).toEqual([0, 0]);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("refuses Step Tick for a chip that has halted", async () => {
+		const { adapter, world } = await debugged(scriptFile("move x 0"));
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(1);
+		expect(await adapter.nextStop()).toMatchObject({ reason: "halt" });
+		await expect(adapter.request("stepTick", { thread: 1 })).rejects.toThrow("ic has halted, so it has no next turn");
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("Run N Ticks stops between ticks once that many have finished, the tick in progress counting", async () => {
+		const { adapter, world, ic } = await debugged();
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		const run = world.runTicks(10);
+		await adapter.nextStop(); // tick 0 in progress
+		await adapter.request("runTicks", { thread: 1, ticks: 3 });
+		expect(await adapter.nextStop()).toMatchObject({ reason: "tick", thread: 1, description: "Ran 3 ticks: 3 done" });
+		expect([world.tick, ic.reg("Stage")]).toEqual([3, 3]);
+		await adapter.request("runTicks", { thread: 1, ticks: 1 }); // between ticks: one whole tick
+		expect(await adapter.nextStop()).toMatchObject({ description: "Ran 1 tick: 4 done" });
+		expect([world.tick, ic.reg("Stage")]).toEqual([4, 4]);
+		await expect(adapter.request("runTicks", { thread: 1, ticks: 0 })).rejects.toThrow(/1 or more/);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("Run N Ticks stops while every chip sleeps, and Pause gets through too", async () => {
+		const { adapter, world } = await debugged(scriptFile("loop:\nsleep 1000\nj loop"));
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		let done = false;
+		const run = world.runUntil(() => done, { maxTicks: 1e9 });
+		await adapter.nextStop();
+		await adapter.request("runTicks", { thread: 1, ticks: 50 });
+		await adapter.nextStop();
+		expect(world.tick).toBe(50);
+		await adapter.request("continue", {});
+		await new Promise((resolve) => setTimeout(resolve, 30));
+		await adapter.request("pause", {});
+		expect(await adapter.nextStop()).toMatchObject({ reason: "pause" });
+		expect(world.tick).toBeGreaterThan(50);
+		done = true;
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("lists the events to come, and runs until one fires, by label or any", async () => {
+		const { adapter, world, ic } = await debugged();
+		world.at({ tick: 3 }, () => {}, { label: "dusk" });
+		world.every({ ticks: 2 }, () => {}, { label: "pulse" });
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		const run = world.runTicks(10);
+		await adapter.nextStop();
+		expect((await adapter.request("events", { thread: 1 })).events).toEqual([
+			{ kind: "at", label: "dusk", nextTick: 3 },
+			{ kind: "every", label: "pulse", nextTick: 2, interval: 2 },
+		]);
+		await adapter.request("runUntilEvent", { thread: 1, label: "dusk" });
+		const stop = await adapter.nextStop();
+		expect(stop).toMatchObject({ reason: "event", thread: 1, description: 'Event "dusk" ran at the start of tick 3' });
+		expect([world.tick, ic.reg("Stage")]).toEqual([3, 3]); // before the chip's turn in tick 3
+		await adapter.request("runUntilEvent", { thread: 1 });
+		expect((await adapter.nextStop()).description).toBe('Event "pulse" ran at the start of tick 4');
+		await adapter.request("continue", {});
+		await run;
 	});
 });
 

@@ -9,6 +9,13 @@ describe("chips", () => {
 		expect(world.chip("ic")).toHaveRegister("Count", 3);
 	});
 
+	it("counts on through dusk", async () => {
+		const world = await sim({ root: import.meta.dirname }).housing("ic", { file: "counter.ic10" }).build();
+		world.at({ tick: 3 }, () => {}, { label: "dusk" });
+		await world.runTicks(6);
+		expect(world.chip("ic")).toHaveRegister("Count", 6);
+	});
+
 	it("makes nested and recursive calls", async () => {
 		const world = await sim({ root: import.meta.dirname }).housing("ic", { file: "calls.ic10" }).build();
 		await world.runTicks(2);

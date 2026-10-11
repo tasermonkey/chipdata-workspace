@@ -28,6 +28,8 @@ interface Thread {
 	/** The last line it was let through to run, and its text, for telling calls and returns. */
 	lastLine?: number;
 	lastText?: string;
+	/** The tick its last line ran in, for telling when a new turn starts. */
+	lastTick?: number;
 	/** The calls it's in, outermost first: its call stack. */
 	calls: Call[];
 	/** Restarts seen (a restart starts the program again, with no calls). */
@@ -64,7 +66,13 @@ type Mode =
 	| { kind: "run" }
 	/** Stop at the next line of any chip (Pause, stop on entry, a step whose chip ended). */
 	| { kind: "pause"; reason: StopReason }
-	| Step;
+	| Step
+	/** Step Tick: stop at the chip's first instruction in a tick after `after`. */
+	| { kind: "turn"; thread: number; after: number }
+	/** Run N Ticks: stop once `world` has finished tick `until` - 1 (so `world.tick` is `until`). */
+	| { kind: "ticks"; thread: number; world: World; until: number; ticks: number }
+	/** Run Until Event: stop after an event of `world` fires (one with this label, if given). */
+	| { kind: "event"; thread: number; world: World; label?: string };
 
 /** Instructions that jump and set `ra`: `jal`, and the branch-and-link family (`beqal`, `bdseal`, …). */
 const CALL = /^\s*(jal|b[a-z]*al)\s/;
@@ -112,6 +120,8 @@ export class DebugAgent {
 			beforeLine: (info) => this.beforeLine(info),
 			onHalt: (info) => this.onHalt(info),
 			onAutoYield: (info) => this.onAutoYield(info),
+			onTick: (info) => this.onTick(info),
+			onEvent: (info) => this.onEvent(info),
 		};
 		transport.onMessage((message) => this.handle(message));
 		this.event({ event: "hello", version: PROTOCOL_VERSION, pid: process.pid });
@@ -146,13 +156,14 @@ export class DebugAgent {
 		const previous = { line: thread.lastLine, text: thread.lastText };
 		thread.lastLine = info.line;
 		thread.lastText = info.text;
+		thread.lastTick = info.tick;
 		const chip = info.world.chip(info.chip);
 		const pastEnd = info.line >= chip.lineCount;
 		const returned = trackCalls(thread, chip, info.line, previous);
 
 		// Steps and Pause skip blank, comment and label lines: they run (and count toward the tick's
 		// lines) without stopping.
-		const step = this.stepStop(thread, returned, pastEnd);
+		const step = this.mode.kind === "turn" ? this.turnStop(thread, info.tick, pastEnd) : this.stepStop(thread, returned, pastEnd);
 		if (step && chip.isInstruction(info.line)) return this.stop(thread, step);
 		if (!pastEnd) {
 			const hit = this.breakpointAt(chip, info.line);
@@ -166,7 +177,27 @@ export class DebugAgent {
 		if (this.filters.halt) {
 			return this.stop(thread, "halt", `Halted at line ${info.line + 1}: ${info.error.message}`);
 		}
-		if (this.mode.kind === "step" && this.mode.thread === thread.info.id) this.mode = { kind: "pause", reason: "step" };
+		const mode = this.mode;
+		if ((mode.kind === "step" || mode.kind === "turn") && mode.thread === thread.info.id) {
+			this.mode = { kind: "pause", reason: mode.kind === "turn" ? "tick" : "step" };
+		}
+	}
+
+	private onTick(info: { world: World; tick: number }): void | Promise<void> {
+		const mode = this.mode;
+		if (mode.kind === "ticks" && mode.world === info.world && info.tick >= mode.until) {
+			const ran = `Ran ${mode.ticks} ${mode.ticks === 1 ? "tick" : "ticks"}`;
+			return this.stop(this.threadById(mode.thread), "tick", `${ran}: ${info.tick} done`);
+		}
+		// A world whose chips all sleep runs ticks with no lines: let Pause in here too.
+		return this.letMessagesIn();
+	}
+
+	private onEvent(info: { world: World; tick: number; label: string }): void | Promise<void> {
+		const mode = this.mode;
+		if (mode.kind !== "event" || mode.world !== info.world) return;
+		if (mode.label !== undefined && mode.label !== info.label) return;
+		return this.stop(this.threadById(mode.thread), "event", `Event "${info.label}" ran at the start of tick ${info.tick}`);
 	}
 
 	private onAutoYield(info: DebugLineInfo): void | Promise<void> {
@@ -199,6 +230,20 @@ export class DebugAgent {
 		// From here it's a single step, so if this line is a comment or label the next instruction stops.
 		this.mode = { ...mode, how: "in" };
 		return "step";
+	}
+
+	/** Whether a Step Tick ends at this line: the chip's first instruction in a later turn. */
+	private turnStop(thread: Thread, tick: number, pastEnd: boolean): StopReason | undefined {
+		const mode = this.mode;
+		if (mode.kind !== "turn" || mode.thread !== thread.info.id) return undefined;
+		if (pastEnd) {
+			this.mode = { kind: "pause", reason: "tick" };
+			return undefined;
+		}
+		if (tick <= mode.after) return undefined;
+		// The turn has come; if this line is a comment or label, the chip's next instruction stops.
+		this.mode = { ...mode, after: -1 };
+		return "tick";
 	}
 
 	private breakpointAt(chip: ChipHandle, line: number): boolean {
@@ -331,6 +376,33 @@ export class DebugAgent {
 				this.carryOn({ kind: "step", how, thread: thread.info.id, depth: thread.calls.length });
 				return {};
 			}
+			case "stepTick": {
+				const thread = this.threadById(message.args.thread);
+				const chip = this.chipOf(thread);
+				if (chip.halted || chip.ended) {
+					throw new Error(`${thread.info.name} has ${chip.halted ? "halted" : "ended"}, so it has no next turn`);
+				}
+				// A chip that has already run in this tick waits for the next one; one yet to run, for its turn in this one.
+				this.carryOn({ kind: "turn", thread: thread.info.id, after: thread.lastTick ?? -1 }, thread.info.id);
+				return {};
+			}
+			case "runTicks": {
+				const { ticks } = message.args;
+				if (!(Number.isInteger(ticks) && ticks >= 1)) throw new Error(`run ticks: give a whole number of ticks, 1 or more (got ${ticks})`);
+				const thread = this.threadById(message.args.thread);
+				const world = thread.world;
+				this.carryOn({ kind: "ticks", thread: thread.info.id, world, until: world.tick + ticks, ticks }, thread.info.id);
+				return {};
+			}
+			case "runUntilEvent": {
+				const thread = this.threadById(message.args.thread);
+				const { label } = message.args;
+				const mode: Mode = { kind: "event", thread: thread.info.id, world: thread.world, ...(label !== undefined && { label }) };
+				this.carryOn(mode, thread.info.id);
+				return {};
+			}
+			case "events":
+				return { events: this.threadById(message.args.thread).world.listEvents() };
 			case "threads":
 				return { threads: [...this.threads.values()].map((t) => t.info) };
 			case "stackTrace":
@@ -359,12 +431,17 @@ export class DebugAgent {
 		}
 	}
 
-	/** Leave the stop (if stopped) and run on in `mode`. */
-	private carryOn(mode: Mode): void {
+	/**
+	 * Leave the stop (if stopped) and run on in `mode`. With `announce` (a tick command's thread),
+	 * say so first: VS Code doesn't know a custom request runs on, and the event goes out ahead of
+	 * the response, so it can't arrive after the next stop.
+	 */
+	private carryOn(mode: Mode, announce?: number): void {
 		this.mode = mode;
 		this.inspector.reset();
 		const resume = this.resume;
 		this.resume = null;
+		if (resume && announce !== undefined) this.event({ event: "continued", thread: announce });
 		resume?.();
 	}
 

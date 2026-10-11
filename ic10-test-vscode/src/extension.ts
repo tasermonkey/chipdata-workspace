@@ -1,9 +1,11 @@
 /**
  * The VS Code side: registers the `ic10-test` debugger (its adapter runs inside the extension host),
- * a "▶ Debug IC10" CodeLens above each test, and a command that debugs the test at the cursor.
+ * a "▶ Debug IC10" CodeLens above each test, a command that debugs the test at the cursor, and the
+ * tick commands (Step Tick, Run N Ticks, Run Until Event) on the debug toolbar.
  */
 import * as vscode from "vscode";
-import { type Ic10LaunchArgs, Ic10TestSession } from "./adapter.ts";
+import type { EventInfo } from "@tasermonkey/ic10-test/debug-protocol";
+import { type Ic10CustomRequests, type Ic10LaunchArgs, Ic10TestSession } from "./adapter.ts";
 import { describeTest, findTests, type TestBlock, testAt } from "./tests.ts";
 
 /** The languages a test file can be in. */
@@ -18,6 +20,9 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.debug.registerDebugConfigurationProvider("ic10-test", { resolveDebugConfiguration }),
 		vscode.commands.registerCommand("ic10-test.debugTestAtCursor", debugTestAtCursor),
 		vscode.commands.registerCommand("ic10-test.debugTest", debugTest),
+		vscode.commands.registerCommand("ic10-test.stepTick", stepTick),
+		vscode.commands.registerCommand("ic10-test.runTicks", runTicks),
+		vscode.commands.registerCommand("ic10-test.runUntilEvent", runUntilEvent),
 		registerCodeLenses(),
 	);
 }
@@ -122,6 +127,100 @@ async function debugTestAtCursor(): Promise<void> {
 /** Debug one test (or group) of a file, or the whole file. What a CodeLens runs. */
 async function debugTest(uri: vscode.Uri, test: TestBlock | undefined): Promise<void> {
 	await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(uri), launchConfig(uri, test));
+}
+
+// --- tick commands -------------------------------------------------------------------------------
+
+/** What Run N Ticks offers next time: the last number given. */
+let lastTicks = 10;
+
+/** Step Tick: run the focused chip to the start of its next turn. */
+async function stepTick(): Promise<void> {
+	const target = focused();
+	if (target) await send(target, "stepTick", {});
+}
+
+/** Run N Ticks: ask how many, then run until they've finished. */
+async function runTicks(): Promise<void> {
+	const target = focused();
+	if (!target) return;
+	const answer = await vscode.window.showInputBox({
+		title: "Run N Ticks",
+		prompt: "How many ticks to run (the tick in progress counts as one)",
+		value: String(lastTicks),
+		validateInput: (text) => (/^\s*[1-9]\d*\s*$/.test(text) ? undefined : "A whole number, 1 or more"),
+	});
+	if (answer === undefined) return;
+	lastTicks = Number(answer);
+	await send(target, "runTicks", { ticks: lastTicks });
+}
+
+/** Run Until Event: pick one of the world's scripted events to come (or any), then run until it fires. */
+async function runUntilEvent(): Promise<void> {
+	const target = focused();
+	if (!target) return;
+	let events: EventInfo[];
+	try {
+		events = ((await target.session.customRequest("events", threadArgs(target))) as { events: EventInfo[] }).events;
+	} catch (error) {
+		void vscode.window.showErrorMessage(messageOf(error));
+		return;
+	}
+	if (events.length === 0) {
+		void vscode.window.showInformationMessage("This chip's world has no scripted events to come.");
+		return;
+	}
+	type Item = vscode.QuickPickItem & { event?: string };
+	const items: Item[] = [
+		{ label: "Any event", description: "whichever fires next" },
+		...events.map((e) => ({ label: e.label, description: describeEvent(e), event: e.label })),
+	];
+	const picked = await vscode.window.showQuickPick(items, { title: "Run Until Event", placeHolder: "Run until which event fires?" });
+	if (!picked) return;
+	await send(target, "runUntilEvent", picked.event !== undefined ? { label: picked.event } : {});
+}
+
+function describeEvent(event: EventInfo): string {
+	if (event.kind === "when") return "when its condition becomes true";
+	if (event.kind === "every") return `every ${event.interval} ticks, next at tick ${event.nextTick}`;
+	return `at tick ${event.nextTick}`;
+}
+
+interface Target {
+	session: vscode.DebugSession;
+	/** The thread focused in the Call Stack; left out, the adapter goes by the one that last stopped. */
+	threadId?: number;
+}
+
+/** The IC10 debug session in focus, and its chip focused in the Call Stack. */
+function focused(): Target | undefined {
+	const session = vscode.debug.activeDebugSession;
+	if (session?.type !== "ic10-test") {
+		void vscode.window.showInformationMessage("The tick commands work in an IC10 debug session, while it's stopped.");
+		return undefined;
+	}
+	const item = vscode.debug.activeStackItem;
+	return { session, ...(item && item.session.id === session.id && { threadId: item.threadId }) };
+}
+
+function threadArgs(target: Target): { threadId?: number } {
+	return target.threadId !== undefined ? { threadId: target.threadId } : {};
+}
+
+async function send<K extends keyof Ic10CustomRequests>(
+	target: Target,
+	command: K,
+	args: Omit<Ic10CustomRequests[K], "threadId">,
+): Promise<void> {
+	try {
+		await target.session.customRequest(command, { ...threadArgs(target), ...args });
+	} catch (error) {
+		void vscode.window.showErrorMessage(messageOf(error));
+	}
+}
+
+function messageOf(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }
 
 function launchConfig(uri: vscode.Uri, test: TestBlock | undefined): vscode.DebugConfiguration & Ic10LaunchArgs {

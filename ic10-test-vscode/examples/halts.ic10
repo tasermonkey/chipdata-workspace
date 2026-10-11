@@ -1,0 +1,10 @@
+# Halts. "Halts" is ticked under Breakpoints in the Run and Debug view, so the
+# debugger stops on the line that fails and says why. Untick it and the chip
+# just stops, as in game.
+alias Counter r0
+loop:
+add Counter Counter 1
+yield
+blt Counter 3 loop
+l r1 db Temperature # a housing has no Temperature: the chip halts here once Counter reaches 3
+s db Setting r1 # never reached

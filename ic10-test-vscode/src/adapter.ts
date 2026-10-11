@@ -22,6 +22,7 @@ import {
 	type StopReason,
 } from "@tasermonkey/ic10-test/debug-protocol";
 import {
+	ContinuedEvent,
 	DebugSession,
 	ExitedEvent,
 	InitializedEvent,
@@ -90,6 +91,23 @@ export const spawnLauncher: Launcher = (spec, output) => {
 	return { exited, kill: () => child.kill() };
 };
 
+/**
+ * The custom requests the extension's tick commands send, with their arguments. `threadId` is the
+ * chip to go by: the one focused in the Call Stack, or (left out) the one that last stopped.
+ */
+export interface Ic10CustomRequests {
+	/** Run to the start of the chip's next turn. */
+	stepTick: { threadId?: number };
+	/** Run until this many more ticks have finished (the tick in progress counts). */
+	runTicks: { threadId?: number; ticks: number };
+	/** Run until a scripted event fires: this one, or any. */
+	runUntilEvent: { threadId?: number; label?: string };
+	/** The scripted events still to come; the response body is `{ events: EventInfo[] }`. */
+	events: { threadId?: number };
+}
+
+const CUSTOM = new Set<string>(["stepTick", "runTicks", "runUntilEvent", "events"] satisfies (keyof Ic10CustomRequests)[]);
+
 const STOP_REASONS: Record<StopReason, string> = {
 	entry: "entry",
 	breakpoint: "breakpoint",
@@ -97,6 +115,8 @@ const STOP_REASONS: Record<StopReason, string> = {
 	pause: "pause",
 	halt: "exception",
 	autoYield: "exception",
+	tick: "step",
+	event: "event",
 };
 
 /** Frame ids: the chip's thread and how far down its call stack (the agent keeps at most 256 calls). */
@@ -118,6 +138,8 @@ export class Ic10TestSession extends DebugSession {
 	private filters = { halt: true, autoYield: false };
 	private configured = false;
 	private stopOnEntry = false;
+	/** The thread of the last stop, for a tick command that doesn't name one. */
+	private lastStopped: number | undefined;
 	private ended = false;
 	/** Whether VS Code shows progress, and the id of "Starting Vitest" while it shows. */
 	private progress = false;
@@ -330,6 +352,28 @@ export class Ic10TestSession extends DebugSession {
 		await this.forward(response, "pause", {}, () => {});
 	}
 
+	/** The tick commands (see `Ic10CustomRequests`). */
+	protected override async customRequest(command: string, response: DebugProtocol.Response, args: unknown): Promise<void> {
+		if (!CUSTOM.has(command)) return super.customRequest(command, response, args);
+		const given = (args ?? {}) as Partial<Ic10CustomRequests["runTicks"] & Ic10CustomRequests["runUntilEvent"]>;
+		const thread = given.threadId ?? this.lastStopped;
+		if (thread === undefined) return this.fail(response, new Error("no chip has stopped yet"));
+		switch (command as keyof Ic10CustomRequests) {
+			case "stepTick":
+				return this.forward(response, "stepTick", { thread }, () => {});
+			case "runTicks":
+				return this.forward(response, "runTicks", { thread, ticks: given.ticks ?? 1 }, () => {});
+			case "runUntilEvent": {
+				const label = given.label;
+				return this.forward(response, "runUntilEvent", { thread, ...(label !== undefined && { label }) }, () => {});
+			}
+			case "events":
+				return this.forward(response, "events", { thread }, ({ events }) => {
+					response.body = { events };
+				});
+		}
+	}
+
 	protected override terminateRequest(response: DebugProtocol.TerminateResponse): void {
 		this.launched?.kill();
 		this.sendResponse(response);
@@ -390,9 +434,13 @@ export class Ic10TestSession extends DebugSession {
 				const stopped = new StoppedEvent(STOP_REASONS[event.reason], event.thread, event.description) as DebugProtocol.StoppedEvent;
 				stopped.body.allThreadsStopped = true;
 				if (event.description !== undefined) stopped.body.description = event.description;
+				this.lastStopped = event.thread;
 				this.sendEvent(stopped);
 				return;
 			}
+			case "continued":
+				this.sendEvent(new ContinuedEvent(event.thread, true));
+				return;
 			case "output":
 				this.sendEvent(new OutputEvent(event.text, event.category));
 				return;

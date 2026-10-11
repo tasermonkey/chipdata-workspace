@@ -63,10 +63,60 @@
 				"command": "ic10-test.debugTest",
 				"title": "Debug IC10 in a Test",
 				"category": "IC10 Test"
+			},
+			{
+				"command": "ic10-test.stepTick",
+				"title": "Step Tick",
+				"category": "IC10 Test",
+				"icon": "$(watch)",
+				"enablement": "debugType == 'ic10-test' && debugState == 'stopped'"
+			},
+			{
+				"command": "ic10-test.runTicks",
+				"title": "Run N Ticks…",
+				"category": "IC10 Test",
+				"icon": "$(run-all)",
+				"enablement": "debugType == 'ic10-test' && debugState == 'stopped'"
+			},
+			{
+				"command": "ic10-test.runUntilEvent",
+				"title": "Run Until Event…",
+				"category": "IC10 Test",
+				"icon": "$(bell)",
+				"enablement": "debugType == 'ic10-test' && debugState == 'stopped'"
 			}
 		],
 		"menus": {
+			"debug/toolBar": [
+				{
+					"command": "ic10-test.stepTick",
+					"when": "debugType == 'ic10-test'",
+					"group": "navigation@10"
+				},
+				{
+					"command": "ic10-test.runTicks",
+					"when": "debugType == 'ic10-test'",
+					"group": "navigation@11"
+				},
+				{
+					"command": "ic10-test.runUntilEvent",
+					"when": "debugType == 'ic10-test'",
+					"group": "navigation@12"
+				}
+			],
 			"commandPalette": [
+				{
+					"command": "ic10-test.stepTick",
+					"when": "debugType == 'ic10-test'"
+				},
+				{
+					"command": "ic10-test.runTicks",
+					"when": "debugType == 'ic10-test'"
+				},
+				{
+					"command": "ic10-test.runUntilEvent",
+					"when": "debugType == 'ic10-test'"
+				},
 				{
 					"command": "ic10-test.debugTestAtCursor",
 					"when": "ic10-test.inWorkspace && editorLangId =~ /^(typescript|javascript)$/"

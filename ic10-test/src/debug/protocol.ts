@@ -8,7 +8,7 @@
  */
 
 /** Bumped when a message changes shape. The agent says its version first, in `hello`. */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 /** A chip, which VS Code shows as a thread. */
 export interface ThreadInfo {
@@ -68,8 +68,21 @@ export interface VariableInfo {
 	readOnly?: boolean;
 }
 
-/** Why the agent stopped. */
-export type StopReason = "entry" | "breakpoint" | "step" | "pause" | "halt" | "autoYield";
+/** A scripted event still to come, for choosing one to run until. */
+export interface EventInfo {
+	kind: "at" | "every" | "when";
+	label: string;
+	/** The next tick it fires at the start of; undefined for a `when` (it fires on a condition). */
+	nextTick?: number;
+	/** Ticks between firings, for an `every`. */
+	interval?: number;
+}
+
+/**
+ * Why the agent stopped. `tick`: a Step Tick reached the chip's next turn, or Run N Ticks ran its
+ * ticks. `event`: Run Until Event saw its event fire.
+ */
+export type StopReason = "entry" | "breakpoint" | "step" | "pause" | "halt" | "autoYield" | "tick" | "event";
 
 /** Each request's arguments and result. */
 export interface Requests {
@@ -87,6 +100,23 @@ export interface Requests {
 	stepIn: { args: { thread: number }; result: Record<string, never> };
 	/** Step Out: run until the chip has executed `j ra`. */
 	stepOut: { args: { thread: number }; result: Record<string, never> };
+	/**
+	 * Step Tick: run to the start of the chip's next turn (past its yield, sleep or automatic yield),
+	 * other chips running as usual. Refused for a chip that has halted or ended.
+	 */
+	stepTick: { args: { thread: number }; result: Record<string, never> };
+	/**
+	 * Run until `ticks` more ticks of the chip's world have finished (the tick in progress counts as
+	 * one), then stop between ticks.
+	 */
+	runTicks: { args: { thread: number; ticks: number }; result: Record<string, never> };
+	/**
+	 * Run until a scripted event of the chip's world fires (only one with this label, if given), then
+	 * stop just after it, before the tick's models and chips run.
+	 */
+	runUntilEvent: { args: { thread: number; label?: string }; result: Record<string, never> };
+	/** The scripted events still to come in the chip's world. */
+	events: { args: { thread: number }; result: { events: EventInfo[] } };
 	threads: { args: Record<string, never>; result: { threads: ThreadInfo[] } };
 	stackTrace: { args: { thread: number }; result: { frames: FrameInfo[] } };
 	/** The text of an inline program (a frame's `sourceRef`). */
@@ -120,6 +150,8 @@ export type AgentEvent =
 	| { event: "hello"; version: number; pid: number }
 	| { event: "thread"; reason: "started"; thread: ThreadInfo }
 	| { event: "stopped"; reason: StopReason; thread: number; description?: string; text?: string }
+	/** A tick command let a stopped test run on (VS Code tracks Continue and the steps itself). */
+	| { event: "continued"; thread: number }
 	| { event: "output"; category: "console" | "stderr"; text: string }
 	| { event: "terminated" };
 

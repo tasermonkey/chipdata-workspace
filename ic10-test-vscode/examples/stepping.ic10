@@ -1,0 +1,37 @@
+# Stepping and the Call Stack. Set a breakpoint on "jal outer", then:
+# - Step Over (F10) runs the whole call and stops on the yield.
+# - Step Into (F11) goes into outer: the Call Stack shows "outer (returns to ...)"
+#   above the chip. Step Into "jal inner" for a third frame.
+# - Step Out (Shift+F11) leaves inner, then outer.
+# "jal countdown" calls itself. A breakpoint on "pop ra" with the condition
+# Depth == 0 shows a frame for each level. Step Over a "jal countdown" from
+# the top and it stops after all of them have returned.
+alias Depth r0
+alias Result r1
+start:
+move Depth 3
+jal countdown
+move Result 0
+jal outer
+yield
+j start
+
+countdown:
+push ra
+sub Depth Depth 1
+blez Depth countdownDone
+jal countdown
+countdownDone:
+pop ra
+j ra
+
+outer:
+push ra
+jal inner
+add Result Result 1
+pop ra
+j ra
+
+inner:
+add Result Result 10
+j ra

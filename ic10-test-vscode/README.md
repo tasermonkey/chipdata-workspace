@@ -38,11 +38,32 @@ agent decides where to stop, in the test process. Vitest runs in the folder of t
 Exception breakpoints: **Halts** (on by default) stop when a chip halts on an error; **Automatic
 yields** stop when a chip uses up its 128 lines in a tick.
 
+## Tick commands
+
+While stopped, the debug toolbar (and the command palette, under **IC10 Test**) has three more
+ways to run on. Each goes by the chip focused in the Call Stack:
+
+- **Step Tick** runs to the chip's first instruction in its next turn, past its `yield`, `sleep` or
+  automatic yield. The other chips run as usual.
+- **Run N Ticks…** stops between ticks once that many have finished (the tick in progress counts).
+- **Run Until Event…** stops just after a scripted event (`world.at`, `every`, `when`) runs: one
+  you pick from those to come, or any.
+
+## Trying it out
+
+[`examples/`](examples/) has one small test and script per feature, with what to try written at the top
+of each script.
+
 ## Status
 
-The adapter, the extension (installed as a local `.vsix`) and the **▶ Debug IC10** CodeLens above
-each test are done (Phase 7 steps 5–7 of `TEST_FRAMEWORK_PLAN.md`). Turn the lenses off with the
-`ic10-test.codeLens` setting. The tick commands, data breakpoints and inline values come next.
+Done so far (Phase 7 steps 5–8 of `TEST_FRAMEWORK_PLAN.md`):
+- the adapter;
+- the extension, installed as a local `.vsix`;
+- the **▶ Debug IC10** CodeLens above each test (turn it off with the `ic10-test.codeLens`
+  setting);
+- the tick commands.
+
+Data breakpoints and inline values come next.
 
 ## Tests
 

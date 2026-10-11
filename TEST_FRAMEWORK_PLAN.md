@@ -61,6 +61,7 @@ scripts on 2026-10-07 (see the Appendix).
 | G16 | **Slots the game data lists no logic types for read 0.** The Larre's Target Slot (255, the plant at its arm) is one. | `ls r1 larre 255 Mature` always read 0. | **Fixed in fork**: such a slot reads whatever its item has; slots that list their logic types are unchanged |
 | G17 | **`sdse` / `sdns` take only a pin.** The wiki gives them `device(d?\|r?\|id)`, so the game also accepts a reference ID (set = on the network). | `sdse r0 $1488` fails in the emulator. No script uses it yet. | Fork, when a script needs it |
 | G18 | **Reading a logic type the device can't read is only a warning.** In game `l`, `ld` and `lb` throw `IncorrectLogicType` and the chip halts (read from `Assembly-CSharp.dll`, 2026-10-11). | A script reading the wrong property carries on with 0 instead of stopping. Found while reading the Logic Mirror's code (§5.4); no script in `ic10/` does it. | **Fixed in fork**: such a read is a strong error (the harness halts the chip), with tests in `fork-fixes.test.ts`. `s` no longer reads a write-only logic type's old value. |
+| G19 | **A write to something that isn't a register lands in `r0`.** `move Nope 1` or `add Nope r5 1` records the error (and the harness halts the chip), but the result is still written to `r0`. Probably the same pattern as G10, where a failed parse falls back to index 0. | After the halt, `r0` holds the bad instruction's result, so the debugger and failure reports show a value the game wouldn't have. Found writing the debugger's examples (2026-10-11). Alaska's `move stage 0` (review 1.1) was one of these. | Fork, not yet fixed |
 | G9 | Toolchain is Bun-only. | Tests import `bun:test`, scripts run with `bun tools/*.ts`, there's a `bunfig.toml`, and CI uses Bun. | Fork conversion (§3) |
 
 ---
@@ -133,6 +134,7 @@ chipdata-workspace/
 │   │   └── lint/             # static checks (later)
 │   └── test/                 # the harness's own tests
 ├── ic10-test-vscode/         # VS Code extension: DAP adapter, CodeLens (§6b); its own package
+│   └── examples/             # one test + .ic10 per debugger feature, to try it on
 └── tests/                    # tests for YOUR scripts, mirroring ic10/
     └── ClimateControl/VCCR-cooling.test.ts
 ```
@@ -1032,6 +1034,27 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     `ic10-test.codeLens` turns the lenses off. The lenses and the cursor command show only in a
     workspace with IC10 in it (an `.ic10` file, or `@tasermonkey/ic10-test` in `node_modules`), and
     the extension starts in such a workspace, so other TypeScript projects don't see it.
+  - Step 8 is done: the tick commands, on the debug toolbar and in the command palette while an
+    IC10 session is stopped. Each goes by the chip focused in the Call Stack, or the one that last
+    stopped.
+    - **Step Tick** runs that chip to its first instruction in its next turn, past its `yield`,
+      `sleep` or automatic yield, while the other chips run as usual. On a chip that hasn't run yet
+      in this tick, it stops at its turn in this tick. It's refused for a chip that has halted or
+      ended.
+    - **Run N Ticks…** asks how many, and stops between ticks once that many of the chip's world
+      have finished. The tick in progress counts as one. It also stops when every chip is asleep.
+    - **Run Until Event…** offers the world's scripted events to come (`world.listEvents()`), or
+      any event. It stops just after the event runs, before that tick's models and chips.
+    - In the protocol (now version 2) these are the agent requests `stepTick`, `runTicks`,
+      `runUntilEvent` and `events`, with stop reasons `tick` and `event`. The adapter takes them as
+      DAP custom requests. The agent sends a `continued` event ahead of its response, so VS Code
+      learns the test ran on before the next stop arrives. The gate's `onTick` also lets messages
+      in, so Pause works while every chip sleeps.
+    - Agent tests cover each command. An adapter test runs all three through `DebugClient` on a
+      fixture test with a `dusk` event.
+  - A playground, `ic10-test-vscode/examples/`, has one small test and `.ic10` script per feature:
+    breakpoints, stepping, variables, exceptions, several chips, and the tick commands. The top of
+    each script says what to try. They run in `npm test`. Writing them found **G19** (§2).
 
 Suggested first regression tests (Phase 4):
 

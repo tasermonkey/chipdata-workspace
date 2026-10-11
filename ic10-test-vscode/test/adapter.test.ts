@@ -148,6 +148,45 @@ describe("debug adapter", () => {
 		await terminated;
 	}, 60_000);
 
+	it("runs the tick commands: Step Tick, Run N Ticks, Run Until Event", async () => {
+		await Promise.all([
+			dc.configurationSequence(),
+			dc.launch(launchArgs("counts on through dusk", { stopOnEntry: true })),
+			dc.assertStoppedLocation("entry", { path: COUNTER, line: 1 }),
+		]);
+		const count = async () => (await dc.evaluateRequest({ expression: "Count", frameId: 1000 })).body.result;
+		/** Send a tick command; VS Code must hear that the test ran on, then where it stopped. */
+		const run = async (command: string, args: object) => {
+			const continued = dc.waitForEvent("continued");
+			const stopped = dc.waitForEvent("stopped");
+			await dc.customRequest(command, args);
+			expect((await continued).body).toMatchObject({ threadId: 1, allThreadsContinued: true });
+			return (await stopped).body as DebugProtocol.StoppedEvent["body"];
+		};
+
+		const events = await dc.customRequest("events", {});
+		expect(events.body.events).toEqual([{ kind: "at", label: "dusk", nextTick: 3 }]);
+
+		// No thread given: the one that last stopped.
+		expect(await run("stepTick", {})).toMatchObject({ reason: "step", threadId: 1 });
+		expect((await dc.stackTraceRequest({ threadId: 1 })).body.stackFrames[0]!.line).toBe(5); // after the yield
+		expect(await count()).toBe("1");
+
+		expect(await run("runTicks", { threadId: 1, ticks: 1 })).toMatchObject({ description: "Ran 1 tick: 2 done" });
+		expect(await count()).toBe("2");
+
+		expect(await run("runUntilEvent", { threadId: 1, label: "dusk" })).toMatchObject({
+			reason: "event",
+			description: 'Event "dusk" ran at the start of tick 3',
+		});
+		expect(await count()).toBe("3");
+		await expect(dc.customRequest("runTicks", { ticks: 0 })).rejects.toThrow(/1 or more/);
+
+		const terminated = dc.waitForEvent("terminated");
+		await dc.continueRequest({ threadId: 1 });
+		await terminated;
+	}, 60_000);
+
 	// VS Code gives paths a lowercase drive letter. Run from there, Vitest used to load a second copy
 	// of its runner, and the setup file's afterAll failed, so no test loaded.
 	it.runIf(process.platform === "win32")("copes with a lowercase drive letter, as VS Code gives paths", async () => {

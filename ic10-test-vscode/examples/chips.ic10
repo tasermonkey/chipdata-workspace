@@ -1,0 +1,13 @@
+# Several chips. Each chip is a thread in the Call Stack. A breakpoint or Pause
+# stops them all. Click a thread to see its registers, or to step it.
+# The "setup" chip is inline code in the test (no file). Click its frame to open
+# a read-only copy of its program.
+# Try: breakpoint on the "add", then Step Over a few times. It goes on to the
+# setup chip's turn in the next tick, then back here.
+alias Total r0
+loop:
+get r1 db 0 # what the setup chip last put on this chip's stack
+add Total Total r1
+s db Setting Total
+yield
+j loop

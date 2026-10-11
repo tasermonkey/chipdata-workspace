@@ -1,0 +1,13 @@
+# Breakpoints. Set one in the gutter, then click "Debug IC10" above the test.
+# - A plain breakpoint on the "add" line stops once a tick.
+# - Right-click it, Edit Breakpoint, Expression: Counter == 5 (stops once, with Counter at 5).
+# - Right-click the "mul" line, Add Logpoint: count {Counter}, double {Double}
+#   It prints to the Debug Console instead of stopping.
+alias Counter r0
+alias Double r1
+loop:
+add Counter Counter 1
+mul Double Counter 2
+s db Setting Double
+yield
+j loop

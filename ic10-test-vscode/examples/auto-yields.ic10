@@ -1,0 +1,7 @@
+# Automatic yields. Tick "Automatic yields" under Breakpoints in the Run and
+# Debug view. This loop never yields, so each tick the chip uses up its 128
+# lines and is preempted. The debugger stops there and says after which line.
+alias Counter r0
+loop:
+add Counter Counter 1
+j loop

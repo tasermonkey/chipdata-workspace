@@ -1,0 +1,30 @@
+# What you see while stopped. Set a breakpoint on the "yield", then open each
+# scope in the Variables panel:
+# - Registers: r15 (Stage), and r1 labelled with the vent it holds the ID of.
+# - Stack: 0, then "1 (top)" at sp, then "10 (above sp)", which put wrote.
+# - Devices: d0 vent, d1 sensor, db, then pa on the network. pa's gas
+#   readings come from the pipe, so they can't be edited.
+# - Atmospheres (the pipe, the outside air), World (tick, lines this tick),
+#   Defines.
+# Things to try:
+# - Double-click r15 (Stage) and type Max. Double-click the vent's On and type 0.
+# - Hover Stage, then Setting (a logic type: its description).
+# - Add vent.On to Watch.
+# - Type coolant or d0.On in the Debug Console.
+alias Stage r15
+alias Vent d0
+alias Sensor d1
+define Max 5
+define Warm 300
+move Stage 1
+l r1 Vent ReferenceId
+push 7
+push 8
+put db 10 3
+loop:
+l r2 Sensor Temperature
+sgt r3 r2 Warm
+s Vent On r3
+add Stage Stage 1
+yield
+j loop

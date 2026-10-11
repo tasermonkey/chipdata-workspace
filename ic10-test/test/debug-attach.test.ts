@@ -88,7 +88,7 @@ describe("attaching from Vitest", () => {
 
 		try {
 			await connected;
-			expect(await adapter.event("hello")).toMatchObject({ version: 1 });
+			expect(await adapter.event("hello")).toMatchObject({ version: 2 });
 			const script = join(FIXTURES, "counter.ic10");
 			await adapter.request("setBreakpoints", { path: script, breakpoints: [{ line: 2 }] });
 			await adapter.request("configurationDone", {});
