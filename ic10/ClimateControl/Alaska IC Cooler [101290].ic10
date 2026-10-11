@@ -27,10 +27,10 @@ beq Stage 1 waitForWarm
 beq Stage 2 startCooling
 j start
 
-stopCooling:
+stopCooling: # empty the coolant pipe outside so it can't freeze under pressure
 l r0 PA_ATMO Pressure
 ble r0 EMPTY_KPA doneStopping
-s VP_ATMO Mode 1
+s VP_ATMO Mode 0 # Outward: pipe to outside
 yield
 s VP_ATMO On 1
 j start
@@ -50,7 +50,7 @@ move Stage 2
 
 startCooling:
 blt r0 MIN_TEMP finishCooling
-s VP_ATMO Mode 0
+s VP_ATMO Mode 1 # Inward: outside air into the pipe
 yield
 s VP_ATMO On 1
 j start

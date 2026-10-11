@@ -27,7 +27,7 @@ the fixes.
 |---|---|---|
 | 1.1 Alaska `stage` | Fixed 2026-10-08 | [Alaska IC Cooler.test.ts](tests/ClimateControl/Alaska%20IC%20Cooler.test.ts) |
 | 1.2 Alaska `MIN_TEMP` / `MAX_TEMP` | Fixed: kelvin defines with °C comments, now used | same |
-| 1.3 Alaska vent modes | **Open**: needs an in-game check | — |
+| 1.3 Alaska vent modes | Fixed 2026-10-11: settled by the game's Stationpedia text, not an in-game check | [Alaska IC Cooler.test.ts](tests/ClimateControl/Alaska%20IC%20Cooler.test.ts) |
 | 1.4 Cooling Air Management | Fixed 2026-10-08 | [VC-IC Cooling Air Management.test.ts](tests/ClimateControl/VC-IC%20Cooling%20Air%20Management.test.ts) |
 | 1.5 CoolCleanMarsAir | Fixed 2026-10-08 | [CoolCleanMarsAir.test.ts](tests/ClimateControl/CoolCleanMarsAir.test.ts) |
 | 1.6 Suit MKII filtration chatter | Fixed 2026-10-08 | [Simple Suit Controller MKII.test.ts](tests/SuitControl/Simple%20Suit%20Controller%20MKII.test.ts) |
@@ -64,7 +64,16 @@ blt r0 MAX_TEMP start
 blt r0 MIN_TEMP finishCooling
 ```
 
-### 1.3 Alaska IC Cooler: vent modes look swapped *(verify in game)*
+### 1.3 Alaska IC Cooler: vent modes look swapped
+
+**Fixed (2026-10-11).** The game's Stationpedia text for the Active Vent settles it: "'Outward' sets
+it to pump gas into a space until pressure is reached; 'Inward' sets it to pump gas out until
+pressure is reached", with Mode 0 Outward and 1 Inward. The vent is on the coolant pipe (`PA_ATMO`),
+which runs through a radiator alongside the hot gas pipe (`PA_SRC`). Cooling now draws cold outside
+air in (Mode 1), and stopping empties the coolant pipe back outside (Mode 0) so it can't freeze in
+the pipe under pressure. Two tests failed first, one per mode.
+
+The original finding:
 [Alaska IC Cooler [101290].ic10:32, 52](ic10/ClimateControl/Alaska%20IC%20Cooler%20%5B101290%5D.ic10#L32)
 
 On an Active Vent, `Mode 0` is Outward (pipe → room) and `Mode 1` is Inward (room → pipe). The

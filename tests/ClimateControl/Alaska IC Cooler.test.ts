@@ -16,12 +16,25 @@ function build(world: { gasTemp: number; outsidePressure: number }) {
 		.build();
 }
 
+// Active Vent modes (Stationpedia): 0 Outward pushes pipe gas out into the room, 1 Inward pulls
+// room gas into the pipe. Here the room is outside and the pipe is the coolant pipe (atmo).
 describe("Alaska IC Cooler", () => {
-	it("starts cooling once the gas is warm", async () => {
+	// CODE_REVIEW.md 1.3: cooling used Outward, which pushed the coolant out instead of drawing it in.
+	it("starts cooling once the gas is warm, drawing cold outside air in (Inward)", async () => {
 		const world = await build({ gasTemp: 310, outsidePressure: 0 });
 		await world.runUntil((w) => w.chip("ic").reg("r15") === 2, { maxTicks: 30 });
 		await world.runTicks(2);
 
+		expect(world.device("vent")).toHaveProps({ Mode: 1, On: 1 });
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
+
+	// CODE_REVIEW.md 1.3: emptying used Inward, which kept filling the coolant pipe.
+	it("empties the coolant pipe back outside (Outward) once cooling is done", async () => {
+		const world = await build({ gasTemp: 280, outsidePressure: 50 });
+		await world.runTicks(3);
+
+		expect(world.chip("ic")).toHaveRegister("Stage", 0);
 		expect(world.device("vent")).toHaveProps({ Mode: 0, On: 1 });
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
