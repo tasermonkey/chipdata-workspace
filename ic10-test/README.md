@@ -388,6 +388,15 @@ keep their starting registers and stack, and take the same options as `sim()`.
 line, on halts, on automatic yields, after each tick and after each scripted event. The VS Code debugger
 will attach through this.
 
+`DebugAgent` is the debugger's side in the test process: a gate (`agent.gate`) that talks to the VS Code
+adapter over a `Transport`, using the protocol in `src/debug/protocol.ts` (exported as
+`@tasermonkey/ic10-test/debug-protocol`). It decides in the test process where to stop: breakpoints by file
+and line (with conditions and log messages), Step Over (a `jal` or branch-and-link call as one step), Step
+Into, Step Out (to after the `j ra`), Pause, halts and, if asked, automatic yields. Steps and Pause stop
+only on instructions; blank, comment and label lines run past. `evaluate(chip, "vent.On")` gives a value as
+conditions and hovers see it: numbers, registers, aliases, defines, labels, `d0.On`, `db.Setting`, or any
+world path.
+
 Also exported: `createEnv` (a lower-level world from emulator env JSON), `readScript` / `findScripts`,
 `parseId` / `formatId`, and `hash(name)`, the game's `HASH()`.
 

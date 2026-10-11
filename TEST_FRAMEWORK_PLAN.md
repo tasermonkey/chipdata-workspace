@@ -936,6 +936,17 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     `setStackAt`, `defines()` (the script's defines, aliases and labels), `sleepUntil` and
     `linesThisTick`; `world.listEvents()` (with each event's next tick; `at`, `every` and `when`
     take a `label`) and `world.listModels()`; a gate hook `onEvent`; `formatValue` exported.
+  - Step 2 is done: the protocol (`ic10-test/src/debug/protocol.ts`, newline-delimited JSON,
+    0-based lines, a version in its first message) and the agent's core (`DebugAgent`). The agent
+    holds a test back until the adapter has set its breakpoints, and decides in the test process
+    where to stop. Breakpoints are by file and line, with conditions (`Stage == 2`, `vent.On`) and
+    log messages. Step Over takes a `jal` or branch-and-link call as one step, Step Into goes one
+    line, and Step Out runs to after the `j ra`. Pause, halts and (if asked) automatic yields also
+    stop. Each chip of each world is a thread, and inline programs' text is served. Steps and Pause
+    stop only on instructions: blank, comment and label lines still run (and count toward the 128),
+    but stepping one at a time through a comment block isn't useful. A run lets messages in every
+    few milliseconds, so Pause works during a long one. Tests drive real worlds through an
+    in-memory adapter.
 
 Suggested first regression tests (Phase 4):
 

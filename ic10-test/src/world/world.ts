@@ -361,6 +361,11 @@ export class ChipHandle {
 		return this.state.engine.lineText(index);
 	}
 
+	/** Whether a line is an instruction, as opposed to a blank, comment or label line. */
+	isInstruction(index: number): boolean {
+		return this.state.engine.isInstruction(index);
+	}
+
 	/** Line index of a label, or undefined if the program has no such label. */
 	findLabel(name: string): number | undefined {
 		return this.state.engine.findLabel(name);

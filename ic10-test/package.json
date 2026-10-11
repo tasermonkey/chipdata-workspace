@@ -9,7 +9,8 @@
 	},
 	"exports": {
 		".": "./src/index.ts",
-		"./vitest": "./src/matchers/vitest-setup.ts"
+		"./vitest": "./src/matchers/vitest-setup.ts",
+		"./debug-protocol": "./src/debug/protocol.ts"
 	},
 	"scripts": {
 		"catalog:build": "node --conditions=source tools/catalog-build.ts",

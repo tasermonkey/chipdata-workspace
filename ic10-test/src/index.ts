@@ -35,6 +35,8 @@ export { type BatchOpCatalog, type BatchOpFinding, type BatchOpProblem, checkBat
 export * from "./matchers/checks.ts";
 export { chipReport, deviceReport, formatValue, worldReport } from "./matchers/report.ts";
 export { type DebugGate, type DebugLineInfo, getDefaultDebugGate, setDefaultDebugGate } from "./debug/gate.ts";
+export { DebugAgent, type Transport } from "./debug/agent.ts";
+export { evaluate, evaluateCondition } from "./debug/evaluate.ts";
 export type { ScriptDefine, StepOutcome } from "./engine/chip.ts";
 export { hash } from "./engine/device.ts";
 export { createEnv, type Env } from "./engine/env.ts";
