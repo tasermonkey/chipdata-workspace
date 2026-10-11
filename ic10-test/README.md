@@ -398,11 +398,12 @@ time with Vitest's `file:line` filter and `--testTimeout=0`, so a paused test do
 adapter over a `Transport`, using the protocol in `src/debug/protocol.ts` (exported as
 `@tasermonkey/ic10-test/debug-protocol`). It decides in the test process where to stop: breakpoints by file
 and line (with conditions and log messages), Step Over (a `jal` or branch-and-link call as one step), Step
-Into, Step Out (to after the `j ra`), Pause, halts and, if asked, automatic yields. The stack is the call
-stack, as in assembly (`push ra` … `pop ra`), so Step Over a call stops at the next line once `sp` is back
-where it was (or the calls and `j ra`s since have evened out, for a function that leaves a result on the
-stack); a recursive call coming back to that line deeper down doesn't stop it. Step Out counts calls and
-`j ra`s, so it stops after the function's own return, not an inner one's. Steps and Pause stop
+Into, Step Out (to after the `j ra`), Pause, halts and, if asked, automatic yields. It keeps each chip's
+call stack, as VS Code's Call Stack shows it: a taken `jal` or branch-and-link adds a frame (named by the
+label it jumped to and the line it returns to), and the chip arriving back at that line, right after a
+`j ra` or with `sp` back where it was, removes it. The stack is the call stack, as in assembly (`push ra`
+… `pop ra`), so this follows nested and recursive calls. Step Over stops once the chip is back at the depth
+it started at, and Step Out once it's a level up. Steps and Pause stop
 only on instructions; blank, comment and label lines run past. `evaluate(chip, "vent.On")` gives a value as
 conditions and hovers see it: numbers, registers, aliases, defines, labels, `d0.On`, `db.Setting`, or any
 world path.

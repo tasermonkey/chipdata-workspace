@@ -19,6 +19,15 @@ function launchArgs(name: string, extra: Partial<Ic10LaunchArgs> = {}): Ic10Laun
 	return { test: TESTS, line: itLine(name), ...extra };
 }
 
+function alive(pid: number): boolean {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 /** Everything the adapter printed (Vitest's output among it), for failure messages and checks. */
 function collectOutput(dc: DebugClient): () => string {
 	let text = "";
@@ -55,7 +64,7 @@ describe("debug adapter", () => {
 		const { threads } = (await dc.threadsRequest()).body;
 		expect(threads).toEqual([{ id: 1, name: "ic" }]);
 		const frame = (await dc.stackTraceRequest({ threadId: 1 })).body.stackFrames[0]!;
-		expect(frame).toMatchObject({ id: 1, name: "add Count Count 1", line: 3, source: { path: COUNTER, name: "counter.ic10" } });
+		expect(frame).toMatchObject({ id: 1000, name: "ic", line: 3, source: { path: COUNTER, name: "counter.ic10" } });
 
 		const scopes = (await dc.scopesRequest({ frameId: frame.id })).body.scopes;
 		expect(scopes.map((s) => s.name)).toEqual(["Registers", "Stack", "Devices", "World", "Defines"]);
@@ -65,9 +74,9 @@ describe("debug adapter", () => {
 		const stepped = dc.waitForEvent("stopped");
 		await dc.nextRequest({ threadId: 1 });
 		expect((await stepped).body).toMatchObject({ reason: "step", threadId: 1, allThreadsStopped: true });
-		expect((await dc.evaluateRequest({ expression: "Count", frameId: 1, context: "hover" })).body.result).toBe("1");
+		expect((await dc.evaluateRequest({ expression: "Count", frameId: frame.id, context: "hover" })).body.result).toBe("1");
 
-		const refs = (await dc.scopesRequest({ frameId: 1 })).body.scopes[0]!.variablesReference;
+		const refs = (await dc.scopesRequest({ frameId: frame.id })).body.scopes[0]!.variablesReference;
 		const set = await dc.setVariableRequest({ variablesReference: refs, name: "r0 (Count)", value: "1" });
 		expect(set.body.value).toBe("1");
 
@@ -77,7 +86,39 @@ describe("debug adapter", () => {
 		await dc.continueRequest({ threadId: 1 });
 		expect((await exited).body.exitCode, output()).toBe(0);
 		await terminated;
-		expect(output()).toMatch(/1 passed \| 1 skipped/);
+		expect(output()).toMatch(/1 passed \| \d+ skipped/); // only the test at that line ran
+	}, 60_000);
+
+	it("shows the call stack, a frame for each call, and steps by it", async () => {
+		const CALLS = join(FIXTURES, "calls.ic10");
+		const lines = readFileSync(CALLS, "utf8").split("\n");
+		const lineOf = (text: string) => lines.findIndex((l) => l.startsWith(text)) + 1;
+		await dc.hitBreakpoint(launchArgs("makes nested and recursive calls"), { path: CALLS, line: lineOf("add Result Result 10") });
+
+		const frames = (await dc.stackTraceRequest({ threadId: 1 })).body.stackFrames;
+		expect(frames.map((f) => [f.name, f.line])).toEqual([
+			[`inner (returns to line ${lineOf("add Result Result 1")})`, lineOf("add Result Result 10")],
+			[`outer (returns to line ${lineOf("yield")})`, lineOf("jal inner")],
+			["ic", lineOf("jal outer")],
+		]);
+		expect(new Set(frames.map((f) => f.id)).size).toBe(3);
+		// Each frame shows the chip's registers: IC10 has no locals.
+		const scopes = (await dc.scopesRequest({ frameId: frames[2]!.id })).body.scopes;
+		expect(scopes[0]!.name).toBe("Registers");
+
+		const out = dc.waitForEvent("stopped");
+		await dc.stepOutRequest({ threadId: 1 });
+		await out;
+		const afterOut = (await dc.stackTraceRequest({ threadId: 1 })).body.stackFrames;
+		expect(afterOut.map((f) => [f.name, f.line])).toEqual([
+			[`outer (returns to line ${lineOf("yield")})`, lineOf("add Result Result 1")],
+			["ic", lineOf("jal outer")],
+		]);
+
+		await dc.setBreakpointsRequest({ source: { path: CALLS }, breakpoints: [] });
+		const terminated = dc.waitForEvent("terminated");
+		await dc.continueRequest({ threadId: 1 });
+		await terminated;
 	}, 60_000);
 
 	it("stops on a halt as an exception, and shows an inline program's source", async () => {
@@ -105,6 +146,41 @@ describe("debug adapter", () => {
 		const terminated = dc.waitForEvent("terminated");
 		await dc.continueRequest({ threadId: 1 });
 		await terminated;
+	}, 60_000);
+
+	// VS Code gives paths a lowercase drive letter. Run from there, Vitest used to load a second copy
+	// of its runner, and the setup file's afterAll failed, so no test loaded.
+	it.runIf(process.platform === "win32")("copes with a lowercase drive letter, as VS Code gives paths", async () => {
+		const lower = (path: string) => path.replace(/^[A-Z]:/, (drive) => drive.toLowerCase());
+		const output = collectOutput(dc);
+		await dc.hitBreakpoint({ ...launchArgs("counts once a tick"), test: lower(TESTS) }, { path: lower(COUNTER), line: 3 });
+		await dc.setBreakpointsRequest({ source: { path: lower(COUNTER) }, breakpoints: [] });
+		const exited = dc.waitForEvent("exited");
+		await dc.continueRequest({ threadId: 1 });
+		expect((await exited).body.exitCode, output()).toBe(0);
+	}, 60_000);
+
+	it("says it's starting Vitest straight away, and which process connected", async () => {
+		const output = collectOutput(dc);
+		await dc.hitBreakpoint(launchArgs("counts once a tick"), { path: COUNTER, line: 3 });
+		expect(output()).toMatch(/^ic10-test: starting Vitest for chips\.debug\.ts, line \d+ \(in .+\)\n/);
+		expect(output()).toMatch(/ic10-test: the test is connected \(process \d+\)/);
+		await dc.setBreakpointsRequest({ source: { path: COUNTER }, breakpoints: [] });
+		const terminated = dc.waitForEvent("terminated");
+		await dc.continueRequest({ threadId: 1 });
+		await terminated;
+	}, 60_000);
+
+	it("on Stop, ends the test process, its worker (stopped at a breakpoint) included", async () => {
+		const output = collectOutput(dc);
+		await dc.hitBreakpoint(launchArgs("counts once a tick"), { path: COUNTER, line: 3 });
+		const worker = Number(/the test is connected \(process (\d+)\)/.exec(output())![1]);
+		expect(alive(worker)).toBe(true);
+		const terminated = dc.waitForEvent("terminated");
+		await dc.terminateRequest({});
+		await terminated;
+		for (let i = 0; i < 50 && alive(worker); i++) await new Promise((resolve) => setTimeout(resolve, 100));
+		expect(alive(worker)).toBe(false);
 	}, 60_000);
 
 	it("says why a launch can't start", async () => {

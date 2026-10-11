@@ -1000,6 +1000,32 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
       covers a breakpoint in an `.ic10` file, Step Over, variables, hover, a register edit, the run
       ending with the test's exit code, a halt as an exception with an inline program's source,
       stop on entry, and a bad launch.
+  - Step 6 is done, and with it Phase 7's "done when" (checked by you in VS Code, 2026-10-11).
+    - The extension (`ic10-test-vscode/src/extension.ts`) runs the adapter inside VS Code. It
+      contributes the `ic10` language (no grammar), breakpoints in `.ic10` files, the `ic10-test`
+      debugger with launch snippets, and **IC10 Test: Debug IC10 in the Test at the Cursor**,
+      which runs the `it` or `describe` the cursor is in. F5 with no launch.json debugs the test
+      file in the editor. A file counts as a test file by having an `it(`, `test(` or `describe(`
+      in it, not by its name.
+    - It's bundled with esbuild and packaged with `vsce` (`npm run vscode:package -w
+      ic10-test-vscode` writes `dist/ic10-test-vscode.vsix`, 30 KB), with publisher `tasermonkey`,
+      the repo as homepage, and `.vscode/launch.json` for running it from source.
+    - Both packages are now `AGPL-3.0-or-later`, each with a LICENSE file (§8).
+    - Found while you tried it:
+      - VS Code gives paths a lowercase drive letter. Run from `c:\…`, Vitest loaded a second copy
+        of its runner, the setup file's `afterAll` failed, and no test loaded, which looked like
+        "sometimes it doesn't work". The adapter now runs Vitest with the path as the file system
+        spells it, and a test passes lowercase paths.
+      - Vitest takes about 3 s to start, so the Debug Console now says so at once ("starting
+        Vitest for …"), with a progress indicator until the test connects.
+      - Stop ends the test's worker too: a test checks it. A process-tree kill turned out not to
+        be needed. Each launch is its own session (your decision).
+      - The Call Stack now has a frame for each call (your point that the stack is the call
+        stack). The agent keeps each chip's calls, popping a call when the chip is back at its
+        return line, right after a `j ra` or with `sp` back where it was. A frame is named by its
+        label and the line it returns to, e.g. `inner (returns to line 24)`. Step Over and Step
+        Out now go by the same depth, and a restart clears the calls.
+        `ic10-test-vscode/test/fixtures/calls.ic10` has nested and recursive calls to try it on.
 
 Suggested first regression tests (Phase 4):
 

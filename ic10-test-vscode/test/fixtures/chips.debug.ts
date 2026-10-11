@@ -9,6 +9,13 @@ describe("chips", () => {
 		expect(world.chip("ic")).toHaveRegister("Count", 3);
 	});
 
+	it("makes nested and recursive calls", async () => {
+		const world = await sim({ root: import.meta.dirname }).housing("ic", { file: "calls.ic10" }).build();
+		await world.runTicks(2);
+		expect(world.chip("ic")).toHaveRegister("Result", 11);
+		expect(world.chip("ic").sp).toBe(0);
+	});
+
 	it("halts on a bad register", async () => {
 		const world = await sim().housing("bad", { code: "move r0 1\nmove x 0" }).build();
 		await world.runTicks(1);

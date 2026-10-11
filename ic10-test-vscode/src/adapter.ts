@@ -7,7 +7,7 @@
  * Nothing here imports `vscode`, so tests can drive it with a DAP client and no editor.
  */
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer, type Server, type Socket } from "node:net";
 import { basename, dirname, join, resolve } from "node:path";
@@ -26,6 +26,8 @@ import {
 	ExitedEvent,
 	InitializedEvent,
 	OutputEvent,
+	ProgressEndEvent,
+	ProgressStartEvent,
 	Scope,
 	Source,
 	StackFrame,
@@ -97,6 +99,11 @@ const STOP_REASONS: Record<StopReason, string> = {
 	autoYield: "exception",
 };
 
+/** Frame ids: the chip's thread and how far down its call stack (the agent keeps at most 256 calls). */
+const FRAMES_PER_THREAD = 1000;
+const frameId = (thread: number, depth: number): number => thread * FRAMES_PER_THREAD + depth;
+const threadOf = (frameId: number): number => Math.floor(frameId / FRAMES_PER_THREAD);
+
 const CONFIG_FILES = ["vitest.config.ts", "vitest.config.mts", "vitest.config.js", "vitest.config.mjs"];
 
 export class Ic10TestSession extends DebugSession {
@@ -112,6 +119,9 @@ export class Ic10TestSession extends DebugSession {
 	private configured = false;
 	private stopOnEntry = false;
 	private ended = false;
+	/** Whether VS Code shows progress, and the id of "Starting Vitest" while it shows. */
+	private progress = false;
+	private starting: string | undefined;
 
 	constructor(launcher: Launcher = spawnLauncher) {
 		super();
@@ -121,7 +131,11 @@ export class Ic10TestSession extends DebugSession {
 		this.setDebuggerColumnsStartAt1(false);
 	}
 
-	protected override initializeRequest(response: DebugProtocol.InitializeResponse): void {
+	protected override initializeRequest(
+		response: DebugProtocol.InitializeResponse,
+		args: DebugProtocol.InitializeRequestArguments,
+	): void {
+		this.progress = args.supportsProgressReporting === true;
 		response.body = {
 			supportsConfigurationDoneRequest: true,
 			supportsConditionalBreakpoints: true,
@@ -145,11 +159,19 @@ export class Ic10TestSession extends DebugSession {
 
 	protected override async launchRequest(response: DebugProtocol.LaunchResponse, args: Ic10LaunchArgs): Promise<void> {
 		try {
-			const test = resolve(args.test);
-			if (!existsSync(test)) throw new Error(`no test file ${test}`);
-			const cwd = args.cwd ? resolve(args.cwd) : findVitestRoot(dirname(test));
+			if (!existsSync(resolve(args.test))) throw new Error(`no test file ${resolve(args.test)}`);
+			const test = realPath(args.test);
+			const cwd = args.cwd ? realPath(args.cwd) : findVitestRoot(dirname(test));
 			const vitest = findVitest(cwd);
 			this.stopOnEntry = args.stopOnEntry ?? false;
+
+			// Vitest takes a few seconds to start: say so, so the wait doesn't look like nothing happening.
+			const what = `${basename(test)}${args.line ? `, line ${args.line}` : ""}`;
+			this.sendEvent(new OutputEvent(`ic10-test: starting Vitest for ${what} (in ${cwd})\n`, "console"));
+			if (this.progress) {
+				this.starting = `ic10-test-start-${process.pid}-${Date.now()}`;
+				this.sendEvent(new ProgressStartEvent(this.starting, "Starting Vitest", what));
+			}
 
 			const port = await this.listen();
 			const spec: LaunchSpec = {
@@ -217,13 +239,13 @@ export class Ic10TestSession extends DebugSession {
 		args: DebugProtocol.StackTraceArguments,
 	): Promise<void> {
 		await this.forward(response, "stackTrace", { thread: args.threadId }, ({ frames }) => {
+			const chip = frames.at(-1)?.name ?? "chip";
 			response.body = {
-				stackFrames: frames.map((f) => {
+				stackFrames: frames.map((f, depth) => {
 					const source = f.path
 						? new Source(basename(f.path), this.convertDebuggerPathToClient(f.path))
-						: new Source(`${f.name} (inline code)`, undefined, f.sourceRef);
-					const name = f.text.trim() || "(end of program)";
-					return new StackFrame(f.thread, name, source, this.convertDebuggerLineToClient(f.line), 1);
+						: new Source(`${chip} (inline code)`, undefined, f.sourceRef);
+					return new StackFrame(frameId(f.thread, depth), f.name, source, this.convertDebuggerLineToClient(f.line), 1);
 				}),
 				totalFrames: frames.length,
 			};
@@ -237,8 +259,8 @@ export class Ic10TestSession extends DebugSession {
 	}
 
 	protected override async scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): Promise<void> {
-		// A frame's id is its chip's thread id: each chip has one frame.
-		await this.forward(response, "scopes", { thread: args.frameId }, ({ scopes }) => {
+		// Every frame of a chip shows the same registers, stack and devices: IC10 has no locals.
+		await this.forward(response, "scopes", { thread: threadOf(args.frameId) }, ({ scopes }) => {
 			response.body = { scopes: scopes.map((s) => new Scope(s.name, s.ref, false)) };
 		});
 	}
@@ -276,7 +298,11 @@ export class Ic10TestSession extends DebugSession {
 	): Promise<void> {
 		const context: Requests["evaluate"]["args"]["context"] =
 			args.context === "hover" || args.context === "watch" || args.context === "clipboard" ? args.context : "repl";
-		const request = { expression: args.expression, context, ...(args.frameId !== undefined && { thread: args.frameId }) };
+		const request = {
+			expression: args.expression,
+			context,
+			...(args.frameId !== undefined && { thread: threadOf(args.frameId) }),
+		};
 		await this.forward(response, "evaluate", request, ({ value, ref }) => {
 			response.body = { result: value, variablesReference: ref };
 		});
@@ -351,6 +377,8 @@ export class Ic10TestSession extends DebugSession {
 					this.launched?.kill();
 					return;
 				}
+				this.endProgress();
+				this.sendEvent(new OutputEvent(`ic10-test: the test is connected (process ${event.pid})\n`, "console"));
 				// From here on requests go straight to the agent; first it gets what was set so far.
 				this.agent = link;
 				this.sync(link);
@@ -403,9 +431,16 @@ export class Ic10TestSession extends DebugSession {
 		this.sendErrorResponse(response, { id: 1, format: message, showUser: response.command === "launch" });
 	}
 
+	private endProgress(): void {
+		if (this.starting === undefined) return;
+		this.sendEvent(new ProgressEndEvent(this.starting));
+		this.starting = undefined;
+	}
+
 	private end(code: number | null): void {
 		if (this.ended) return;
 		this.ended = true;
+		this.endProgress();
 		this.server?.close();
 		this.sendEvent(new ExitedEvent(code ?? 1));
 		this.sendEvent(new TerminatedEvent());
@@ -462,6 +497,16 @@ class AgentLink {
 			this.socket.write(`${JSON.stringify(message)}\n`);
 		});
 	}
+}
+
+/**
+ * A path as the file system spells it. VS Code gives Windows paths a lowercase drive letter
+ * (`c:\…`); run from there, Vitest loads some of its own modules a second time under that
+ * spelling, and the second copy's `afterAll` (in the setup file) can't find the suite being
+ * collected, so the test file fails to load.
+ */
+export function realPath(path: string): string {
+	return realpathSync.native(resolve(path));
 }
 
 /** The nearest folder at or above `start` with a Vitest config (or failing that, a package.json). */

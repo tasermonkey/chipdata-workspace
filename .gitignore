@@ -3,5 +3,7 @@ node_modules/
 coverage/
 reports/
 local/
+# The extension's bundle and .vsix (`npm run vscode:package -w ic10-test-vscode`)
+ic10-test-vscode/dist/
 # Built by `npm run catalog:build`; holds the game's own text, so it isn't committed
 ic10-test/generated/

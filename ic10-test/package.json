@@ -4,6 +4,12 @@
 	"version": "0.0.0",
 	"type": "module",
 	"description": "Test harness for Stationeers IC10 scripts, built on the @stationeers-ic/ic10 emulator",
+	"license": "AGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tasermonkey/chipdata-workspace.git",
+		"directory": "ic10-test"
+	},
 	"bin": {
 		"ic10-test": "./bin/ic10-test.ts"
 	},

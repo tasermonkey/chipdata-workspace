@@ -218,6 +218,80 @@ describe("debug agent", () => {
 		await run;
 	});
 
+	it("shows the call stack: a frame for each call, named by its label and where it returns to", async () => {
+		const NESTED = [
+			"start:", // 0
+			"jal outer", // 1
+			"yield", // 2
+			"j start", // 3
+			"outer:", // 4
+			"push ra", // 5
+			"jal inner", // 6
+			"pop ra", // 7
+			"j ra", // 8
+			"inner:", // 9
+			"move r1 1", // 10
+			"j ra", // 11
+		].join("\n");
+		const { adapter, world, file } = await debugged(scriptFile(NESTED));
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 10 }, { line: 2 }] });
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(2);
+		await adapter.nextStop();
+		const frames = (await adapter.request("stackTrace", { thread: 1 })).frames;
+		expect(frames.map((f) => [f.name, f.line, f.text])).toEqual([
+			["inner (returns to line 8)", 10, "move r1 1"],
+			["outer (returns to line 3)", 6, "jal inner"],
+			["ic", 1, "jal outer"],
+		]);
+		await adapter.request("continue", {});
+		await adapter.nextStop(); // at the yield: both calls have returned
+		expect((await adapter.request("stackTrace", { thread: 1 })).frames.map((f) => f.name)).toEqual(["ic"]);
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [] });
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("shows a frame for each level of a recursive call", async () => {
+		const RECURSIVE = "move r0 3\njal f\nyield\nf:\npush ra\nsub r0 r0 1\nblez r0 done\njal f\ndone:\npop ra\nj ra";
+		const { adapter, world, file } = await debugged(scriptFile(RECURSIVE));
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 9, condition: "r0 == 0" }] });
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(1);
+		await adapter.nextStop(); // the deepest call, about to unwind
+		const frames = (await adapter.request("stackTrace", { thread: 1 })).frames;
+		expect(frames.map((f) => [f.name, f.line])).toEqual([
+			["f (returns to line 9)", 9],
+			["f (returns to line 9)", 7],
+			["f (returns to line 3)", 7],
+			["ic", 1],
+		]);
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [] });
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("drops calls when the chip restarts", async () => {
+		const adapter = new FakeAdapter();
+		const agent = new DebugAgent(adapter.transport);
+		const file = scriptFile("jal f\nyield\nf:\nyield\nj f");
+		const world = await sim({ debug: agent.gate }).housing("ic", { file }).build();
+		world.at({ tick: 1 }, (w) => w.device("ic").set("On", 0));
+		world.at({ tick: 2 }, (w) => w.device("ic").set("On", 1));
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 3 }] });
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(3);
+		await adapter.nextStop(); // in f, tick 0
+		expect((await adapter.request("stackTrace", { thread: 1 })).frames).toHaveLength(2);
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 0 }] });
+		await adapter.request("continue", {});
+		await adapter.nextStop(); // back at line 0 after the restart in tick 2
+		expect((await adapter.request("stackTrace", { thread: 1 })).frames.map((f) => [f.name, f.line])).toEqual([["ic", 0]]);
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [] });
+		await adapter.request("continue", {});
+		await run;
+	});
+
 	it("steps over a call that leaves a result on the stack", async () => {
 		const { adapter, world, ic } = await debugged(scriptFile("jal f\nyield\nf:\npush 42\nj ra"));
 		await adapter.request("configurationDone", { stopOnEntry: true });

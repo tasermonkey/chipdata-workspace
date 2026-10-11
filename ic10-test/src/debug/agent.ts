@@ -28,23 +28,35 @@ interface Thread {
 	/** The last line it was let through to run, and its text, for telling calls and returns. */
 	lastLine?: number;
 	lastText?: string;
+	/** The calls it's in, outermost first: its call stack. */
+	calls: Call[];
+	/** Restarts seen (a restart starts the program again, with no calls). */
+	restarts: number;
 }
 
 /**
- * A step in progress. IC10 has no call frames, so the stack is the call stack, as in assembly: a
- * function that calls another does `push ra` … `pop ra`, and leaves `sp` where it found it.
+ * One call a chip is in. IC10 has no call frames: the stack is the call stack, as in assembly. A
+ * function that calls another does `push ra` … `pop ra` and leaves `sp` where it found it, so a
+ * call has returned when the chip is back at the line after it, with `sp` back where it was (or
+ * just after a `j ra`, for a function that leaves a result on the stack).
  */
+interface Call {
+	/** The `jal` (or branch-and-link) line. */
+	from: number;
+	/** Where it returns to: the line after it, which is what `ra` holds. */
+	returnsTo: number;
+	/** `sp` when the call was made. */
+	sp: number;
+	/** The line it jumped to (a label, usually). */
+	target: number;
+}
+
+/** A step in progress, measured against the chip's call stack. */
 interface Step {
 	kind: "step";
 	how: "in" | "over" | "out";
 	thread: number;
-	/** The line the step started on. */
-	from: number;
-	/** Whether that line is a call (`jal`, `beqal`, …), for Step Over. */
-	call: boolean;
-	/** `sp` when the step started: Step Over is back at the caller once `sp` is down to this again. */
-	sp: number;
-	/** Calls made (taken `jal`s and branch-and-links) less `j ra`s executed since the step started. */
+	/** How many calls deep the chip was when the step started. */
 	depth: number;
 }
 
@@ -57,6 +69,9 @@ type Mode =
 /** Instructions that jump and set `ra`: `jal`, and the branch-and-link family (`beqal`, `bdseal`, …). */
 const CALL = /^\s*(jal|b[a-z]*al)\s/;
 const RETURN = /^\s*j\s+ra\s*(#.*)?$/;
+const LABEL = /^\s*(\w+)\s*:/;
+/** Calls deeper than this are dropped from the bottom (a script using `jal` as a jump never returns). */
+const MAX_CALLS = 256;
 /** How long the agent lets a run go before letting messages in (Pause, new breakpoints). */
 const YIELD_MS = 8;
 
@@ -133,10 +148,11 @@ export class DebugAgent {
 		thread.lastText = info.text;
 		const chip = info.world.chip(info.chip);
 		const pastEnd = info.line >= chip.lineCount;
+		const returned = trackCalls(thread, chip, info.line, previous);
 
 		// Steps and Pause skip blank, comment and label lines: they run (and count toward the tick's
 		// lines) without stopping.
-		const step = this.stepStop(thread, chip, info, previous, pastEnd);
+		const step = this.stepStop(thread, returned, pastEnd);
 		if (step && chip.isInstruction(info.line)) return this.stop(thread, step);
 		if (!pastEnd) {
 			const hit = this.breakpointAt(chip, info.line);
@@ -161,13 +177,7 @@ export class DebugAgent {
 	}
 
 	/** Whether the current step, Pause or stop-on-entry ends at this line. */
-	private stepStop(
-		thread: Thread,
-		chip: ChipHandle,
-		info: DebugLineInfo,
-		previous: { line?: number | undefined; text?: string | undefined },
-		pastEnd: boolean,
-	): StopReason | undefined {
+	private stepStop(thread: Thread, returned: boolean, pastEnd: boolean): StopReason | undefined {
 		const mode = this.mode;
 		if (mode.kind === "pause") return pastEnd ? undefined : mode.reason;
 		if (mode.kind !== "step") return undefined;
@@ -178,16 +188,13 @@ export class DebugAgent {
 			this.mode = { kind: "pause", reason: "step" };
 			return undefined;
 		}
-		const returned = previous.text !== undefined && RETURN.test(previous.text);
-		if (returned) mode.depth--;
-		// A branch-and-link that wasn't taken falls through to the next line; one that was is a call.
-		else if (previous.text !== undefined && CALL.test(previous.text) && info.line !== previous.line! + 1) mode.depth++;
-
+		// Step Over: back at (or above) the depth it started at, so a call it made has returned.
+		// Step Out: one level up; at the top level there's nothing to be in, so after any `j ra`.
+		const depth = thread.calls.length;
 		const done =
 			mode.how === "in" ||
-			(mode.how === "over" &&
-				(!mode.call || (info.line === mode.from + 1 && (chip.sp <= mode.sp || mode.depth <= 0)))) ||
-			(mode.how === "out" && returned && mode.depth < 0);
+			(mode.how === "over" && depth <= mode.depth) ||
+			(mode.how === "out" && (depth < mode.depth || (mode.depth === 0 && returned)));
 		if (!done) return undefined;
 		// From here it's a single step, so if this line is a comment or label the next instruction stops.
 		this.mode = { ...mode, how: "in" };
@@ -244,7 +251,7 @@ export class DebugAgent {
 				const name = entry.number === 1 ? handle.key : `${handle.key} (world ${entry.number})`;
 				const info: ThreadInfo = { id, name, chip: handle.key, world: entry.number };
 				entry.threads.set(handle.key, id);
-				this.threads.set(id, { info, world });
+				this.threads.set(id, { info, world, calls: [], restarts: 0 });
 				this.event({ event: "thread", reason: "started", thread: info });
 			}
 		}
@@ -257,17 +264,31 @@ export class DebugAgent {
 		return thread;
 	}
 
-	private frame(thread: Thread): FrameInfo {
-		const chip = thread.world.chip(thread.info.chip);
-		const line = chip.line;
-		const text = chip.lineText(line) ?? "";
-		return {
-			thread: thread.info.id,
-			name: thread.info.name,
-			line,
-			text,
-			...(chip.path !== undefined ? { path: chip.path } : { sourceRef: thread.info.id }),
+	/**
+	 * A chip's call stack, innermost first: where it is now, in the function its last call went to,
+	 * then each caller at its `jal`, down to the program's top level (named by the chip).
+	 */
+	private frames(thread: Thread): FrameInfo[] {
+		const chip = this.chipOf(thread);
+		const calls = thread.calls;
+		const source = chip.path !== undefined ? { path: chip.path } : { sourceRef: thread.info.id };
+		/** The function `depth` calls deep, and where it returns to. */
+		const name = (depth: number): string => {
+			if (depth === 0) return thread.info.name;
+			const call = calls[depth - 1]!;
+			const label = LABEL.exec(chip.lineText(call.target) ?? "")?.[1] ?? `line ${call.target + 1}`;
+			return `${label} (returns to line ${call.returnsTo + 1})`;
 		};
+		const frame = (depth: number, line: number): FrameInfo => ({
+			thread: thread.info.id,
+			name: name(depth),
+			line,
+			text: chip.lineText(line) ?? "",
+			...source,
+		});
+		const frames = [frame(calls.length, chip.line)];
+		for (let depth = calls.length - 1; depth >= 0; depth--) frames.push(frame(depth, calls[depth]!.from));
+		return frames;
 	}
 
 	// --- requests --------------------------------------------------------------------------------
@@ -306,16 +327,14 @@ export class DebugAgent {
 			case "stepIn":
 			case "stepOut": {
 				const thread = this.threadById(message.args.thread);
-				const chip = thread.world.chip(thread.info.chip);
 				const how = message.command === "next" ? "over" : message.command === "stepIn" ? "in" : "out";
-				const call = CALL.test(chip.lineText(chip.line) ?? "");
-				this.carryOn({ kind: "step", how, thread: thread.info.id, from: chip.line, call, sp: chip.sp, depth: 0 });
+				this.carryOn({ kind: "step", how, thread: thread.info.id, depth: thread.calls.length });
 				return {};
 			}
 			case "threads":
 				return { threads: [...this.threads.values()].map((t) => t.info) };
 			case "stackTrace":
-				return { frames: [this.frame(this.threadById(message.args.thread))] };
+				return { frames: this.frames(this.threadById(message.args.thread)) };
 			case "source": {
 				const chip = this.chipOf(this.threadById(message.args.sourceRef));
 				const lines = Array.from({ length: chip.lineCount }, (_, i) => chip.lineText(i) ?? "");
@@ -360,6 +379,40 @@ export class DebugAgent {
 	private output(category: "console" | "stderr", text: string): void {
 		this.event({ event: "output", category, text });
 	}
+}
+
+/**
+ * Keep a chip's call stack up to date as it reaches `line`, from the line it ran before. A taken
+ * `jal` or branch-and-link (one that didn't fall through to the next line) is a call; arriving at a
+ * call's return line, right after a `j ra` or with `sp` back where it was, is its return (and any
+ * calls inside it that never came back are dropped with it). Returns whether the line before was
+ * a `j ra`.
+ */
+function trackCalls(
+	thread: Thread,
+	chip: ChipHandle,
+	line: number,
+	previous: { line?: number | undefined; text?: string | undefined },
+): boolean {
+	const calls = thread.calls;
+	if (chip.restarts.length !== thread.restarts) {
+		thread.restarts = chip.restarts.length;
+		calls.length = 0;
+		return false;
+	}
+	const { line: from, text } = previous;
+	if (from === undefined || text === undefined) return false;
+	if (CALL.test(text) && line !== from + 1) {
+		calls.push({ from, returnsTo: from + 1, sp: chip.sp, target: line });
+		if (calls.length > MAX_CALLS) calls.shift();
+		return false;
+	}
+	const returned = RETURN.test(text);
+	const sp = chip.sp;
+	const back = calls.findLastIndex((call) => call.returnsTo === line && (returned || sp <= call.sp));
+	if (back >= 0) calls.length = back;
+	else if (returned) calls.pop(); // a `j ra` to somewhere else: still a return
+	return returned;
 }
 
 /** Paths compare case-insensitively on Windows, as its file system does. */

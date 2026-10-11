@@ -1,0 +1,30 @@
+# Nested and recursive calls, for trying the Call Stack and the steps.
+alias Depth r0
+alias Result r1
+start:
+move Depth 3
+jal countdown # recursive: a frame for each level
+move Result 0
+jal outer # nested: outer calls inner
+yield
+j start
+
+countdown:
+push ra
+sub Depth Depth 1
+blez Depth countdownDone
+jal countdown
+countdownDone:
+pop ra
+j ra
+
+outer:
+push ra
+jal inner
+add Result Result 1
+pop ra
+j ra
+
+inner:
+add Result Result 10
+j ra

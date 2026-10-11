@@ -1,18 +1,161 @@
 {
 	"name": "ic10-test-vscode",
-	"private": true,
-	"version": "0.0.1",
-	"type": "module",
+	"displayName": "IC10 Test Debugger",
 	"description": "Step through Stationeers IC10 scripts while their @tasermonkey/ic10-test tests run",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"publisher": "tasermonkey",
+	"license": "AGPL-3.0-or-later",
+	"homepage": "https://github.com/tasermonkey/chipdata-workspace/tree/main/ic10-test-vscode#readme",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tasermonkey/chipdata-workspace.git",
+		"directory": "ic10-test-vscode"
+	},
+	"bugs": {
+		"url": "https://github.com/tasermonkey/chipdata-workspace/issues"
+	},
+	"categories": [
+		"Debuggers",
+		"Testing"
+	],
+	"keywords": [
+		"stationeers",
+		"ic10",
+		"vitest"
+	],
+	"engines": {
+		"vscode": "^1.100.0",
+		"node": ">=24"
+	},
+	"main": "./dist/extension.cjs",
+	"activationEvents": [
+		"onDebugResolve:ic10-test",
+		"onDebugDynamicConfigurations:ic10-test"
+	],
+	"contributes": {
+		"languages": [
+			{
+				"id": "ic10",
+				"aliases": [
+					"IC10"
+				],
+				"extensions": [
+					".ic10"
+				]
+			}
+		],
+		"breakpoints": [
+			{
+				"language": "ic10"
+			}
+		],
+		"commands": [
+			{
+				"command": "ic10-test.debugTestAtCursor",
+				"title": "Debug IC10 in the Test at the Cursor",
+				"category": "IC10 Test"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "ic10-test.debugTestAtCursor",
+					"when": "editorLangId =~ /^(typescript|javascript)(react)?$/"
+				}
+			]
+		},
+		"debuggers": [
+			{
+				"type": "ic10-test",
+				"label": "IC10 Test",
+				"languages": [
+					"ic10"
+				],
+				"configurationAttributes": {
+					"launch": {
+						"required": [
+							"test"
+						],
+						"properties": {
+							"test": {
+								"type": "string",
+								"description": "The test file to run.",
+								"default": "${file}"
+							},
+							"line": {
+								"type": "number",
+								"description": "The line of the it(...) or describe(...) to run alone. Leave it out to run the whole file."
+							},
+							"stopOnEntry": {
+								"type": "boolean",
+								"description": "Stop before the first line any chip runs.",
+								"default": false
+							},
+							"cwd": {
+								"type": "string",
+								"description": "Where to run Vitest (the folder with its config). Default: the nearest one above the test."
+							},
+							"runtimeExecutable": {
+								"type": "string",
+								"description": "The Node.js (24 or later) to run Vitest with.",
+								"default": "node"
+							},
+							"args": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"description": "More arguments for `vitest run`."
+							},
+							"env": {
+								"type": "object",
+								"additionalProperties": {
+									"type": "string"
+								},
+								"description": "Environment variables for the test process."
+							}
+						}
+					}
+				},
+				"initialConfigurations": [
+					{
+						"type": "ic10-test",
+						"request": "launch",
+						"name": "Debug IC10 in the current test file",
+						"test": "${file}"
+					}
+				],
+				"configurationSnippets": [
+					{
+						"label": "IC10 Test: Debug a test",
+						"description": "Run one Vitest test and step through its IC10 scripts",
+						"body": {
+							"type": "ic10-test",
+							"request": "launch",
+							"name": "Debug IC10 in ${1:a test}",
+							"test": "^\"\\${workspaceFolder}/${2:tests/x.test.ts}\"",
+							"line": 1
+						}
+					}
+				]
+			}
+		]
+	},
+	"scripts": {
+		"build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --sourcemap --outfile=dist/extension.cjs",
+		"vscode:package": "npm run build && vsce package --no-dependencies --out dist/ic10-test-vscode.vsix"
+	},
 	"dependencies": {
 		"@vscode/debugadapter": "^1.68.0",
 		"@vscode/debugprotocol": "^1.68.0"
 	},
 	"devDependencies": {
 		"@tasermonkey/ic10-test": "*",
-		"@vscode/debugadapter-testsupport": "^1.68.0"
-	},
-	"engines": {
-		"node": ">=24"
+		"@types/vscode": "~1.100.0",
+		"@vscode/debugadapter-testsupport": "^1.68.0",
+		"@vscode/vsce": "^4.0.0",
+		"esbuild": "^0.28.2"
 	}
 }
