@@ -10,7 +10,7 @@ const GREEN = 2;
 const RED = 4;
 const YELLOW = 5;
 
-/** Console-mod parts and the nuclear battery: custom devices, by prefab and in-game name. */
+/** Console-mod parts (mods' devices, from data/mods/), by prefab and in-game name. */
 const CONSOLE: [prefab: string, name: string][] = [
 	["ModularDeviceLEDdisplay3", "Power Usage"],
 	["ModularDeviceLEDdisplay3", "Total Power Generation"],
@@ -45,7 +45,7 @@ export interface Plant {
 /** A power plant with every device any of the scripts uses; console parts are keyed by name. */
 export function buildPlant(script: string, plant: Plant = {}) {
 	const { ratio = 0.5, charge = 1000, coal = [1000], coalOn = 1, wind = [], usage = 500, otherAnalyzers = [], throttle = 0.5 } = plant;
-	let builder = sim({ root: REPO_ROOT }).device("battery", "StationBatteryNuclear", { Ratio: ratio, Charge: charge }, { custom: true });
+	let builder = sim({ root: REPO_ROOT }).device("battery", "StationBatteryNuclear", { Ratio: ratio, Charge: charge });
 	coal.forEach((w, i) => {
 		builder = builder.device(`coal${i}`, "StructureSolidFuelGenerator", { PowerGeneration: w, On: coalOn });
 	});
@@ -56,7 +56,7 @@ export function buildPlant(script: string, plant: Plant = {}) {
 		builder = builder.device(`analyzer${i + 1}`, "StructureCableAnalysizer", { PowerRequired: w }, { name: `Other CA ${i + 1}` });
 	});
 	for (const [prefab, name] of CONSOLE) {
-		builder = builder.device(name, prefab, name === "Transformer Throttle" ? { Setting: throttle } : {}, { custom: true, name });
+		builder = builder.device(name, prefab, name === "Transformer Throttle" ? { Setting: throttle } : {}, { name });
 	}
 	return builder
 		.device("analyzer", "StructureCableAnalysizer", { PowerRequired: usage }, { name: "Base CA" })

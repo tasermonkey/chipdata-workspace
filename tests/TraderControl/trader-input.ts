@@ -18,13 +18,13 @@ export interface TraderInputSpec {
 
 /** This chip's console, with the other chip's display ("other") on the same network. */
 function build(spec: TraderInputSpec, { own = 0, other = 0 } = {}) {
-	const custom = (name: string) => ({ custom: true, name: `${spec.prefix} ${name}` });
+	const named = (name: string) => ({ name: `${spec.prefix} ${name}` });
 	let builder = sim({ root: REPO_ROOT })
-		.device("value", "ModularDeviceLEDdisplay3", { Setting: own }, custom("Current Value"))
-		.device("other", "ModularDeviceLEDdisplay3", { Setting: other }, { custom: true, name: `${spec.other} Current Value` })
-		.device("numpad", "ModularDeviceNumpad", { Mode: 1 }, custom("Num Pad"))
-		.device("confirm", "ModularDeviceSquareButton", {}, custom("Num Pad Confirm"));
-	for (const button of BUTTONS) builder = builder.device(button, "ModularDeviceRoundButton", {}, custom(button));
+		.device("value", "ModularDeviceLEDdisplay3", { Setting: own }, named("Current Value"))
+		.device("other", "ModularDeviceLEDdisplay3", { Setting: other }, { name: `${spec.other} Current Value` })
+		.device("numpad", "ModularDeviceNumpad", { Mode: 1 }, named("Num Pad"))
+		.device("confirm", "ModularDeviceSquareButton", {}, named("Num Pad Confirm"));
+	for (const button of BUTTONS) builder = builder.device(button, "ModularDeviceRoundButton", {}, named(button));
 	return builder.housing("ic", { file: spec.script }).build();
 }
 

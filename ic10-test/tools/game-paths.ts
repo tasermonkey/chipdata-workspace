@@ -1,11 +1,8 @@
 /** Where the catalogue tools find the game, and where they keep their data. */
 import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-export const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "data");
-/** Mods' devices from the Stationpedia export; committed. */
-export const MODS_FILE = join(DATA_DIR, "mods", "prefabs.json");
+export { MODS_PATH as MODS_FILE } from "../src/catalog/mods.ts";
 
 const DEFAULT_GAME_DIRS = [
 	"C:/Program Files (x86)/Steam/steamapps/common/Stationeers",

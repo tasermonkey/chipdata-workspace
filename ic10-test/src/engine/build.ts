@@ -8,7 +8,8 @@ import {
 	Ic10Runner,
 } from "@stationeers-ic/ic10";
 import { EngineChip } from "./chip.ts";
-import { CustomDevice, isCatalogued, listProps, writeProp, writePropIfPresent } from "./device.ts";
+import type { CatalogPrefab } from "../catalog/catalog.ts";
+import { CustomDevice, isCatalogued, listProps, registerModPrefab, writeProp, writePropIfPresent } from "./device.ts";
 
 export interface EngineDeviceSpec {
 	/** Test-side key, used in error messages. */
@@ -19,8 +20,8 @@ export interface EngineDeviceSpec {
 	name?: string;
 	network: string;
 	props: Record<string, number>;
-	/** Not in the emulator's catalogue: built as a {@link CustomDevice}. */
-	custom?: boolean;
+	/** A mod's device (data/mods/), registered with the emulator before it's built. */
+	mod?: CatalogPrefab;
 }
 
 export interface EngineHousingSpec extends EngineDeviceSpec {
@@ -51,7 +52,8 @@ export interface Engine {
  */
 export function buildEngine(spec: EngineSpec): Engine {
 	const port = (network: string) => [{ port: "default", network }];
-	const custom = new Map(spec.devices.filter((d) => d.custom).map((d) => [d.id, d]));
+	// The env format can only build prefabs the emulator has a class for; the rest are built here.
+	const custom = new Map(spec.devices.filter((d) => !isCatalogued(d.prefab)).map((d) => [d.id, d]));
 	const env = {
 		version: 1,
 		chips: spec.housings.map((housing, i) => ({ id: i + 1, code: housing.code })),
@@ -68,7 +70,7 @@ export function buildEngine(spec: EngineSpec): Engine {
 					.map(([pin, device]) => ({ pin, device })),
 			})),
 			...spec.devices
-				.filter((device) => !device.custom)
+				.filter((device) => !custom.has(device.id))
 				.map((device) => ({
 					id: device.id,
 					PrefabName: device.prefab,
@@ -126,6 +128,7 @@ function addCustomDevices(builder: Builder, devices: EngineDeviceSpec[], housing
 		if (isCatalogued(spec.prefab)) {
 			throw new Error(`sim: "${spec.key}": ${spec.prefab} is in the emulator's catalogue, so it can't be custom`);
 		}
+		if (spec.mod) registerModPrefab(spec.mod);
 		const device = new CustomDevice(spec.id, spec.prefab);
 		if (spec.name !== undefined) device.name = spec.name;
 		builder.Networks.get(spec.network)!.apply(device);

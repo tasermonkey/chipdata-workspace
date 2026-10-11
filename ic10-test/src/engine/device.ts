@@ -1,6 +1,8 @@
 import {
 	type BiMap,
+	DEVICES,
 	type Device,
+	type DeviceType,
 	Devices,
 	DevicesByPrefabName,
 	HashString,
@@ -8,15 +10,59 @@ import {
 	type Slot,
 	Structure,
 } from "@stationeers-ic/ic10";
+import type { CatalogPrefab } from "../catalog/catalog.ts";
 
-/** Whether the emulator's device catalogue has this prefab. */
+/** Whether the emulator has a device class for this prefab, so its env format can build one. */
 export function isCatalogued(prefab: string): boolean {
 	return Object.hasOwn(DevicesByPrefabName, prefab);
 }
 
+let prefabsWithData: Set<string> | undefined;
+
 /**
- * A device the emulator's catalogue doesn't have, such as a console-mod display. Its PrefabHash is
- * HASH(prefab), so batch instructions find it, and it has every logic property, readable and writable.
+ * Whether the emulator's game data describes this prefab. A few prefabs have data but no device
+ * class (a landing pad's data connection piece, say); they're built as a {@link CustomDevice},
+ * which then gets exactly their logic types from the data.
+ */
+export function hasDeviceData(prefab: string): boolean {
+	prefabsWithData ??= new Set(Object.values(DEVICES as Record<number, DeviceType>).map((d) => d.PrefabName ?? ""));
+	return prefabsWithData.has(prefab);
+}
+
+/**
+ * Add a mod's device to the emulator's device table, so a device built with its hash gets exactly
+ * its logic types (with Read/Write), slots and modes, as a game prefab would. Global, like
+ * {@link CustomDevice}'s hash registration, but only ever adds a prefab the emulator doesn't have.
+ */
+export function registerModPrefab(prefab: CatalogPrefab): void {
+	const table = DEVICES as Record<number, DeviceType>;
+	if (table[prefab.hash]) return;
+	const permissions = (access: string) => [...(access.includes("r") ? ["Read"] : []), ...(access.includes("w") ? ["Write"] : [])];
+	table[prefab.hash] = {
+		id: prefab.hash,
+		Title: prefab.title,
+		Key: prefab.prefab,
+		PrefabName: prefab.prefab,
+		PrefabHash: prefab.hash,
+		hasChip: false,
+		deviceConnectCount: 0,
+		image: null,
+		mods: prefab.modes as DeviceType["mods"],
+		hasMemory: false,
+		tags: ["HasLogic", ...(prefab.slots.length ? ["HasSlot"] : []), ...(prefab.modes.length ? ["HasMode"] : [])] as DeviceType["tags"],
+		logics: Object.entries(prefab.logic).map(([name, access]) => ({ name, permissions: permissions(access) })),
+		connections: [],
+		slots: prefab.slots.map((s) => ({ SlotName: s.name, SlotType: s.type, SlotIndex: s.index, logic: s.logic })),
+		memoryAccess: null,
+		memorySize: null,
+		logicInstructions: [],
+	};
+}
+
+/**
+ * A device the emulator's catalogue doesn't have. Its PrefabHash is HASH(prefab), so batch
+ * instructions find it. A mod's device registered with {@link registerModPrefab} has exactly its
+ * own logic types; any other has every logic property, readable and writable.
  */
 export class CustomDevice extends Structure {
 	constructor(id: number, prefab: string) {

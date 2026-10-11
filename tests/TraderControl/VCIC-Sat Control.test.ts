@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sim } from "@tasermonkey/ic10-test";
 import { REPO_ROOT } from "../support/paths.ts";
 
-/** Console parts (custom devices), by in-game name. */
+/** Console parts, by in-game name. */
 const DISPLAYS = [
 	"VC Current Value", // the targets, set by the Trader Vert / Horz Input chips
 	"HC Current Value",
@@ -25,13 +25,13 @@ function build({ target = { vertical: 0, horizontal: 0 }, manual = {}, throttle 
 	let builder = sim({ root: REPO_ROOT })
 		.device("medium", "StructureSatelliteDish", { Vertical: 20, Horizontal: 100, Idle: 1 }, { name: "EchoStar" })
 		.device("large", "StructureLargeSatelliteDish", { Vertical: 40, Horizontal: 200, Idle: 1 }, { name: "Big-Boy" })
-		.device("light", "ModularDeviceLight", {}, { custom: true, name: "SatState" });
+		.device("light", "ModularDeviceLight", {}, { name: "SatState" });
 	for (const name of DISPLAYS) {
 		const Setting = name === "VC Current Value" ? target.vertical : name === "HC Current Value" ? target.horizontal : 0;
-		builder = builder.device(name, "ModularDeviceLEDdisplay3", { Setting }, { custom: true, name });
+		builder = builder.device(name, "ModularDeviceLEDdisplay3", { Setting }, { name });
 	}
 	const part = (key: string, prefab: string, name: string, Setting: number) =>
-		builder.device(key, prefab, { Setting }, { custom: true, name });
+		builder.device(key, prefab, { Setting }, { name });
 	builder = part("mediumSwitch", "ModularDeviceFlipCoverSwitch", "MedSatManualSwitch", manual.medium ?? 0);
 	builder = part("largeSwitch", "ModularDeviceFlipCoverSwitch", "LargeSatManualSwitch", manual.large ?? 0);
 	builder = part("mediumThrottle", "ModularDeviceThrottle3x2", "MedSatPowerThrottle", throttle.medium ?? 0);

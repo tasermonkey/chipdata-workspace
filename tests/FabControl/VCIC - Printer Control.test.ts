@@ -33,11 +33,11 @@ const FABS = {
 type Fab = keyof typeof FABS;
 type Part = keyof (typeof FABS)[Fab]["ids"];
 
-/** Console-mod parts (not in the emulator's catalogue). Control finds them by ID, so the prefab is cosmetic. */
+/** Console-mod parts (from data/mods/). Control finds them by ID, so only their properties matter. */
 const CONSOLE: Record<Exclude<Part, "printer" | "stacker">, string> = {
 	progress: "ModularDeviceGauge3x3",
 	amount: "ModularDeviceLEDdisplay3",
-	power: "ModularDeviceFlipCoverSwitch",
+	power: "ModularDeviceLight", // Light Diode, toggled by the player: On (read) and Color (set green/red)
 	dial: "ModularDeviceDial",
 	mode: "ModularDeviceFlipSwitch",
 	plus: "ModularDeviceRoundButton",
@@ -59,7 +59,7 @@ function build({ dial = 20, power = {} as Partial<Record<Fab, number>> } = {}) {
 		for (const [part, prefab] of Object.entries(CONSOLE) as [keyof typeof CONSOLE, string][]) {
 			const props: Record<string, number> =
 				part === "power" ? { On: power[fab] ?? 1 } : part === "dial" ? { Setting: dial } : {};
-			builder = builder.device(key(fab, part), prefab, props, { id: ids[part], custom: true });
+			builder = builder.device(key(fab, part), prefab, props, { id: ids[part] });
 		}
 	}
 	return builder

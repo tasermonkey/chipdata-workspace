@@ -8,7 +8,7 @@ const OCCUPIED = 4; // the landing pad's Mode when a ship is docked, as the scri
 function build(docks: Record<string, number>) {
 	let builder = sim({ root: REPO_ROOT });
 	for (const [dock, mode] of Object.entries(docks)) {
-		const name = { name: dock, custom: true };
+		const name = { name: dock };
 		builder = builder
 			.device(`${dock}.pad`, "Landingpad_DataConnectionPiece", { Mode: mode }, name)
 			.device(`${dock}.light`, "ModularDeviceLight", {}, name)

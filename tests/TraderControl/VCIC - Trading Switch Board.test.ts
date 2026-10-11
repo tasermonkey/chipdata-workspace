@@ -27,11 +27,11 @@ const OFF = 0;
 const INPUT = 1;
 const OUTPUT = 2;
 
-/** Console switches (custom devices: the board reads their On), found by reference ID. */
+/** Console switches (the board reads their On), found by reference ID. */
 function build() {
 	let builder = sim({ root: REPO_ROOT });
 	for (const [key, id] of [...DOCKS, ...DIRECTION_SWITCHES]) {
-		builder = builder.device(key, "ModularDeviceFlipCoverSwitch", { On: 0 }, { id, custom: true });
+		builder = builder.device(key, "ModularDeviceFlipCoverSwitch", { On: 0 }, { id });
 	}
 	return builder.housing("board", { file: "ic10/TraderControl/VCIC - Trading Switch Board.ic10" }).build();
 }

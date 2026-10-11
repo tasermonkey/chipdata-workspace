@@ -27,17 +27,27 @@ expect(world.chip("ic")).toHaveNoErrors();
 
 ## Devices the emulator doesn't know
 
-`sim()` rejects a prefab that isn't in the emulator's device catalogue, such as the console mod's
-`ModularDevice…` parts or `StationBatteryNuclear`. Mark one `custom` to use it anyway:
+Mods' devices (the console mod's `ModularDevice…` parts, `StationBatteryNuclear`, mirrored
+devices, …) are listed in `data/mods/prefabs.json`, from the Stationpedia export (see "Device
+catalogue"). `sim()` builds them like any game device: each has exactly its own logic types, with
+the game's Read/Write, so a script that writes a property the device doesn't have, or a read-only
+one, halts as it would in game. The same goes for the few game prefabs the emulator has data for
+but no device class (`Landingpad_DataConnectionPiece`).
 
 ```ts
-.device("delta", "ModularDeviceGauge3x3", { Setting: 0.5 }, { custom: true, name: "Power Delta" })
+.device("delta", "ModularDeviceGauge3x3", { Setting: 0.5 }, { name: "Power Delta" })
+```
+
+A prefab in neither the emulator nor `data/mods/` is a build error, unless it's marked `custom`:
+
+```ts
+.device("widget", "ModFutureWidget", { Setting: 1 }, { custom: true })
 ```
 
 A custom device's `PrefabHash` is `HASH(prefab)`, so `lb`, `sb`, `lbn` and `sbn` find it by type and
 name; `ld` / `sd` find it by reference ID, and it can go on a pin. It has **every** logic property,
-readable and writable, so nothing checks that a script uses ones the real device has (the catalogue
-will). `custom` on a catalogued prefab, or on a housing, is a build error.
+readable and writable. `custom` on a known prefab, or on a housing, is a build error. Better than
+`custom`: refresh `data/mods/` from a new export.
 
 ## Execution model
 
