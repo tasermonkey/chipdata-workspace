@@ -3,6 +3,7 @@ import type { Ic10Error } from "@stationeers-ic/ic10";
 import type { ChipHandle, World } from "../world/world.ts";
 import { evaluateCondition, interpolate } from "./evaluate.ts";
 import type { DebugGate, DebugLineInfo } from "./gate.ts";
+import { Inspector } from "./inspect.ts";
 import {
 	type AdapterMessage,
 	type AgentEvent,
@@ -24,15 +25,34 @@ export interface Transport {
 interface Thread {
 	info: ThreadInfo;
 	world: World;
-	/** Text of the last line it was let through to run, for Step Out (`j ra`). */
+	/** The last line it was let through to run, and its text, for telling calls and returns. */
+	lastLine?: number;
 	lastText?: string;
+}
+
+/**
+ * A step in progress. IC10 has no call frames, so the stack is the call stack, as in assembly: a
+ * function that calls another does `push ra` … `pop ra`, and leaves `sp` where it found it.
+ */
+interface Step {
+	kind: "step";
+	how: "in" | "over" | "out";
+	thread: number;
+	/** The line the step started on. */
+	from: number;
+	/** Whether that line is a call (`jal`, `beqal`, …), for Step Over. */
+	call: boolean;
+	/** `sp` when the step started: Step Over is back at the caller once `sp` is down to this again. */
+	sp: number;
+	/** Calls made (taken `jal`s and branch-and-links) less `j ra`s executed since the step started. */
+	depth: number;
 }
 
 type Mode =
 	| { kind: "run" }
 	/** Stop at the next line of any chip (Pause, stop on entry, a step whose chip ended). */
 	| { kind: "pause"; reason: StopReason }
-	| { kind: "step"; how: "in" | "over" | "out"; thread: number; from: number; call: boolean };
+	| Step;
 
 /** Instructions that jump and set `ra`: `jal`, and the branch-and-link family (`beqal`, `bdseal`, …). */
 const CALL = /^\s*(jal|b[a-z]*al)\s/;
@@ -57,6 +77,7 @@ export class DebugAgent {
 	/** Set while stopped: lets the run go on. */
 	private resume: (() => void) | null = null;
 
+	private readonly inspector = new Inspector();
 	private readonly breakpoints = new Map<string, Map<number, BreakpointSpec>>();
 	private filters = { halt: true, autoYield: false };
 
@@ -96,14 +117,15 @@ export class DebugAgent {
 	private beforeLine(info: DebugLineInfo): void | Promise<void> {
 		if (!this.configured) return this.whenConfigured.then(() => this.beforeLine(info));
 		const thread = this.thread(info.world, info.chip);
-		const previous = thread.lastText;
+		const previous = { line: thread.lastLine, text: thread.lastText };
+		thread.lastLine = info.line;
 		thread.lastText = info.text;
 		const chip = info.world.chip(info.chip);
 		const pastEnd = info.line >= chip.lineCount;
 
 		// Steps and Pause skip blank, comment and label lines: they run (and count toward the tick's
 		// lines) without stopping.
-		const step = this.stepStop(thread, info, previous, pastEnd);
+		const step = this.stepStop(thread, chip, info, previous, pastEnd);
 		if (step && chip.isInstruction(info.line)) return this.stop(thread, step);
 		if (!pastEnd) {
 			const hit = this.breakpointAt(chip, info.line);
@@ -128,7 +150,13 @@ export class DebugAgent {
 	}
 
 	/** Whether the current step, Pause or stop-on-entry ends at this line. */
-	private stepStop(thread: Thread, info: DebugLineInfo, previous: string | undefined, pastEnd: boolean): StopReason | undefined {
+	private stepStop(
+		thread: Thread,
+		chip: ChipHandle,
+		info: DebugLineInfo,
+		previous: { line?: number | undefined; text?: string | undefined },
+		pastEnd: boolean,
+	): StopReason | undefined {
 		const mode = this.mode;
 		if (mode.kind === "pause") return pastEnd ? undefined : mode.reason;
 		if (mode.kind !== "step") return undefined;
@@ -139,10 +167,16 @@ export class DebugAgent {
 			this.mode = { kind: "pause", reason: "step" };
 			return undefined;
 		}
+		const returned = previous.text !== undefined && RETURN.test(previous.text);
+		if (returned) mode.depth--;
+		// A branch-and-link that wasn't taken falls through to the next line; one that was is a call.
+		else if (previous.text !== undefined && CALL.test(previous.text) && info.line !== previous.line! + 1) mode.depth++;
+
 		const done =
 			mode.how === "in" ||
-			(mode.how === "over" && (!mode.call || info.line === mode.from + 1)) ||
-			(mode.how === "out" && previous !== undefined && RETURN.test(previous));
+			(mode.how === "over" &&
+				(!mode.call || (info.line === mode.from + 1 && (chip.sp <= mode.sp || mode.depth <= 0)))) ||
+			(mode.how === "out" && returned && mode.depth < 0);
 		if (!done) return undefined;
 		// From here it's a single step, so if this line is a comment or label the next instruction stops.
 		this.mode = { ...mode, how: "in" };
@@ -264,7 +298,7 @@ export class DebugAgent {
 				const chip = thread.world.chip(thread.info.chip);
 				const how = message.command === "next" ? "over" : message.command === "stepIn" ? "in" : "out";
 				const call = CALL.test(chip.lineText(chip.line) ?? "");
-				this.carryOn({ kind: "step", how, thread: thread.info.id, from: chip.line, call });
+				this.carryOn({ kind: "step", how, thread: thread.info.id, from: chip.line, call, sp: chip.sp, depth: 0 });
 				return {};
 			}
 			case "threads":
@@ -276,12 +310,29 @@ export class DebugAgent {
 				const lines = Array.from({ length: chip.lineCount }, (_, i) => chip.lineText(i) ?? "");
 				return { content: lines.join("\n") };
 			}
+			case "scopes":
+				return { scopes: this.inspector.scopes(this.chipOf(this.threadById(message.args.thread))) };
+			case "variables":
+				return { variables: this.inspector.variables(message.args.ref) };
+			case "setVariable": {
+				const { ref, name, value } = message.args;
+				const row = this.inspector.setVariable(ref, name, value);
+				return { value: row.value, ref: row.ref };
+			}
+			case "evaluate": {
+				const { thread, expression, context } = message.args;
+				const chosen = thread !== undefined ? this.threadById(thread) : this.threads.values().next().value;
+				if (!chosen) throw new Error("no chip has run yet");
+				const row = this.inspector.evaluate(this.chipOf(chosen), expression, context);
+				return { value: row.value, ref: row.ref };
+			}
 		}
 	}
 
 	/** Leave the stop (if stopped) and run on in `mode`. */
 	private carryOn(mode: Mode): void {
 		this.mode = mode;
+		this.inspector.reset();
 		const resume = this.resume;
 		this.resume = null;
 		resume?.();

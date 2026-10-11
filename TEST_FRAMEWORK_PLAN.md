@@ -947,6 +947,33 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     but stepping one at a time through a comment block isn't useful. A run lets messages in every
     few milliseconds, so Pause works during a long one. Tests drive real worlds through an
     in-memory adapter.
+  - Step 3 is done: what you see while stopped (`ic10-test/src/debug/inspect.ts`). These are the
+    §6b scopes:
+    - Registers, with aliases. Reference IDs are labelled, as in failure reports.
+    - Stack: up to `sp` with the top marked, then any entries above it that hold something (what
+      `put` wrote).
+    - Devices: by pin, then `db`, then the rest of the network, each with its ID, prefab, name,
+      network, properties and slots. A Logic Mirror shows its target.
+    - Atmospheres.
+    - World: tick, time, lines this tick out of 128, auto-yields, sleep, scheduled events and
+      models.
+    - Defines.
+
+    Registers, stack entries, device properties and slot values are editable. A new value is an
+    expression on the chip (`Max`, `$1488`); readings from a pipe or room aren't editable. Evaluate
+    serves hovers, Watch and the Debug Console. A device or pipe expands to its rows, and a hover on
+    a logic type (`Setting`) shows its catalogue description, since DAP has no tooltip for a
+    variable row.
+
+    Also in step 3, steps through nested and recursive calls. The stack is IC10's call stack, as in
+    assembly: a function that calls another does `push ra` … `pop ra` and leaves `sp` where it found
+    it (your point).
+    - Step Over a call stops at the line after it once `sp` is back to its value at the call, or
+      once the calls and `j ra`s since have evened out (for a function that leaves a result on the
+      stack). A recursive call returning to that line deeper down doesn't stop it.
+    - Step Out counts calls and `j ra`s, since an inner call can return with the same `sp` the step
+      started at. It stops after the function's own return.
+    - A function that returns some other way (`jr`, a jump to a label) can still confuse Step Out.
 
 Suggested first regression tests (Phase 4):
 

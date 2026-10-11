@@ -49,6 +49,25 @@ export interface BreakpointResult {
 	message?: string;
 }
 
+/** A group in the Variables panel: Registers, Stack, Devices, Atmospheres, World, Defines. */
+export interface ScopeInfo {
+	name: string;
+	/** Ask for its contents with `variables`. */
+	ref: number;
+}
+
+/** One row in the Variables panel (or an evaluated expression). */
+export interface VariableInfo {
+	name: string;
+	value: string;
+	/** Non-zero when it has children: ask for them with `variables`. */
+	ref: number;
+	/** An expression `evaluate` understands that gives this value, e.g. `vent.On`, for Watch. */
+	evaluateName?: string;
+	/** Whether `setVariable` refuses it (a reading from a pipe, a define, an ID). */
+	readOnly?: boolean;
+}
+
 /** Why the agent stopped. */
 export type StopReason = "entry" | "breakpoint" | "step" | "pause" | "halt" | "autoYield";
 
@@ -72,6 +91,19 @@ export interface Requests {
 	stackTrace: { args: { thread: number }; result: { frames: FrameInfo[] } };
 	/** The text of an inline program (a frame's `sourceRef`). */
 	source: { args: { sourceRef: number }; result: { content: string } };
+	/** A chip's scopes. Their refs (and every ref below them) last until the run carries on. */
+	scopes: { args: { thread: number }; result: { scopes: ScopeInfo[] } };
+	variables: { args: { ref: number }; result: { variables: VariableInfo[] } };
+	/** Set the row `name` under `ref` to `value`, an expression evaluated on the chip (`5`, `$1488`, `Max`). */
+	setVariable: { args: { ref: number; name: string; value: string }; result: { value: string; ref: number } };
+	/**
+	 * A value as a chip sees it (see `evaluate` in evaluate.ts). A device or pipe gives its rows as
+	 * children. On a hover, a logic type's name gives its description.
+	 */
+	evaluate: {
+		args: { thread?: number; expression: string; context?: "hover" | "watch" | "repl" | "clipboard" };
+		result: { value: string; ref: number };
+	};
 }
 
 export type Command = keyof Requests;

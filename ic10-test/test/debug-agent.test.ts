@@ -189,6 +189,146 @@ describe("debug agent", () => {
 		await run;
 	});
 
+	it("steps over a recursive call to where this level gets back, not where a deeper one does", async () => {
+		const RECURSIVE = [
+			"move r0 3", // 0
+			"jal f", // 1
+			"yield", // 2
+			"f:", // 3
+			"push ra", // 4
+			"sub r0 r0 1", // 5
+			"blez r0 done", // 6
+			"jal f", // 7: the recursive call
+			"done:", // 8
+			"pop ra", // 9
+			"j ra", // 10
+		].join("\n");
+		const { adapter, world, file, ic } = await debugged(scriptFile(RECURSIVE));
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 7 }] });
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(1);
+		await adapter.nextStop(); // the outermost f, about to recurse
+		expect([ic.reg("r0"), ic.sp]).toEqual([2, 1]);
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [] });
+		await adapter.request("next", { thread: 1 });
+		await adapter.nextStop();
+		expect(await lineOf(adapter, 1)).toBe(9); // pop ra, past the done: label
+		expect([ic.reg("r0"), ic.sp]).toEqual([0, 1]); // the deeper calls have all returned
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("steps over a call that leaves a result on the stack", async () => {
+		const { adapter, world, ic } = await debugged(scriptFile("jal f\nyield\nf:\npush 42\nj ra"));
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		const run = world.runTicks(1);
+		await adapter.nextStop();
+		await adapter.request("next", { thread: 1 });
+		await adapter.nextStop();
+		expect(await lineOf(adapter, 1)).toBe(1);
+		expect(ic.stack()).toEqual([42]);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("steps out of a function past the calls it makes, and out of a recursive call one level", async () => {
+		const NESTED = [
+			"jal outer", // 0
+			"yield", // 1
+			"outer:", // 2
+			"push ra", // 3
+			"jal inner", // 4
+			"pop ra", // 5
+			"j ra", // 6
+			"inner:", // 7
+			"move r1 1", // 8
+			"j ra", // 9
+		].join("\n");
+		const { adapter, world, file } = await debugged(scriptFile(NESTED));
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 4 }, { line: 8 }] });
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(1);
+		await adapter.nextStop(); // in outer, before it calls inner
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 8 }] });
+		await adapter.request("stepOut", { thread: 1 });
+		const stop = await adapter.nextStop(); // the breakpoint in inner comes first
+		expect(stop.reason).toBe("breakpoint");
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [] });
+		await adapter.request("stepOut", { thread: 1 });
+		await adapter.nextStop();
+		expect(await lineOf(adapter, 1)).toBe(5); // out of inner, back in outer
+		await adapter.request("stepOut", { thread: 1 });
+		await adapter.nextStop();
+		expect(await lineOf(adapter, 1)).toBe(1); // out of outer
+		await adapter.request("continue", {});
+		await run;
+
+		const RECURSIVE = "move r0 2\njal f\nyield\nf:\npush ra\nsub r0 r0 1\nblez r0 done\njal f\ndone:\npop ra\nj ra";
+		const second = await debugged(scriptFile(RECURSIVE));
+		const path = second.file;
+		await second.adapter.request("setBreakpoints", { path, breakpoints: [{ line: 5, condition: "r0 == 1" }] });
+		await second.adapter.request("configurationDone", {});
+		const run2 = second.world.runTicks(1);
+		await second.adapter.nextStop(); // in the deeper call (sp 2)
+		expect(second.ic.sp).toBe(2);
+		await second.adapter.request("setBreakpoints", { path, breakpoints: [] });
+		await second.adapter.request("stepOut", { thread: 1 });
+		await second.adapter.nextStop();
+		expect(await lineOf(second.adapter, 1)).toBe(9); // back in the outer call: pop ra, past the done: label
+		expect(second.ic.sp).toBe(1);
+		await second.adapter.request("continue", {});
+		await run2;
+	});
+
+	it("steps out of a function when stopped before its own calls, not at the first inner return", async () => {
+		const NESTED = "jal outer\nyield\nouter:\npush ra\njal inner\npop ra\nj ra\ninner:\nmove r1 1\nj ra";
+		const { adapter, world, file } = await debugged(scriptFile(NESTED));
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 4 }] });
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(1);
+		await adapter.nextStop(); // in outer after its push ra: an inner return has the same sp
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [] });
+		await adapter.request("stepOut", { thread: 1 });
+		await adapter.nextStop();
+		expect(await lineOf(adapter, 1)).toBe(1);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("stops at the halt inside a call being stepped over", async () => {
+		const { adapter, world, ic } = await debugged(scriptFile("jal sub\nyield\nsub:\nmove x 0\nj ra"));
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		const run = world.runTicks(1);
+		await adapter.nextStop();
+		await adapter.request("next", { thread: 1 });
+		const stop = await adapter.nextStop();
+		expect(stop).toMatchObject({ reason: "halt", thread: 1 });
+		expect(stop.description).toMatch(/^Halted at line 4: /);
+		expect(await lineOf(adapter, 1)).toBe(3); // inside sub, where it failed
+		await adapter.request("continue", {});
+		await run;
+		expect(ic.halted).toBe(true);
+		expect(adapter.events.filter((e) => e.event === "stopped")).toHaveLength(2); // nothing more
+	});
+
+	it("with halt stops off, a step over a call that halts stops at the next chip's next instruction", async () => {
+		const adapter = new FakeAdapter();
+		const agent = new DebugAgent(adapter.transport);
+		const world = await sim({ debug: agent.gate })
+			.housing("a", { code: "jal sub\nyield\nsub:\nmove x 0\nj ra" })
+			.housing("b", { code: "move r0 2\nyield" })
+			.build();
+		await adapter.request("setExceptionFilters", { halt: false, autoYield: false });
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		const run = world.runTicks(1);
+		expect(await adapter.nextStop()).toMatchObject({ reason: "entry", thread: 1 });
+		await adapter.request("next", { thread: 1 });
+		expect(await adapter.nextStop()).toMatchObject({ reason: "step", thread: 2 });
+		expect(world.chip("a").halted).toBe(true);
+		await adapter.request("continue", {});
+		await run;
+	});
+
 	it("steps one instruction at a time from the entry, past label lines", async () => {
 		const { adapter, world } = await debugged();
 		await adapter.request("configurationDone", { stopOnEntry: true });
@@ -295,6 +435,156 @@ describe("debug agent", () => {
 	it("answers a bad request with an error", async () => {
 		const { adapter } = await debugged();
 		await expect(adapter.request("stackTrace", { thread: 99 })).rejects.toThrow("no thread 99");
+	});
+});
+
+describe("debug agent: what you see while stopped", () => {
+	const CODE = [
+		"alias Stage r15",
+		"alias Vent d0",
+		"define Max 5",
+		"move Stage 2",
+		"move r1 $1001", // the vent's reference ID
+		"push 7",
+		"push 8",
+		"put db 10 3", // above sp
+		"s Vent On 1",
+		"yield", // 9
+	].join("\n");
+
+	async function stopped() {
+		const adapter = new FakeAdapter();
+		const agent = new DebugAgent(adapter.transport);
+		const file = scriptFile(CODE);
+		const world = await sim({ debug: agent.gate })
+			.pipe("coolant", { volume: 100, temperature: 300, gases: { Nitrogen: 1 } })
+			.device("vent", "StructureActiveVent")
+			.device("pa", "StructurePipeAnalysizer", {}, { pipe: "coolant" })
+			.housing("ic", { file, pins: { d0: "vent" } })
+			.build();
+		world.at({ tick: 4 }, () => {}, { label: "dusk" });
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 9 }] });
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(1);
+		await adapter.nextStop();
+		const { scopes } = await adapter.request("scopes", { thread: 1 });
+		const scope = async (name: string) => {
+			const ref = scopes.find((s) => s.name === name)!.ref;
+			return { ref, rows: (await adapter.request("variables", { ref })).variables };
+		};
+		return { adapter, world, run, scopes, scope, ic: world.chip("ic") };
+	}
+
+	it("has the scopes from the plan", async () => {
+		const { scopes, adapter, run } = await stopped();
+		expect(scopes.map((s) => s.name)).toEqual(["Registers", "Stack", "Devices", "Atmospheres", "World", "Defines"]);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("shows registers with their aliases and labels reference IDs, and edits them", async () => {
+		const { adapter, run, scope, ic } = await stopped();
+		const { ref, rows } = await scope("Registers");
+		expect(rows.find((r) => r.name === "r15 (Stage)")).toMatchObject({ value: "2", evaluateName: "r15" });
+		expect(rows.find((r) => r.name === "r1")?.value).toBe("4097 (→ vent $1001)");
+		expect(rows.find((r) => r.name === "r16 (sp)")?.value).toBe("2");
+		expect(await adapter.request("setVariable", { ref, name: "r15 (Stage)", value: "Max" })).toEqual({ value: "5", ref: 0 });
+		expect(ic.reg("Stage")).toBe(5);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("shows the stack up to sp, the top marked, and entries above it that hold something", async () => {
+		const { adapter, run, scope, ic } = await stopped();
+		const { ref, rows } = await scope("Stack");
+		expect(rows.map((r) => [r.name, r.value])).toEqual([
+			["0", "7"],
+			["1 (top)", "8"],
+			["10 (above sp)", "3"],
+		]);
+		await adapter.request("setVariable", { ref, name: "0", value: "$10" });
+		expect(ic.stackAt(0)).toBe(16);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("shows devices by pin, then db, then the network; readings from a pipe can't be edited", async () => {
+		const { adapter, run, scope, world } = await stopped();
+		const { rows } = await scope("Devices");
+		expect(rows.map((r) => [r.name, r.value])).toEqual([
+			["d0 → vent", "StructureActiveVent $1001"],
+			["db → ic", "StructureCircuitHousing $1003"],
+			["pa", "StructurePipeAnalysizer $1002"],
+		]);
+		const vent = (await adapter.request("variables", { ref: rows[0]!.ref })).variables;
+		expect(vent.slice(0, 4).map((r) => [r.name, r.value])).toEqual([
+			["id", "$1001 (4097)"],
+			["prefab", "StructureActiveVent"],
+			["name", "StructureActiveVent"],
+			["network", "data"],
+		]);
+		expect(vent.find((r) => r.name === "On")).toMatchObject({ value: "1", evaluateName: "d0.On" });
+		await adapter.request("setVariable", { ref: rows[0]!.ref, name: "On", value: "0" });
+		expect(world.device("vent").get("On")).toBe(0);
+
+		const pa = (await adapter.request("variables", { ref: rows[2]!.ref })).variables;
+		expect(pa.find((r) => r.name === "Pressure")).toMatchObject({ readOnly: true });
+		await expect(adapter.request("setVariable", { ref: rows[2]!.ref, name: "Pressure", value: "1" })).rejects.toThrow(
+			/can't be changed here/,
+		);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("shows pipes and rooms, the world's time and events, and the script's defines", async () => {
+		const { adapter, run, scope } = await stopped();
+		const atmospheres = (await scope("Atmospheres")).rows;
+		expect(atmospheres[0]).toMatchObject({ name: "coolant" });
+		expect(atmospheres[0]!.value).toMatch(/^pipe 100 L: [\d.]+ kPa, 300 K$/);
+
+		const world = (await scope("World")).rows;
+		expect(Object.fromEntries(world.map((r) => [r.name, r.value]))).toMatchObject({
+			tick: "0",
+			time: "0 s",
+			"lines this tick": "9 of 128",
+			"auto-yields": "0",
+			events: "1 to come",
+		});
+		const events = (await adapter.request("variables", { ref: world.find((r) => r.name === "events")!.ref })).variables;
+		expect(events).toEqual([{ name: "dusk", value: "tick 4", ref: 0, readOnly: true }]);
+
+		const defines = (await scope("Defines")).rows;
+		expect(defines.map((r) => [r.name, r.value])).toEqual([
+			["Stage", "alias r15"],
+			["Vent", "alias d0"],
+			["Max", "5"],
+		]);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("evaluates for hovers, Watch and the Debug Console", async () => {
+		const { adapter, run } = await stopped();
+		const evaluate = (expression: string, context?: "hover") =>
+			adapter.request("evaluate", { thread: 1, expression, ...(context && { context }) });
+		expect(await evaluate("Stage")).toEqual({ value: "2", ref: 0 });
+		expect(await evaluate("r1")).toEqual({ value: "4097 (→ vent $1001)", ref: 0 });
+		expect(await evaluate("Vent.On")).toEqual({ value: "1", ref: 0 });
+		const vent = await evaluate("Vent");
+		expect(vent.value).toBe("StructureActiveVent $1001");
+		expect(vent.ref).toBeGreaterThan(0);
+		expect((await evaluate("coolant")).value).toMatch(/^pipe 100 L/);
+		expect((await evaluate("Setting", "hover")).value).toMatch(/^Setting: ./);
+		await expect(evaluate("nope")).rejects.toThrow(/isn't a register/);
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("forgets variable refs when the run carries on", async () => {
+		const { adapter, run, scopes } = await stopped();
+		await adapter.request("continue", {});
+		await run;
+		await expect(adapter.request("variables", { ref: scopes[0]!.ref })).rejects.toThrow(/last until the run carries on/);
 	});
 });
 

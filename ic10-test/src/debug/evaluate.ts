@@ -23,7 +23,8 @@ export function evaluate(chip: ChipHandle, expression: string): number {
 
 	const dot = expr.lastIndexOf(".");
 	if (dot > 0) {
-		const key = deviceKey(chip, expr.slice(0, dot));
+		const owner = expr.slice(0, dot);
+		const key = deviceKeyFor(chip, owner) ?? owner;
 		return chip.world.value(`${key}.${expr.slice(dot + 1)}`);
 	}
 	throw new Error(`"${expr}" isn't a register, alias, define, label or number`);
@@ -66,8 +67,11 @@ export function interpolate(chip: ChipHandle, message: string): string {
 	});
 }
 
-/** A device key from a pin (`d0`, `db`), a device alias (`vent` for `alias vent d0`) or a key. */
-function deviceKey(chip: ChipHandle, name: string): string {
+/**
+ * The device a name stands for on this chip: a pin (`d0`, `db`), a device alias (`vent` for
+ * `alias vent d0`) or a device's key. Undefined if it's none of those; throws for an empty pin.
+ */
+export function deviceKeyFor(chip: ChipHandle, name: string): string | undefined {
 	const alias = chip.defines().find((d) => d.kind === "alias" && d.name === name);
 	const pin = alias && PIN.test(alias.value) ? alias.value : name;
 	if (pin === "db") return chip.key;
@@ -76,7 +80,7 @@ function deviceKey(chip: ChipHandle, name: string): string {
 		if (key === undefined) throw new Error(`nothing is on ${pin}`);
 		return key;
 	}
-	return name;
+	return chip.world.listDevices().some((d) => d.key === name) ? name : undefined;
 }
 
 function parseNumber(text: string): number | undefined {

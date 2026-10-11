@@ -340,6 +340,11 @@ export class ChipHandle {
 		return this.state.engine.stackAt(index);
 	}
 
+	/** How many entries the stack has (the game's chips have 512). */
+	get stackLength(): number {
+		return this.state.engine.stackLength;
+	}
+
 	/** Set one stack entry, whatever `sp` is. */
 	setStackAt(index: number, value: number): this {
 		this.state.engine.setStackAt(index, value);

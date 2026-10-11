@@ -134,7 +134,7 @@ fails at once if every chip has stopped and no events are due.
   - `get(prop)` reads as `ls` does (0 when empty), `set(prop, v)` changes the item, `clear()` empties
     it, `occupied` says whether there's an item.
 - `world.chip(key)`: `reg("Stage" | "r15")`, `setReg`, `registers()`, `aliases()`, `stack()`, `stackAt(i)`,
-  `setStackAt(i, v)`, `sp`, `ra`, `line`, `findLabel`, `defines()` (the script's defines, aliases and labels so
+  `setStackAt(i, v)`, `stackLength`, `sp`, `ra`, `isInstruction(i)`, `line`, `findLabel`, `defines()` (the script's defines, aliases and labels so
   far), `errors`, `halt`, `ended`, `sleeping`, `sleepUntil`, `linesThisTick`, `switchedOff`, `restarts`,
   `autoYields`, `autoYieldLog`, `pins`, `status`, `recentLines(n)`, `db`, `source` (the file as given, or
   `<code>`) and `path` (the file's absolute path).
@@ -392,10 +392,22 @@ will attach through this.
 adapter over a `Transport`, using the protocol in `src/debug/protocol.ts` (exported as
 `@tasermonkey/ic10-test/debug-protocol`). It decides in the test process where to stop: breakpoints by file
 and line (with conditions and log messages), Step Over (a `jal` or branch-and-link call as one step), Step
-Into, Step Out (to after the `j ra`), Pause, halts and, if asked, automatic yields. Steps and Pause stop
+Into, Step Out (to after the `j ra`), Pause, halts and, if asked, automatic yields. The stack is the call
+stack, as in assembly (`push ra` … `pop ra`), so Step Over a call stops at the next line once `sp` is back
+where it was (or the calls and `j ra`s since have evened out, for a function that leaves a result on the
+stack); a recursive call coming back to that line deeper down doesn't stop it. Step Out counts calls and
+`j ra`s, so it stops after the function's own return, not an inner one's. Steps and Pause stop
 only on instructions; blank, comment and label lines run past. `evaluate(chip, "vent.On")` gives a value as
 conditions and hovers see it: numbers, registers, aliases, defines, labels, `d0.On`, `db.Setting`, or any
 world path.
+
+While stopped, the agent shows a chip's scopes: Registers (with aliases; values that are reference IDs
+labelled with their device), Stack (below `sp`, the top marked, and entries above it that hold something),
+Devices (by pin, then `db`, then the rest of the network: ID, prefab, name, network, properties and slots; a
+Logic Mirror shows its target), Atmospheres, World (tick, time, lines this tick, auto-yields, sleep, events
+to come, models) and Defines. Registers, stack entries, device properties and slot values can be edited; a
+new value is an expression on the chip (`Max`, `$1488`). Readings from a pipe or room can't. A hover on a
+logic type's name shows its catalogue description.
 
 Also exported: `createEnv` (a lower-level world from emulator env JSON), `readScript` / `findScripts`,
 `parseId` / `formatId`, and `hash(name)`, the game's `HASH()`.
