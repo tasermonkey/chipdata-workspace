@@ -27,8 +27,8 @@ expect(world.chip("ic")).toHaveNoErrors();
 
 ## Devices the emulator doesn't know
 
-Mods' devices (the console mod's `ModularDevice…` parts, `StationBatteryNuclear`, mirrored
-devices, …) are listed in `data/mods/prefabs.json`, from the Stationpedia export (see "Device
+Mods' devices (the console mod's `ModularDevice…` parts, `StationBatteryNuclear`, mirror-image
+layouts such as `StructureAirConditionerMirrored`, …) are listed in `data/mods/prefabs.json`, from the Stationpedia export (see "Device
 catalogue"). `sim()` builds them like any game device: each has exactly its own logic types, with
 the game's Read/Write, so a script that writes a property the device doesn't have, or a read-only
 one, halts as it would in game. The same goes for the few game prefabs the emulator has data for
@@ -182,7 +182,8 @@ A prefab in a variable needs the `KnownPrefab` type (or `as const` on a list of 
 `PropsOf<"StructureActiveVent">` is one prefab's properties. A `custom` device takes any names.
 
 - **Prefabs** come from the emulator's game data, plus mods' devices in `data/mods/prefabs.json`
-  (console parts, `StationBatteryNuclear`, mirrored devices, …), which is committed.
+  (console parts, `StationBatteryNuclear`, mirror-image layouts such as
+  `StructureAirConditionerMirrored`, …), which is committed.
 - **Descriptions** come from a local Stationpedia export (below), then the installed game's
   `Language/english.xml`; the game is found through `STATIONEERS_DIR` or the default Steam path.
   Without either (e.g. in CI) there are none; everything else is the same. The build says which it

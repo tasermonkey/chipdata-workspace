@@ -51,7 +51,7 @@ scripts on 2026-10-07 (see the Appendix).
 | G5 | The validator misses undefined identifiers. | `move stage 0` validates cleanly. | Fork (sandbox check) or harness lint |
 | G6 | `define X 0` is rejected. | `DefineInstruction` checks `if (value)`, so 0 is treated as missing. Solar and Landing Bay fail to load. | **Fixed in fork** (`value !== false`, plus `tests/ic10/fork-fixes.test.ts`) |
 | G7 | Packaging and initialisation. | The ESM build has extensionless imports and won't load in Node. `Builder.init()` sandbox pass throws `no_network_for_port`. i18n is never initialised. | Fork (§3) |
-| G8 | Devices are property bags with no behaviour. | Turning a vent on doesn't move any gas. | Harness world model (§5) |
+| G8 | Devices are property bags with no behaviour. | Turning a vent on doesn't move any gas. | **Done**: harness pipes, rooms and model library (§5, Phase 6) |
 | G10 | **`ld` and `sd` don't work at all.** `calculateDevicePinOrId` turns a failed pin parse into error code `0`, then treats that as pin 0, so it never tries the ID lookup. `ld r3 $1488 On` and `ld r3 r1 On` both fail with `pin_not_allowed_in_instruction`. | Printer Control can't run (line 38 `ld Tmp Param1 On`), nor can anything else using reference IDs. Device-ID arguments also rejected `define`d IDs (`define DEBUG_1 $4D655` / `sd DEBUG_1 …`). | **Fixed in fork**: a failed pin parse falls through to the ID lookup, and device-ID arguments accept defines. Covered by instruction tests and `fork-fixes.test.ts`. |
 | G12 | No **Logic Mirror** in the emulator or its game data. | Scripts that read another network through a mirror can't be tested. | **Done**: fork extension point (`DeviceProps.hooks`) + harness `sim().mirror()` (§5.4) |
 | G11 | Instruction errors can **throw out of `step()`** instead of being recorded. | One bad line crashes the test with a JS stack trace instead of halting the chip. | **Fixed in fork** (catch in `step()`); the harness also catches as a safety net |
@@ -377,40 +377,48 @@ This lets a test dictate what happens in the world while the script runs.
 ```ts
 world.at({ tick: 20 },       w => w.device("sensor").set("Temperature", 450));   // day comes
 world.every({ ticks: 10 },   w => w.device("battery").add("Charge", -500));
-world.when(w => w.device("door").get("Open") === 1, w => w.room("hangar").vent());
+world.when(w => w.device("door").get("Open") === 1, w => w.room("hangar").merge(w.room("outside").take(50)));
 ```
 
 ### 5.2 Device models
 These are per-tick callbacks for how a device reacts to what the script sets. They're plausible, not
-physically exact.
+physically exact. Each runs at the start of a tick, after scripted events and before chips, so a
+setting a script writes acts in the next tick.
 
 ```ts
-world.model("vent", (v, dt, w) => {
-  if (v.On && v.Mode === 1) w.pipe("cooling").transferFrom(w.room("outside"), 5 /* mol/s */ * dt);
+world.model("vent", activeVent());                                 // from the library
+world.model(heatExchange("coolant", "waste", { fraction: 0.1 }));  // world-wide: a radiator
+world.model("lamp", (lamp, dt, w) => {                             // your own
+  if (lamp.get("On")) w.room("base").addHeat(5 * dt);
 });
 ```
 
-Ship a small library of reusable models: active and powered vents, pumps, filtration (moves the
-filtered gases to the filter output, the rest to waste), AC (moves heat), battery (charge from
-generation minus usage), occupancy schedule, and weather timer (a day/night cycle).
+The library follows the game's code where it's in `Assembly-CSharp.dll`, with per-prefab rates as
+tunable guesses: active and powered vents, heat exchange, volume pump, pressure and back-pressure
+regulators, filtration (the filtered gases to the filter output, the rest to waste), AC (moves
+heat), battery (charge from generation minus usage), occupancy schedule, the weather timer (a
+day/night cycle) and the hydroponics Larre. The harness README lists each one's options.
 
 ### 5.3 Atmospheres: pipes and rooms
 This covers changing gas ratios and temperature:
 
 ```ts
-world.pipe("waste", { volume: 100, temperature: 310,
-                      gases: { CarbonDioxide: 40, Nitrogen: 10, Pollutant: 2 } });  // moles
-world.room("outside", { volume: Infinity, temperature: 300, gases: { CarbonDioxide: 95 } });
+sim()
+  .pipe("waste", { volume: 10 * PIPE_VOLUME, temperature: 310,
+                   gases: { CarbonDioxide: 40, Nitrogen: 10, Pollutant: 2 } })        // moles
+  .room("outside", { temperature: 300, pressure: 20, ratios: { CarbonDioxide: 95 } }) // no volume: outside air
+  .device("pa", "StructurePipeAnalysizer", {}, { pipe: "waste" })
 
-world.at({ tick: 5 }, w => w.pipe("waste").addGas("NitrousOxide", 3).setTemperature(280));
+world.at({ tick: 5 }, w => w.pipe("waste").add("NitrousOxide", 3).setTemperature(280));
 ```
 
-- An ideal-gas mixture (P = nRT/V) gives each network `Pressure`, `Temperature`, `TotalMoles` and
-  `Ratio<Gas>`.
-- Devices attached to that pipe network **derive their port-specific properties automatically**:
-  `Pipe Input` → `PressureInput`, `RatioNitrogenInput`, `TemperatureInput`; `Pipe Input 2` →
-  `…Input2`; `Pipe Output` / `Output2`, and so on. A filtration unit's `RatioNitrogenInput` follows
-  the pipe's composition. Gas sensors read their room.
+- An ideal-gas mixture (P = nRT/V) gives each pipe or room `Pressure`, `Temperature`, `TotalMoles`
+  and `Ratio<Gas>`. A room without a volume is outside air, too big to change.
+- Devices attached to a pipe or room **derive their port-specific properties automatically**,
+  with `{ pipe }`, `{ room }` and `{ ports: { input, input2, output, output2 } }`: `PressureInput`,
+  `RatioNitrogenInput`, `TemperatureInput`; `…Input2`; `…Output` / `…Output2`, and so on. A
+  filtration unit's `RatioNitrogenInput` follows the pipe's composition. Gas sensors read their
+  room. Setting one of those by hand is an error that says to change the gas instead.
 - Models (§5.2) move moles and heat between pipes and rooms, which closes the loop. A vent on the
   Alaska cooler really does cool the pipe over N ticks.
 
@@ -900,6 +908,13 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     (…)`), and `ic10-test/test/mirror.test.ts`. No script in `ic10/` uses a mirror yet. Reading the
     DLL also found G18: reading a logic type a device can't read was only a warning, where the game
     halts the chip. Fixed in the fork (your decision); no script test changed, so no script did it.
+  - Docs: §5.1–5.3 now show the API as built (they were the first design sketches), G8 is marked
+    done, CODE_REVIEW.md's caveat says what was settled from the game's text and code, and the
+    harness README tells mods' mirror-image layouts apart from the Logic Mirror.
+
+- **Phase 6 is done (2026-10-11).** Pipes and rooms, the model API and library (Larre included),
+  the climate tests on them, and the Logic Mirror. Deferred to Phase 8: phase changes in the gas
+  core. Next is Phase 7, the VS Code debugger (§6b).
 
 Suggested first regression tests (Phase 4):
 

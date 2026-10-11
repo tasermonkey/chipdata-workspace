@@ -11,7 +11,9 @@ Line numbers refer to the files as committed at `f71665a`.
 
 > **Caveat:** I haven't run any of this in game. Anything that depends on in-game behaviour (vent
 > modes, sorter instruction format, which values are settings and which are readings) is marked
-> *verify in game*.
+> *verify in game*. Since then, some of it was settled from the game's own text and code (the
+> Stationpedia export and `Assembly-CSharp.dll`) rather than in game, as each item says: 1.3's vent
+> modes, and the device behaviour the test models follow (see TEST_FRAMEWORK_PLAN.md §5).
 
 ---
 
