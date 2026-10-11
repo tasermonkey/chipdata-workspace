@@ -768,6 +768,9 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     which runs it over every script. It checks 263 of the 286 batch instructions (the other 23 take
     their device type from a register) and finds nothing, in the current scripts and in the
     originals before Phase 4. It guards new code; it couldn't have caught review 1.4 (see §6).
+  - Step 4 is done: `npx ic10-test props <prefab | words | hash>` and `npx ic10-test logic <name>`
+    (`ic10-test/bin/ic10-test.ts`, building the catalogue if it's missing). The catalogue now strips
+    the game's rich-text tags (`<link=…><color=…>`) from descriptions, for hovers too.
 
 Suggested first regression tests (Phase 4):
 

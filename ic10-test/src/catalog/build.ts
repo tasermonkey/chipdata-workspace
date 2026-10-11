@@ -76,7 +76,7 @@ export function buildCatalog(sources: CatalogSources): BuildResult {
 	const describe = (kind: keyof Descriptions): Record<string, CatalogDescription> => {
 		const out: Record<string, CatalogDescription> = {};
 		for (const { source, data } of sources.descriptions ?? []) {
-			for (const [name, text] of Object.entries(data[kind])) out[name] ??= { text, source };
+			for (const [name, text] of Object.entries(data[kind])) out[name] ??= { text: plainText(text), source };
 		}
 		return out;
 	};
@@ -102,6 +102,11 @@ export function buildCatalog(sources: CatalogSources): BuildResult {
 			slotLogicTypes: undescribed(all.flatMap((p) => p.slots.flatMap((s) => s.logic)), slotLogicTypes),
 		},
 	};
+}
+
+/** Game text without its Unity rich-text tags (`<link=GasOzone><color=#44AD83>Ozone</color></link>`). */
+export function plainText(text: string): string {
+	return text.replace(/<\/?(?:link|color|b|i|u|size|style|sprite|mark)\b[^>]*>/gi, "").trim();
 }
 
 /** The LogicType and LogicSlotType records from the game's Language/english.xml. */

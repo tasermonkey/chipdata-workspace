@@ -171,6 +171,18 @@ canAccess(vent!, "PressureInternal", "r");
 loadCatalog().logicTypes.On;                       // { text: "The current state of the device, 0 for off, 1 for on", source: "game" }
 ```
 
+## Looking things up
+
+`npx ic10-test` looks things up in the catalogue (building it first if it's missing):
+
+```
+npx ic10-test props StructureActiveVent    # logic types with R/W and descriptions, modes, slots
+npx ic10-test props round button           # by words of the name or title; several matches are listed
+npx ic10-test props 489382030              # by hash
+npx ic10-test logic PressureInternal       # what it is, and every prefab that has it
+npx ic10-test logic ratioozone             # logic types whose name contains it
+```
+
 ## Checking scripts without running them
 
 `checkBatchOps(source, loadCatalog())` checks a script's batch instructions (`lb`, `lbn`, `lbs`,
