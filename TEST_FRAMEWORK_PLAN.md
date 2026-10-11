@@ -850,6 +850,22 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     The game's filtration sends the **filtered** gas to Pipe Output (`…Output`) and the rest to
     Pipe Waste (`…Output2`), so the model does too (its Stationpedia page agrees). Devices with no
     pipe readings (pumps, regulators) now take pipes on their ports.
+  - Step 7 is done: `larreDock()` (`ic10-test/src/models/larre.ts`), following the game's
+    `RoboticArmDockHydroponics`. It returns the model and state for the test (`visited`,
+    `delivered`, `hand`, `extra`, `planter(n)`). From the DLL: stations are rail junctions numbered
+    from the starting dock (0); `Setting` clamps to the rail (wraps on a loop) as it's written; the
+    arm moves 1 rail node a second (the code's `_moveSpeed`); `Activate` is ignored while moving,
+    and otherwise runs arm down 1 s, act, 0.2 s, arm up 1 s, `Idle` 0 throughout; each Activate
+    takes **one** item from a plant (seeds first, then fruit), slot 1 being where the hand's item
+    goes to make room, not a seed hopper; an empty hand destroys a plant with nothing to take; a
+    drop-off moves the whole hand into an open import bin with an empty input; slot 255 shows the
+    plant at the arm (`Seeding` -1 not seeding, 0 no seeds left, 1 seeds to take); `PositionX` is
+    the station (-1 while moving). Guesses, tunable: rail nodes between stations (default 1, so 2
+    ticks a station; a test sets the gaps), the prefab's speed, stack size 50. Plants don't grow:
+    the test sets their seed and fruit counts (your decision, 2026-10-11). Larre Controller's tests
+    run on it, with one new test (a plant with more than `HARVEST_TRIES` items). Found: when a
+    harvest is cut short by `HARVEST_TRIES`, the seeds go down the chute and the planter is left
+    empty after the next lap.
 
 Suggested first regression tests (Phase 4):
 

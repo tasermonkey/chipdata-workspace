@@ -57,6 +57,14 @@ export { filtration, type FiltrationOptions } from "./models/filtration.ts";
 export { airConditioner, type AirConditionerOptions } from "./models/air-conditioner.ts";
 export { battery, type BatteryOptions, type PowerSource } from "./models/battery.ts";
 export {
+	type LarreDelivery,
+	type LarreDock,
+	type LarreDockOptions,
+	type LarrePlant,
+	type LarreStack,
+	larreDock,
+} from "./models/larre.ts";
+export {
 	type DayNightOptions,
 	dayNight,
 	type OccupancyOptions,

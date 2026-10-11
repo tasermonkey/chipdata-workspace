@@ -321,6 +321,26 @@ aren't modelled. Rates are per game tick (0.5 s) and scale with `dt`.
   `Horizontal` and `SolarIrradiance`. `startAt` is where tick 0 falls: 0 midnight, 0.5 noon.
 - `occupancySchedule(windows, { everyTicks })` for an occupancy sensor: `[{ from, to, people }]` in
   ticks sets `Quantity` and `Activate`, repeating every `everyTicks` if given.
+- `larreDock({ stations, planters, dropOff, jammed, nodes, speed, looping, start, hand, extra, stackSize })`,
+  for a hydroponics Larre, following the game's `RoboticArmDockHydroponics`. It returns state for the
+  test to read as well as the model:
+
+  ```ts
+  const larre = larreDock({ stations: 17, planters: { 3: { mature: true, seeding: true, seeds: 1, harvest: 2 } }, dropOff: 15 });
+  world.model("larre", larre.model);
+  // larre.visited, larre.delivered, larre.hand, larre.extra, larre.station, larre.planter(3)
+  ```
+
+  Stations are the rail's junctions, 0 the starting dock. `Setting` picks one (clamped to the rail,
+  wrapped on a loop) and the arm moves `speed` rail nodes a second (default 1, the code's) over
+  `nodes` between stations (default 1, a guess: one number or by station), so 2 ticks a station.
+  `Activate` is ignored while it moves; otherwise the arm goes down (1 s), acts, and comes up after
+  0.2 s (1 s), `Idle` 0 throughout. At a planter an empty hand (slot 0) takes one item: a seed while
+  the plant is seeding, else one fruit; a full hand adds to its stack, or moves to slot 1 first (if
+  slot 1 is full, nothing happens). An empty hand destroys a plant with nothing to take. A seed in
+  the hand plants an empty planter. At a drop-off the hand's whole stack goes into the import bin
+  (a `jammed` bin keeps it, and takes nothing more). Slot 255 shows the plant at the arm (`Class`
+  11, `Mature`, `Seeding` -1/0/1). Plants don't grow; seed and fruit counts are the test's to set.
 
 ## Env files
 
