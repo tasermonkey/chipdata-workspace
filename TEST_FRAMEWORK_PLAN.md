@@ -1026,6 +1026,12 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
         label and the line it returns to, e.g. `inner (returns to line 24)`. Step Over and Step
         Out now go by the same depth, and a restart clears the calls.
         `ic10-test-vscode/test/fixtures/calls.ic10` has nested and recursive calls to try it on.
+  - Step 7 is done: a **▶ Debug IC10** CodeLens above each `it`, `test` and `describe` in a
+    TypeScript or JavaScript file on disk, found the same way as the command's test (by content).
+    It runs that one test or group, as the cursor command does; its tooltip names it. The setting
+    `ic10-test.codeLens` turns the lenses off. The lenses and the cursor command show only in a
+    workspace with IC10 in it (an `.ic10` file, or `@tasermonkey/ic10-test` in `node_modules`), and
+    the extension starts in such a workspace, so other TypeScript projects don't see it.
 
 Suggested first regression tests (Phase 4):
 

@@ -1,10 +1,13 @@
 /**
- * The VS Code side: registers the `ic10-test` debugger (its adapter runs inside the extension host)
- * and a command that debugs the test at the cursor.
+ * The VS Code side: registers the `ic10-test` debugger (its adapter runs inside the extension host),
+ * a "▶ Debug IC10" CodeLens above each test, and a command that debugs the test at the cursor.
  */
 import * as vscode from "vscode";
 import { type Ic10LaunchArgs, Ic10TestSession } from "./adapter.ts";
-import { findTests, testAt } from "./tests.ts";
+import { describeTest, findTests, type TestBlock, testAt } from "./tests.ts";
+
+/** The languages a test file can be in. */
+const TEST_LANGUAGES = ["typescript", "javascript"];
 
 export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
@@ -14,10 +17,77 @@ export function activate(context: vscode.ExtensionContext): void {
 		}),
 		vscode.debug.registerDebugConfigurationProvider("ic10-test", { resolveDebugConfiguration }),
 		vscode.commands.registerCommand("ic10-test.debugTestAtCursor", debugTestAtCursor),
+		vscode.commands.registerCommand("ic10-test.debugTest", debugTest),
+		registerCodeLenses(),
 	);
 }
 
 export function deactivate(): void {}
+
+/**
+ * Whether the workspace has IC10 in it: an `.ic10` file, or the harness installed. Elsewhere (any
+ * other TypeScript project) the lenses and the cursor command stay hidden.
+ */
+async function hasIc10(): Promise<boolean> {
+	if ((await vscode.workspace.findFiles("**/*.ic10", "**/node_modules/**", 1)).length > 0) return true;
+	for (const folder of vscode.workspace.workspaceFolders ?? []) {
+		try {
+			await vscode.workspace.fs.stat(vscode.Uri.joinPath(folder.uri, "node_modules/@tasermonkey/ic10-test"));
+			return true;
+		} catch {
+			// not installed in this folder
+		}
+	}
+	return false;
+}
+
+/**
+ * "▶ Debug IC10" above every `it`, `test` and `describe`, in a workspace with IC10 in it (see
+ * `hasIc10`), unless `ic10-test.codeLens` is off. Also sets the `ic10-test.inWorkspace` context key.
+ */
+function registerCodeLenses(): vscode.Disposable {
+	const changed = new vscode.EventEmitter<void>();
+	let inWorkspace = false;
+	const recheck = async (): Promise<void> => {
+		const now = await hasIc10();
+		if (now === inWorkspace) return;
+		inWorkspace = now;
+		await vscode.commands.executeCommand("setContext", "ic10-test.inWorkspace", now);
+		changed.fire();
+	};
+	void recheck();
+	const ic10Files = vscode.workspace.createFileSystemWatcher("**/*.ic10", false, true, true);
+	const provider: vscode.CodeLensProvider = {
+		onDidChangeCodeLenses: changed.event,
+		provideCodeLenses(document) {
+			if (!inWorkspace) return [];
+			if (!vscode.workspace.getConfiguration("ic10-test", document).get("codeLens", true)) return [];
+			if (document.uri.scheme !== "file") return [];
+			return findTests(document.getText()).map(
+				(test) =>
+					new vscode.CodeLens(new vscode.Range(test.line, 0, test.line, 0), {
+						title: "▶ Debug IC10",
+						tooltip: `Run ${describeTest(test)} and step through its IC10 scripts`,
+						command: "ic10-test.debugTest",
+						arguments: [document.uri, test],
+					}),
+			);
+		},
+	};
+	return vscode.Disposable.from(
+		changed,
+		ic10Files,
+		ic10Files.onDidCreate(() => void recheck()),
+		vscode.workspace.onDidChangeWorkspaceFolders(() => void recheck()),
+		vscode.languages.registerCodeLensProvider(
+			TEST_LANGUAGES.map((language) => ({ language, scheme: "file" })),
+			provider,
+		),
+		vscode.workspace.onDidChangeConfiguration((e) => {
+			if (e.affectsConfiguration("ic10-test.codeLens")) changed.fire();
+		}),
+	);
+}
 
 /** F5 with no launch.json: debug the test file in the editor. */
 function resolveDebugConfiguration(
@@ -30,7 +100,7 @@ function resolveDebugConfiguration(
 			void vscode.window.showInformationMessage("Open a test file to debug its IC10 scripts.");
 			return undefined;
 		}
-		return launchConfig(editor.document, undefined);
+		return launchConfig(editor.document.uri, undefined);
 	}
 	if (!config.test) {
 		void vscode.window.showErrorMessage('An ic10-test launch configuration needs a "test" file.');
@@ -46,20 +116,20 @@ async function debugTestAtCursor(): Promise<void> {
 		void vscode.window.showInformationMessage("Put the cursor in a test (an it, test or describe) to debug its IC10 scripts.");
 		return;
 	}
-	const test = testAt(editor.document.getText(), editor.selection.active.line);
-	const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
-	await vscode.debug.startDebugging(folder, launchConfig(editor.document, test));
+	await debugTest(editor.document.uri, testAt(editor.document.getText(), editor.selection.active.line));
 }
 
-function launchConfig(
-	document: vscode.TextDocument,
-	test: { name: string; line: number } | undefined,
-): vscode.DebugConfiguration & Ic10LaunchArgs {
+/** Debug one test (or group) of a file, or the whole file. What a CodeLens runs. */
+async function debugTest(uri: vscode.Uri, test: TestBlock | undefined): Promise<void> {
+	await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(uri), launchConfig(uri, test));
+}
+
+function launchConfig(uri: vscode.Uri, test: TestBlock | undefined): vscode.DebugConfiguration & Ic10LaunchArgs {
 	return {
 		type: "ic10-test",
 		request: "launch",
 		name: test ? `Debug IC10: ${test.name || `line ${test.line + 1}`}` : "Debug IC10: whole file",
-		test: document.uri.fsPath,
+		test: uri.fsPath,
 		...(test && { line: test.line + 1 }),
 	};
 }
@@ -71,7 +141,7 @@ function launchConfig(
 function isTestFile(document: vscode.TextDocument): boolean {
 	return (
 		document.uri.scheme === "file" &&
-		/\.[cm]?[jt]sx?$/.test(document.fileName) &&
+		/\.[cm]?[jt]s$/.test(document.fileName) &&
 		findTests(document.getText()).length > 0
 	);
 }

@@ -32,7 +32,9 @@
 	"main": "./dist/extension.cjs",
 	"activationEvents": [
 		"onDebugResolve:ic10-test",
-		"onDebugDynamicConfigurations:ic10-test"
+		"onDebugDynamicConfigurations:ic10-test",
+		"workspaceContains:**/*.ic10",
+		"workspaceContains:node_modules/@tasermonkey/ic10-test/package.json"
 	],
 	"contributes": {
 		"languages": [
@@ -56,15 +58,34 @@
 				"command": "ic10-test.debugTestAtCursor",
 				"title": "Debug IC10 in the Test at the Cursor",
 				"category": "IC10 Test"
+			},
+			{
+				"command": "ic10-test.debugTest",
+				"title": "Debug IC10 in a Test",
+				"category": "IC10 Test"
 			}
 		],
 		"menus": {
 			"commandPalette": [
 				{
 					"command": "ic10-test.debugTestAtCursor",
-					"when": "editorLangId =~ /^(typescript|javascript)(react)?$/"
+					"when": "ic10-test.inWorkspace && editorLangId =~ /^(typescript|javascript)$/"
+				},
+				{
+					"command": "ic10-test.debugTest",
+					"when": "false"
 				}
 			]
+		},
+		"configuration": {
+			"title": "IC10 Test",
+			"properties": {
+				"ic10-test.codeLens": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show \"▶ Debug IC10\" above each it, test and describe in test files, in a workspace with .ic10 files or @tasermonkey/ic10-test installed."
+				}
+			}
 		},
 		"debuggers": [
 			{

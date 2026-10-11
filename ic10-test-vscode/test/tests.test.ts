@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findTests, testAt } from "../src/tests.ts";
+import { describeTest, findTests, testAt } from "../src/tests.ts";
 
 const FILE = [
 	'import { describe, it } from "vitest";', // 0
@@ -33,5 +33,12 @@ describe("finding tests in a file", () => {
 		expect(testAt(FILE, 2)).toMatchObject({ kind: "describe", name: "VCCR" });
 		expect(testAt(FILE, 8)).toMatchObject({ kind: "describe", line: 8 });
 		expect(testAt(FILE, 0)).toBeUndefined();
+	});
+
+	it("names a test for the CodeLens tooltip, by line when it has no plain name", () => {
+		const [group, first, , each] = findTests(FILE);
+		expect(describeTest(group!)).toBe('describe "VCCR"');
+		expect(describeTest(first!)).toBe('it "pulls in night air"');
+		expect(describeTest(each!)).toBe("the describe on line 9");
 	});
 });

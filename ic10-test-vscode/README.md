@@ -40,8 +40,9 @@ yields** stop when a chip uses up its 128 lines in a tick.
 
 ## Status
 
-The adapter is done (Phase 7 step 5 of `TEST_FRAMEWORK_PLAN.md`). The extension shell, packaging as
-a `.vsix`, and the CodeLens come next.
+The adapter, the extension (installed as a local `.vsix`) and the **▶ Debug IC10** CodeLens above
+each test are done (Phase 7 steps 5–7 of `TEST_FRAMEWORK_PLAN.md`). Turn the lenses off with the
+`ic10-test.codeLens` setting. The tick commands, data breakpoints and inline values come next.
 
 ## Tests
 

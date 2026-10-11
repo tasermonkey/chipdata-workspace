@@ -20,6 +20,11 @@ export function findTests(text: string): TestBlock[] {
 	return out;
 }
 
+/** `it "pulls in night air"`, or `the describe on line 9` for one without a plain name. */
+export function describeTest(test: TestBlock): string {
+	return test.name ? `${test.kind} "${test.name}"` : `the ${test.kind} on line ${test.line + 1}`;
+}
+
 /** The test (or group) the cursor is in: the nearest `it`, `test` or `describe` starting at or above it. */
 export function testAt(text: string, cursorLine: number): TestBlock | undefined {
 	return findTests(text)
