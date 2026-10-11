@@ -408,4 +408,78 @@ describe("debug gate", () => {
 		await world.runTicks(2);
 		expect(events).toEqual(["auto-yield 1", "tick 1", "halt 3", "tick 2"]);
 	});
+
+	it("hears about scripted events, by label", async () => {
+		const events: string[] = [];
+		const gate: DebugGate = { onEvent: (i) => void events.push(`${i.label} at ${i.tick}`) };
+		const world = await sim({ debug: gate }).housing("ic", { code: COUNTER }).build();
+		world.at({ tick: 1 }, () => {}, { label: "door opens" });
+		world.every({ ticks: 2 }, function sunrise() {});
+		await world.runTicks(4);
+		expect(events).toEqual(["door opens at 1", "sunrise at 2"]);
+	});
+});
+
+describe("what a debugger reads", () => {
+	it("lists scripted events still to come, with their next tick", async () => {
+		const world = await oneChip(COUNTER);
+		world.at({ tick: 3 }, () => {}, { label: "once" });
+		world.every({ ticks: 4 }, () => {}, { start: { tick: 2 } });
+		world.when(() => false, function leak() {});
+		expect(world.listEvents()).toEqual([
+			{ kind: "at", label: "once", nextTick: 3 },
+			{ kind: "every", label: "every", nextTick: 2, interval: 4 },
+			{ kind: "when", label: "leak" },
+		]);
+		await world.runTicks(4); // ticks 0–3 have run
+		expect(world.listEvents()).toEqual([
+			{ kind: "every", label: "every", nextTick: 6, interval: 4 },
+			{ kind: "when", label: "leak" },
+		]);
+	});
+
+	it("lists models by device key", async () => {
+		const world = await sim({ debug: false }).device("vent", "StructureActiveVent").housing("ic", { code: COUNTER }).build();
+		world.model("vent", () => {});
+		world.model(() => {});
+		expect(world.listModels()).toEqual(["vent", "world"]);
+	});
+
+	it("gives a file program's absolute path, and none for inline code", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "ic10-path-"));
+		writeFileSync(join(dir, "a.ic10"), "yield\n");
+		const world = await sim({ debug: false, root: dir })
+			.housing("file", { file: "a.ic10" })
+			.housing("inline", { code: "yield" })
+			.build();
+		expect(world.chip("file").path).toBe(join(dir, "a.ic10"));
+		expect(world.chip("file").source).toBe("a.ic10");
+		expect(world.chip("inline").path).toBeUndefined();
+	});
+
+	it("lists the script's defines, aliases and labels, without the built-in constants", async () => {
+		const world = await oneChip("define Max 5\nalias Stage r15\nalias vent d0\nstart:\nyield\nj start");
+		await world.runTicks(1);
+		expect(world.chip("ic").defines()).toEqual([
+			{ name: "start", kind: "label", value: "3" },
+			{ name: "Max", kind: "define", value: "5" },
+			{ name: "Stage", kind: "alias", value: "r15" },
+			{ name: "vent", kind: "alias", value: "d0" },
+		]);
+	});
+
+	it("sets stack entries, and tells where a chip is in its tick and its sleep", async () => {
+		const world = await oneChip("move r0 1\nsleep 2\nget r1 db 3");
+		const ic = world.chip("ic");
+		ic.setStackAt(3, 42);
+		expect(ic.stackAt(3)).toBe(42);
+		expect(() => ic.setStackAt(512, 1)).toThrow(/no stack entry 512/);
+		await world.step(1);
+		expect(ic.linesThisTick).toBe(0); // step() ignores ticks
+		await world.runTicks(1);
+		expect(ic.sleepUntil).toBe(2);
+		await world.runSeconds(3);
+		expect(ic.sleepUntil).toBeNull();
+		expect(ic.reg("r1")).toBe(42);
+	});
 });

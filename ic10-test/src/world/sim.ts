@@ -292,6 +292,7 @@ export class SimBuilder {
 				key: spec.key,
 				id: spec.id,
 				source: housing.file ?? "<code>",
+				...(housing.file !== undefined && { path: resolve(root, housing.file) }),
 				pins: Object.fromEntries(Object.entries(spec.pins).map(([pin, id]) => [pin, keyOfId.get(id)!])),
 				...(housing.linesPerTick !== undefined && { linesPerTick: housing.linesPerTick }),
 				...(housing.countNonInstructionLines !== undefined && {
@@ -373,6 +374,8 @@ export interface ChipDecl {
 	key: string;
 	id: number;
 	source: string;
+	/** Absolute path of the program's file, for `file:` programs. */
+	path?: string;
 	pins: Record<string, string>;
 	linesPerTick?: number;
 	countNonInstructionLines?: boolean;
@@ -402,6 +405,7 @@ export function assembleWorld(
 				chip.countNonInstructionLines ?? opts.countNonInstructionLines ?? true,
 				chip.pins,
 				chip.restartClearsState ?? opts.restartClearsState ?? false,
+				chip.path,
 			),
 	);
 	const gate = opts.debug === false ? undefined : (opts.debug ?? getDefaultDebugGate());

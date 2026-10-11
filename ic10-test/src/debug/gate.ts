@@ -27,6 +27,8 @@ export interface DebugGate {
 	onAutoYield?(info: DebugLineInfo): void | Promise<void>;
 	/** A tick finished (`tick` is the number of ticks completed). */
 	onTick?(info: { world: World; tick: number }): void | Promise<void>;
+	/** A scripted event ran, at the start of tick `tick` (before any chip ran in it). */
+	onEvent?(info: { world: World; tick: number; label: string }): void | Promise<void>;
 }
 
 let defaultGate: DebugGate | undefined;

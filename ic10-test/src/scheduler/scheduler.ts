@@ -73,6 +73,8 @@ export class ChipState {
 	readonly pins: Readonly<Record<string, string>>;
 	/** Whether a restart (housing switched off, then on) clears registers and the stack. */
 	readonly restartClearsState: boolean;
+	/** Absolute path of the program's file, or undefined for inline and env programs. */
+	readonly path: string | undefined;
 
 	constructor(
 		key: string,
@@ -82,6 +84,7 @@ export class ChipState {
 		countNonInstructionLines: boolean,
 		pins: Record<string, string> = {},
 		restartClearsState = false,
+		path?: string,
 	) {
 		this.key = key;
 		this.engine = engine;
@@ -90,6 +93,7 @@ export class ChipState {
 		this.countNonInstructionLines = countNonInstructionLines;
 		this.pins = pins;
 		this.restartClearsState = restartClearsState;
+		this.path = path;
 	}
 
 	/** Times the chip used up its lines for a tick and was preempted. */
@@ -154,6 +158,11 @@ export class Scheduler {
 	/** Game time at the start of the tick in progress (or the next one), in seconds. */
 	get time(): number {
 		return this.tick * this.options.tickSeconds;
+	}
+
+	/** The debug gate the world runs with, if any. */
+	get gate(): DebugGate | undefined {
+		return this.hooks.gate;
 	}
 
 	/** Report lines about the world beyond its chips (pipes and rooms), if any. */

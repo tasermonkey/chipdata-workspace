@@ -134,8 +134,12 @@ fails at once if every chip has stopped and no events are due.
   - `get(prop)` reads as `ls` does (0 when empty), `set(prop, v)` changes the item, `clear()` empties
     it, `occupied` says whether there's an item.
 - `world.chip(key)`: `reg("Stage" | "r15")`, `setReg`, `registers()`, `aliases()`, `stack()`, `stackAt(i)`,
-  `sp`, `ra`, `line`, `findLabel`, `errors`, `halt`, `ended`, `sleeping`, `switchedOff`, `restarts`, `autoYields`,
-  `autoYieldLog`, `pins`, `status`, `recentLines(n)`, `db`.
+  `setStackAt(i, v)`, `sp`, `ra`, `line`, `findLabel`, `defines()` (the script's defines, aliases and labels so
+  far), `errors`, `halt`, `ended`, `sleeping`, `sleepUntil`, `linesThisTick`, `switchedOff`, `restarts`,
+  `autoYields`, `autoYieldLog`, `pins`, `status`, `recentLines(n)`, `db`, `source` (the file as given, or
+  `<code>`) and `path` (the file's absolute path).
+- `world.listEvents()`: scripted events still to come, with their next tick; `world.listModels()`: which
+  device (or `world`) each model is for. `at`, `every` and `when` take `{ label }` to name an event.
 - `world.mirror(key)`: a Logic Mirror's `target`, `setTarget`, `powered`, `setPowered` (see "Logic Mirror").
 - `world.listDevices()`, `world.listChips()`, `world.deviceById(id)`.
 - `world.network(id).byName(...)` / `.byType(...)`.
@@ -381,7 +385,8 @@ keep their starting registers and stack, and take the same options as `sim()`.
 ## Debugging
 
 `sim({ debug: gate })` (or `setDefaultDebugGate(gate)`) installs hooks the scheduler awaits before every
-line, on halts, on automatic yields and after each tick. The VS Code debugger will attach through this.
+line, on halts, on automatic yields, after each tick and after each scripted event. The VS Code debugger
+will attach through this.
 
 Also exported: `createEnv` (a lower-level world from emulator env JSON), `readScript` / `findScripts`,
 `parseId` / `formatId`, and `hash(name)`, the game's `HASH()`.

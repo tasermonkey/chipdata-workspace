@@ -129,10 +129,10 @@ chipdata-workspace/
 │   │   ├── scheduler/        # ticks, auto-yield, sleep, budgets
 │   │   ├── matchers/         # Vitest expect.extend matchers
 │   │   ├── catalog/          # device and property metadata (§6)
-│   │   ├── debug/            # debug gate + socket server used by the adapter (§6b)
+│   │   ├── debug/            # debug gate + the agent the adapter talks to (§6b)
 │   │   └── lint/             # static checks (later)
-│   ├── vscode/               # VS Code extension: DAP adapter, CodeLens, grammar (§6b)
 │   └── test/                 # the harness's own tests
+├── ic10-test-vscode/         # VS Code extension: DAP adapter, CodeLens (§6b); its own package
 └── tests/                    # tests for YOUR scripts, mirroring ic10/
     └── ClimateControl/VCCR-cooling.test.ts
 ```
@@ -915,6 +915,27 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 - **Phase 6 is done (2026-10-11).** Pipes and rooms, the model API and library (Larre included),
   the climate tests on them, and the Logic Mirror. Deferred to Phase 8: phase changes in the gas
   core. Next is Phase 7, the VS Code debugger (§6b).
+
+- **Phase 7 (from 2026-10-11).** Decisions:
+  - The DAP adapter runs in the extension, as §6b's diagram shows. A small agent in the Vitest
+    process, loaded by the setup file when `IC10_DEBUG` is set, connects back over a socket
+    (newline-delimited JSON). Breakpoints and stepping are decided in the agent, so a run doesn't
+    wait on the adapter for every line.
+  - The extension goes in `ic10-test-vscode/`, a sibling of `ic10-test/` rather than inside it, as
+    its own package. It shares only the protocol's types, so each can later move to its own repo.
+  - No grammar: your installed IC10 extension (florpydorp) already provides the `ic10` language and
+    its highlighting. Ours declares the language and its breakpoints only. vscode-ic10's adapter
+    turned out a poor base (no real pause, global breakpoints, all three steps the same, no
+    `setVariable`), so no code is copied from it, only its scope layout.
+  - Installed as a local `.vsix`. All of §6b's extras are in: tick commands, data breakpoints,
+    inline values, debugging the TypeScript too, and launching from a scenario. Step back stays in
+    Phase 8: `snapshot()` has no restore and leaves out the stack, line and defines.
+  - Order: harness additions, the agent, its inspection, attaching from Vitest, the adapter, the
+    extension and `.vsix` (then the "done when" check), CodeLens, the extras, docs.
+  - Step 1 is done: what a debugger reads. A chip's `path` (absolute, for `file:` programs),
+    `setStackAt`, `defines()` (the script's defines, aliases and labels), `sleepUntil` and
+    `linesThisTick`; `world.listEvents()` (with each event's next tick; `at`, `every` and `when`
+    take a `label`) and `world.listModels()`; a gate hook `onEvent`; `formatValue` exported.
 
 Suggested first regression tests (Phase 4):
 

@@ -36,6 +36,11 @@ export class ModelList {
 		return this.entries.length;
 	}
 
+	/** What each model is for, in the order they run: a device's key, or "world". */
+	labels(): string[] {
+		return this.entries.map((e) => e.label);
+	}
+
 	run(dt: number, world: World, tick: number): void {
 		for (const entry of [...this.entries]) {
 			try {

@@ -15,10 +15,11 @@ import type { EnvSchema } from "@stationeers-ic/ic10";
 import { describeChip, SimBudgetError, SimRunError } from "../scheduler/errors.ts";
 import type { AutoYield, ChipState, Halt, Scheduler, TraceEntry } from "../scheduler/scheduler.ts";
 import { secondsToTicks } from "../scheduler/time.ts";
-import type { Cancel, EventQueue, Interval, When, WorldEvent } from "./events.ts";
+import type { Cancel, EventOptions, EventQueue, Interval, ScheduledEvent, When, WorldEvent } from "./events.ts";
 import { type DeviceModel, ModelList, type WorldModel } from "./models.ts";
 import { type EnvWorldOptions, worldFromEnv } from "./from-env.ts";
 import { type Change, diffSnapshots, Recording, type Snapshot } from "./snapshot.ts";
+import type { ScriptDefine } from "../engine/chip.ts";
 import type { Mixture, Reservoir } from "../atmos/mixture.ts";
 import { GASES, type GasName, isGasName } from "../atmos/gases.ts";
 import { type AtmosphereEntry, type Attachments, applyReadings, type Port, type Reading } from "./atmospheres.ts";
@@ -270,9 +271,14 @@ export class ChipHandle {
 		return this.state.key;
 	}
 
-	/** Where the program came from: a file path, or `<code>`. */
+	/** Where the program came from: a file path as the test gave it, `<code>`, or `<env>`. */
 	get source(): string {
 		return this.state.source;
+	}
+
+	/** Absolute path of the program's file, or undefined for inline (`code:`) and env programs. */
+	get path(): string | undefined {
+		return this.state.path;
 	}
 
 	/** Which device (by key) is on each pin, e.g. `{ d0: "vent" }`. */
@@ -334,6 +340,17 @@ export class ChipHandle {
 		return this.state.engine.stackAt(index);
 	}
 
+	/** Set one stack entry, whatever `sp` is. */
+	setStackAt(index: number, value: number): this {
+		this.state.engine.setStackAt(index, value);
+		return this;
+	}
+
+	/** What the script has defined so far (defines, aliases and labels), built-in constants left out. */
+	defines(): ScriptDefine[] {
+		return this.state.engine.defines();
+	}
+
 	/** The line the chip runs next, or the line it halted on (0-based, like the game's `LineNumber`). */
 	get line(): number {
 		return this.state.halt?.line ?? this.state.engine.nextLine;
@@ -375,6 +392,16 @@ export class ChipHandle {
 
 	get sleeping(): boolean {
 		return this.state.sleepUntil !== null;
+	}
+
+	/** Game time, in seconds, the chip sleeps until, or null if it isn't sleeping. */
+	get sleepUntil(): number | null {
+		return this.state.sleepUntil;
+	}
+
+	/** Lines it has used toward the tick in progress's limit (see `linesPerTick`). */
+	get linesThisTick(): number {
+		return this.state.linesThisTick;
 	}
 
 	/** Its housing was switched off (`On` = 0) when its turn last came, so it isn't running. */
@@ -503,7 +530,8 @@ export class World {
 	 * update their readings from their pipes and rooms, so chips see this tick's atmosphere.
 	 */
 	async beginTick(tick: number): Promise<void> {
-		await this.events.fire(tick, this);
+		const gate = this.scheduler.gate;
+		await this.events.fire(tick, this, gate?.onEvent && ((label) => gate.onEvent!({ world: this, tick, label })));
 		this.models.run(this.options.tickSeconds, this, tick);
 		this.refreshReadings();
 	}
@@ -747,14 +775,14 @@ export class World {
 	// --- scripted events -------------------------------------------------------------------------
 
 	/** Run `event` once, at the start of a tick (before any chip runs in it). */
-	at(when: When, event: WorldEvent): Cancel {
+	at(when: When, event: WorldEvent, options?: EventOptions): Cancel {
 		const tick = "tick" in when ? when.tick : secondsToTicks(when.seconds, this.options.tickSeconds);
 		if (tick < this.nextTickToStart()) throw new Error(`at: tick ${tick} has already started (world is at tick ${this.tick})`);
-		return this.events.at(tick, event);
+		return this.events.at(tick, event, options);
 	}
 
 	/** Run `event` every interval, starting one interval from now (or at `start`). */
-	every(interval: Interval, event: WorldEvent, options?: { start?: When }): Cancel {
+	every(interval: Interval, event: WorldEvent, options?: EventOptions & { start?: When }): Cancel {
 		const ticks = "ticks" in interval ? interval.ticks : secondsToTicks(interval.seconds, this.options.tickSeconds);
 		const start = options?.start;
 		const first =
@@ -763,12 +791,17 @@ export class World {
 				: "tick" in start
 					? start.tick
 					: secondsToTicks(start.seconds, this.options.tickSeconds);
-		return this.events.every(ticks, first, event);
+		return this.events.every(ticks, first, event, options);
 	}
 
 	/** Run `event` whenever `condition` becomes true (checked at the start of each tick). */
-	when(condition: (world: World) => boolean | Promise<boolean>, event: WorldEvent): Cancel {
-		return this.events.when(condition, event);
+	when(condition: (world: World) => boolean | Promise<boolean>, event: WorldEvent, options?: EventOptions): Cancel {
+		return this.events.when(condition, event, options);
+	}
+
+	/** Scripted events still to come, in the order they were added (every `when`, since it may yet fire). */
+	listEvents(): ScheduledEvent[] {
+		return this.events.list(this.nextTickToStart());
 	}
 
 	// --- models ----------------------------------------------------------------------------------
@@ -785,6 +818,11 @@ export class World {
 		const handle = this.device(target);
 		if (!run) throw new Error(`model: no model given for "${target}"`);
 		return this.models.add(`"${target}"`, (dt, world) => run(handle, dt, world));
+	}
+
+	/** What each model is for, in the order they run: a device's key, or "world" for a world model. */
+	listModels(): string[] {
+		return this.models.labels().map((label) => label.replace(/^"(.*)"$/, "$1"));
 	}
 
 	// --- snapshots and history -------------------------------------------------------------------

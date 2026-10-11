@@ -1,5 +1,6 @@
 import {
 	type Chip,
+	CONSTS,
 	ErrorSeverity,
 	type Housing,
 	type Ic10Error,
@@ -22,6 +23,14 @@ export type StepOutcome =
 	| { kind: "end" }
 	/** The chip halted on an error, as it would in game. */
 	| { kind: "halt"; line: number; error: Ic10Error };
+
+/** A name the script has defined: `define X 5` (a define), `alias X r1` / `alias X d0`, or `label:`. */
+export interface ScriptDefine {
+	name: string;
+	kind: "define" | "alias" | "label";
+	/** The value as written: a number, `r1`, `d0`, or the label's line index. */
+	value: string;
+}
 
 const HALTING = new Set<string>([ErrorSeverity.Strong, ErrorSeverity.Critical]);
 
@@ -144,6 +153,35 @@ export class EngineChip {
 
 	stackAt(index: number): number {
 		return this.chip.memory.get(index) ?? 0;
+	}
+
+	/** Size of the stack (the game's is 512). */
+	get stackLength(): number {
+		return this.chip.stack_length;
+	}
+
+	setStackAt(index: number, value: number): void {
+		if (!Number.isInteger(index) || index < 0 || index >= this.stackLength) {
+			throw new Error(`no stack entry ${index} (the stack has ${this.stackLength})`);
+		}
+		this.chip.memory.set(index, value);
+	}
+
+	/**
+	 * What the script has defined so far: `define`s, aliases and labels, in the order they were made.
+	 * The game's built-in constants are left out unless the script redefined one.
+	 */
+	defines(): ScriptDefine[] {
+		const out: ScriptDefine[] = [];
+		for (const [name, define] of this.chip.defines) {
+			if (name === "sp" || name === "ra") continue;
+			const value = define.value ?? "";
+			if (define.type === "const" && Object.hasOwn(CONSTS, name) && String(CONSTS[name as keyof typeof CONSTS]) === value) {
+				continue;
+			}
+			out.push({ name, kind: define.type === "label" ? "label" : define.type === "alias" ? "alias" : "define", value });
+		}
+		return out;
 	}
 
 	/** Every error recorded on the chip so far, of any severity, restarts included. */
