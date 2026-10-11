@@ -867,6 +867,21 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     2.11: when a harvest was cut short by `HARVEST_TRIES`, the seeds went down the chute and the
     planter was left empty. Fixed after a failing test: the script goes back for the rest of a
     plant that gave something on that visit.
+  - Step 8 is done: the climate tests on pipes and rooms, each in a "with gas" block beside the
+    logic-only tests, which stay. CoolCleanMarsAir: the AC (holding the chip) cools a loop of base
+    air into the coolant pipe, which the vent fills from Mars-like outside air and drains when
+    warm; the base air reaches the setpoint over several drain cycles, and the AC is never on while
+    the coolant is under 200 kPa or over 293 K. VC-IC Cooling Air Management: a hot pipe is
+    expelled to about 500 kPa and left there, and a radiator cooling it below 146 °C stops the
+    vent first. VCCR Cooling Air Management and Cold Night Extraction share
+    `tests/ClimateControl/night-air.ts`: over a short day/night cycle the pipe fills at night,
+    holds in the morning, is expelled once above 453 K, and fills again the next night. The
+    planet numbers are illustrative. Seen on the way, not asserted: with the vent rate guess, the
+    5 s check lets the Cooling Air Management vent run past the 500 kPa floor (a small pipe
+    empties), and CoolCleanMarsAir's fill overshoots 2,500 kPa; the vents' own `PressureInternal`
+    would stop both exactly (CoolCleanMarsAir has that line commented out). Your decision: both
+    are fine as they are (the floor is only a rough reserve, and the coolant is backed by a tank);
+    each script has a comment saying so.
 
 Suggested first regression tests (Phase 4):
 

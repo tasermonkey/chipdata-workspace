@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sim } from "@tasermonkey/ic10-test";
 import { REPO_ROOT } from "../support/paths.ts";
+import { describeNightAirWithGas } from "./night-air.ts";
 
 const SCRIPT = "ic10/ClimateControl/VC-IC Cold Night Extration [371458].ic10";
 
@@ -39,3 +40,5 @@ describe("VC-IC Cold Night Extraction", () => {
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 });
+
+describeNightAirWithGas("VC-IC Cold Night Extraction", SCRIPT);

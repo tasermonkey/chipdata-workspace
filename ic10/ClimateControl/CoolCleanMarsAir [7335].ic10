@@ -8,7 +8,7 @@
 define AV_CoolantVent HASH("CoolantVent")
 
 define MAX_COOLANT_TEMP_K 288 # 15c
-define MAX_COOLANT_PRESSURE 2500 # low enough where CO2 won't liquidify
+define MAX_COOLANT_PRESSURE 2500 # low enough where CO2 won't liquidify; the fill can overshoot, so back the coolant with a tank
 define MIN_OPERATING_COOLANT_PRESSURE 200
 define MAX_OPERATING_COOLANT_TEMP_K 293 # 20c 
 define EMPTY_KPA 1 # draining stops at or below this

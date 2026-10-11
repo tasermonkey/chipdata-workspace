@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sim } from "@tasermonkey/ic10-test";
 import { REPO_ROOT } from "../support/paths.ts";
+import { describeNightAirWithGas } from "./night-air.ts";
 
 const SCRIPT = "ic10/ClimateControl/VCCR Cooling Air Management (1) [22840].ic10";
 
@@ -70,3 +71,5 @@ describe("VCCR Cooling Air Management", () => {
 		expect(world.db("ic")).toHaveProps({ Setting: 432.5 });
 	});
 });
+
+describeNightAirWithGas("VCCR Cooling Air Management", SCRIPT);

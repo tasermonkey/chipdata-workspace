@@ -1,6 +1,6 @@
 alias ExpelGasExchangeVent d0
 define MAX_PIPE_TEMP 419.15 # 146C
-define MIN_PRESSURE 500
+define MIN_PRESSURE 500 # rough floor: the vent can run below it between checks (sleep 5)
 loop:
 yield
 jal expelVentCheck
