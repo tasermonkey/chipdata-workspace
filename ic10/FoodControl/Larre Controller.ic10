@@ -29,6 +29,8 @@ check:
   bne r0 counter reset
   s db Setting r0
   beqz r0 reset
+
+checkplant:
   ls r0 larre 255 Class
   bne r0 PlantClass start
   ls r0 larre 255 Mature
@@ -37,6 +39,8 @@ check:
   ls r0 larre 255 Seeding
   #sd DEBUG_2 Setting r0
   beq r0 -1 start
+  jal held
+  move r3 r0 # items in the arm before this visit
   move r2 HARVEST_TRIES
 
 harvest:
@@ -53,6 +57,8 @@ harvest:
   or r0 r0 r1
   beqz r0 harvest
 
+  jal held
+  move r4 r0 # items in the arm after it
   s larre Setting DropOff
   jal waitlarre
   s larre Activate 1
@@ -60,10 +66,20 @@ harvest:
   s larre Setting counter
   jal waitlarre
   ls r0 larre 255 Occupied
-  bnez r0 start
+  beqz r0 replant
+  bgt r4 r3 checkplant # still there and this visit took some: go back for the rest
+  j start
+
+replant:
   s larre Activate 1
   jal waitlarre
   j start
+
+held: # r0 = items in the arm's two slots
+  ls r0 larre 0 Quantity
+  ls r1 larre 1 Quantity
+  add r0 r0 r1
+  j ra
 
 waitlarre:
   yield

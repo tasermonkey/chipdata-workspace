@@ -863,9 +863,10 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     the station (-1 while moving). Guesses, tunable: rail nodes between stations (default 1, so 2
     ticks a station; a test sets the gaps), the prefab's speed, stack size 50. Plants don't grow:
     the test sets their seed and fruit counts (your decision, 2026-10-11). Larre Controller's tests
-    run on it, with one new test (a plant with more than `HARVEST_TRIES` items). Found: when a
-    harvest is cut short by `HARVEST_TRIES`, the seeds go down the chute and the planter is left
-    empty after the next lap.
+    run on it, with one new test (a plant with more than `HARVEST_TRIES` items). It found review
+    2.11: when a harvest was cut short by `HARVEST_TRIES`, the seeds went down the chute and the
+    planter was left empty. Fixed after a failing test: the script goes back for the rest of a
+    plant that gave something on that visit.
 
 Suggested first regression tests (Phase 4):
 

@@ -285,6 +285,9 @@ Found while writing the Landing Bay tests (not in the review), also fixed after 
 - **2.10** Suit MKII: heating and cooling still start at ±5 K from the setting, but stop at the
   setting (`rSetpoint`). [Test](tests/SuitControl/Simple%20Suit%20Controller%20MKII.test.ts) The
   `sleep 5` in the helmet check is kept.
+- **2.11** Larre Controller: after the drop-off, a plant that's still there and gave something on
+  that visit gets another round of tries, so its seeds stay in the arm for the replant.
+  [Test](tests/FoodControl/Larre%20Controller.test.ts)
 
 **2.1** is left as is, by decision: only relative jumps of 5 or more lines would be converted, and
 the only one, Suit MKII's `breqz rHelmetOpen 5`, is in a script already over the 128-line limit. The
@@ -412,6 +415,20 @@ power and air than needed. Stop at the setpoint instead (`r0` from `TemperatureS
 
 `sleep 5` in `checkClosedHelmet` also pauses all temperature and filtration control for 5 seconds.
 A tick counter would avoid blocking.
+
+### 2.11 Larre Controller: a plant with more than `HARVEST_TRIES` items loses its seeds
+[Larre Controller.ic10:60-72](ic10/FoodControl/Larre%20Controller.ic10#L60)
+
+Found in Phase 6 with the Larre model. In the game's code (`RoboticArmDockHydroponics`) each
+Activate takes one item from the plant, seeds first, and the plant stays until the last one is
+taken. A plant with more seeds and fruit than `HARVEST_TRIES` (5) is left with some on it. The script
+drops off the fruit, comes back, sees the plant still there and goes to `start`, which drops the
+seeds (now in the hand) at the chute too. The next lap finishes the plant, but there's no seed to
+replant, so the planter stays empty. Seen in game too.
+
+Fix: when the plant is still there after the drop-off, go back for the rest, but only if that
+visit took something (the items in the arm's two slots went up). That keeps 2.7's guarantee: a
+plant that gives nothing doesn't keep the arm going between the planter and the drop-off.
 
 ---
 

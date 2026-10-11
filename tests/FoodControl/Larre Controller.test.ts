@@ -74,33 +74,36 @@ describe("Larre Controller", () => {
 
 	// CODE_REVIEW.md 2.7: the harvest loop retried forever if Activate did nothing. In game that
 	// happens when the arm holds one thing and its other slot another: there's nowhere to put fruit.
-	it("gives up on a harvest that doesn't happen, and carries on round the track", async () => {
+	it("gives up after five tries, empties the arm, and goes back for the rest", async () => {
 		const stuck: LarrePlant = { mature: true, seeding: true, seeds: 1, harvest: 3 };
 		const { world, larre } = await build({ 3: stuck, 5: READY }, { extra: { item: "ItemFertilizer", quantity: 1 } });
-		await world.runUntil(() => larre.visited.includes(16), { maxTicks: 1000 });
+		await world.runUntil(() => larre.visited.includes(16), { maxTicks: 1500 });
 
-		// Station 3: a seed, then four Activates that do nothing. The seed and the fertiliser go to
-		// the drop-off, one at a time, and station 5 is harvested.
-		expect(larre.visited.slice(0, 9)).toEqual([1, 2, 3, DROP_OFF, 3, DROP_OFF, 4, 5, DROP_OFF]);
-		expect(larre.planter(3)).toMatchObject({ seeds: 0, harvest: 3 }); // still there
+		// Station 3: a seed, then four Activates that do nothing. The seed goes to the drop-off and
+		// the fertiliser comes to the hand, which leaves room for the fruit on the next try.
+		expect(larre.visited.slice(0, 12)).toEqual([1, 2, 3, DROP_OFF, 3, DROP_OFF, 3, DROP_OFF, 4, 5, DROP_OFF, 5]);
 		expect(larre.delivered.map((d) => [d.item, d.quantity])).toEqual([
 			["SeedBag_Wheet", 1],
+			["ItemWheat", 3],
 			["ItemFertilizer", 1],
 			["ItemWheat", 2],
 		]);
+		expect(larre.planter(3)).toBeNull(); // its seed went to the chute while the arm was stuck
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
-	// The arm takes one item per Activate, so HARVEST_TRIES caps a visit at 5 items.
-	it("finishes a plant with more than five items on the next lap", async () => {
+	// CODE_REVIEW.md 2.11: the arm takes one item per Activate, so HARVEST_TRIES caps a visit at 5
+	// items. With more, the script dropped the seeds at the chute and couldn't replant.
+	it("goes back for the rest of a plant with more than five items, and replants it", async () => {
 		const big: LarrePlant = { mature: true, seeding: true, seeds: 2, harvest: 5 };
 		const { world, larre } = await build({ 3: big });
-		await world.runUntil(() => larre.planter(3) === null && larre.hand === undefined && larre.visited.includes(4), {
-			maxTicks: 3000,
-		});
+		await world.runUntil(() => larre.planter(3)?.mature === false, { maxTicks: 1500 });
 
-		const wheat = larre.delivered.filter((d) => d.item === "ItemWheat").reduce((sum, d) => sum + d.quantity, 0);
-		expect(wheat).toBe(5);
+		expect(larre.visited.slice(0, 7)).toEqual([1, 2, 3, DROP_OFF, 3, DROP_OFF, 3]);
+		expect(larre.delivered.map((d) => [d.item, d.quantity])).toEqual([
+			["ItemWheat", 3],
+			["ItemWheat", 2],
+		]);
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 });
