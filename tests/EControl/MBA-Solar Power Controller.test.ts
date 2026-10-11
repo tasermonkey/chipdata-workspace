@@ -7,7 +7,7 @@ const PANELS = [
 	"StructureSolarPanelDual",
 	"StructureSolarPanelReinforced",
 	"StructureSolarPanelDualReinforced",
-];
+] as const;
 
 interface Setup {
 	sun: { vertical: number; horizontal: number };

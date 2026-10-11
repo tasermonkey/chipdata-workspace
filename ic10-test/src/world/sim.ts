@@ -1,13 +1,23 @@
 import { resolve } from "node:path";
+import type { PrefabProps } from "../../generated/prefab-props.ts";
+import { modPrefabs } from "../catalog/mods.ts";
 import { type DebugGate, getDefaultDebugGate } from "../debug/gate.ts";
 import { buildEngine, type Engine, type EngineDeviceSpec, type EngineHousingSpec } from "../engine/build.ts";
-import { modPrefabs } from "../catalog/mods.ts";
 import { hasDeviceData, isCatalogued } from "../engine/device.ts";
 import { parseId, type ReferenceId } from "../engine/ids.ts";
 import { ChipState, Scheduler } from "../scheduler/scheduler.ts";
 import { readScript } from "../scripts.ts";
 import { EventQueue } from "./events.ts";
 import { type DeviceEntry, World } from "./world.ts";
+
+/**
+ * A prefab the device catalogue knows: the emulator's game data, or a mod's device in data/mods/.
+ * From generated/prefab-props.ts, which `npm run catalog:build` writes.
+ */
+export type KnownPrefab = keyof PrefabProps;
+
+/** A known prefab's logic properties, read-only ones included (a test sets a sensor's readings). */
+export type PropsOf<P extends KnownPrefab> = PrefabProps[P];
 
 export interface SimOptions {
 	/** Lines a chip runs per tick before an automatic yield. Default 128, as in game. */
@@ -59,7 +69,7 @@ export interface DeviceOptions {
 export type Pin = "d0" | "d1" | "d2" | "d3" | "d4" | "d5";
 
 /** A chip housing and its program: exactly one of `file` or `code`. */
-export interface HousingOptions extends DeviceOptions {
+export interface HousingOptions<P extends KnownPrefab = "StructureCircuitHousing"> extends DeviceOptions {
 	/** Path to an `.ic10` file, relative to `root`. */
 	file?: string;
 	/** Inline IC10 source. */
@@ -67,9 +77,9 @@ export interface HousingOptions extends DeviceOptions {
 	/** Which device (by key) is on each pin. */
 	pins?: Partial<Record<Pin, string>>;
 	/** Housing prefab. Default `StructureCircuitHousing`. */
-	prefab?: string;
+	prefab?: P;
 	/** The housing's own logic properties (`db`). */
-	props?: Record<string, number>;
+	props?: PropsOf<P>;
 	/** Overrides the world's `linesPerTick` for this chip. */
 	linesPerTick?: number;
 	/** Overrides the world's `countNonInstructionLines` for this chip. */
@@ -83,7 +93,7 @@ interface DeviceDecl {
 	prefab: string;
 	props: Record<string, number>;
 	options: DeviceOptions;
-	housing?: HousingOptions;
+	housing?: HousingOptions<KnownPrefab>;
 }
 
 /** First automatic reference ID; later ones count up, skipping any given explicitly. */
@@ -112,19 +122,22 @@ export class SimBuilder {
 	 * Add a device. `props` are its logic properties (read-only ones included, as a sensor's
 	 * readings); `options` give its reference ID, in-game name and network.
 	 */
+	device<P extends KnownPrefab>(key: string, prefab: P, props?: PropsOf<P>, options?: DeviceOptions & { custom?: false }): this;
+	/** A device in neither the emulator nor data/mods/: `custom`, with any property names. */
+	device(key: string, prefab: string, props: Record<string, number> | undefined, options: DeviceOptions & { custom: true }): this;
 	device(key: string, prefab: string, props: Record<string, number> = {}, options: DeviceOptions = {}): this {
 		this.decls.push({ key, prefab, props, options });
 		return this;
 	}
 
 	/** Add a chip housing running a program, with devices on its pins. */
-	housing(key: string, options: HousingOptions): this {
+	housing<P extends KnownPrefab = "StructureCircuitHousing">(key: string, options: HousingOptions<P>): this {
 		this.decls.push({
 			key,
 			prefab: options.prefab ?? "StructureCircuitHousing",
-			props: options.props ?? {},
+			props: (options.props ?? {}) as Record<string, number>,
 			options,
-			housing: options,
+			housing: options as HousingOptions<KnownPrefab>,
 		});
 		return this;
 	}
@@ -293,7 +306,7 @@ export function assembleWorld(engine: Engine, entries: DeviceEntry[], chipDecls:
 	return world;
 }
 
-function programOf(key: string, housing: HousingOptions, root: string): string {
+function programOf(key: string, housing: HousingOptions<KnownPrefab>, root: string): string {
 	const { file, code } = housing;
 	if ((file === undefined) === (code === undefined)) {
 		throw new Error(`sim: housing "${key}" needs exactly one of { file } or { code }`);

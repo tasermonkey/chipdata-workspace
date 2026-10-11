@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-test";
+import { type KnownPrefab, sim } from "@tasermonkey/ic10-test";
 import { REPO_ROOT } from "../support/paths.ts";
 
 /** Console parts, by in-game name. */
@@ -30,7 +30,7 @@ function build({ target = { vertical: 0, horizontal: 0 }, manual = {}, throttle 
 		const Setting = name === "VC Current Value" ? target.vertical : name === "HC Current Value" ? target.horizontal : 0;
 		builder = builder.device(name, "ModularDeviceLEDdisplay3", { Setting }, { name });
 	}
-	const part = (key: string, prefab: string, name: string, Setting: number) =>
+	const part = (key: string, prefab: KnownPrefab, name: string, Setting: number) =>
 		builder.device(key, prefab, { Setting }, { name });
 	builder = part("mediumSwitch", "ModularDeviceFlipCoverSwitch", "MedSatManualSwitch", manual.medium ?? 0);
 	builder = part("largeSwitch", "ModularDeviceFlipCoverSwitch", "LargeSatManualSwitch", manual.large ?? 0);

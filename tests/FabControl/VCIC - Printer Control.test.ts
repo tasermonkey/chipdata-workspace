@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseId, type ReferenceId, sim, type World } from "@tasermonkey/ic10-test";
+import { type KnownPrefab, parseId, type ReferenceId, sim, type World } from "@tasermonkey/ic10-test";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const SETUP = "ic10/FabControl/VCIC - Printer Setup.ic10";
@@ -28,13 +28,13 @@ const FABS = {
 		ids: { printer: "$2217", stacker: "$3607", progress: "$C3D42", amount: "$C5295", power: 802081,
 			dial: "$C3D17", mode: "$C3D27", plus: "$C3CF5", minus: "$C3CFA" },
 	},
-} satisfies Record<string, { block: number; prefab: string; ids: Record<string, ReferenceId> }>;
+} satisfies Record<string, { block: number; prefab: KnownPrefab; ids: Record<string, ReferenceId> }>;
 
 type Fab = keyof typeof FABS;
 type Part = keyof (typeof FABS)[Fab]["ids"];
 
 /** Console-mod parts (from data/mods/). Control finds them by ID, so only their properties matter. */
-const CONSOLE: Record<Exclude<Part, "printer" | "stacker">, string> = {
+const CONSOLE: Record<Exclude<Part, "printer" | "stacker">, KnownPrefab> = {
 	progress: "ModularDeviceGauge3x3",
 	amount: "ModularDeviceLEDdisplay3",
 	power: "ModularDeviceLight", // Light Diode, toggled by the player: On (read) and Color (set green/red)
@@ -56,7 +56,7 @@ function build({ dial = 20, power = {} as Partial<Record<Fab, number>> } = {}) {
 		builder = builder
 			.device(key(fab, "printer"), prefab, { Activate: 1, ExportCount: 5, CompletionRatio: 0.25 }, { id: ids.printer })
 			.device(key(fab, "stacker"), "StructureStacker", {}, { id: ids.stacker });
-		for (const [part, prefab] of Object.entries(CONSOLE) as [keyof typeof CONSOLE, string][]) {
+		for (const [part, prefab] of Object.entries(CONSOLE) as [keyof typeof CONSOLE, KnownPrefab][]) {
 			const props: Record<string, number> =
 				part === "power" ? { On: power[fab] ?? 1 } : part === "dial" ? { Setting: dial } : {};
 			builder = builder.device(key(fab, part), prefab, props, { id: ids[part] });

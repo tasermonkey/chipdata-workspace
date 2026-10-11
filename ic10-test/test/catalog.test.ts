@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildCatalog, parseEnglishXml, type SourceDevice } from "../src/catalog/build.ts";
 import { stationpediaDescriptions, stationpediaPrefab, logicDifferences } from "../src/catalog/stationpedia.ts";
+import { prefabPropsSource } from "../src/catalog/types.ts";
 import { canAccess, type CatalogPrefab, loadCatalog, prefabInfo } from "../src/catalog/catalog.ts";
 
 const VENT: SourceDevice = {
@@ -154,5 +155,19 @@ describe("the built catalogue", () => {
 	it("has the console mod's devices, from data/mods/", () => {
 		expect(prefabInfo("ModularDeviceRoundButton")).toMatchObject({ source: "mod", logic: { Activate: "rw", Setting: "r" } });
 		expect(prefabInfo("StationBatteryNuclear")?.logic).toMatchObject({ Ratio: "r", Charge: "r" });
+	});
+});
+
+describe("prefab-props.ts", () => {
+	it("types each prefab's properties, with descriptions, Read/Write and modes", () => {
+		const { catalog } = buildCatalog({
+			devices: [VENT, { ...VENT, PrefabName: "StructureTransformerMedium(Reversed)", PrefabHash: 7, mods: [] }],
+			descriptions: [{ source: "game", label: "game", data: { logicTypes: { Mode: "Integer for mode state */ oops" }, slotLogicTypes: {} } }],
+		});
+		const source = prefabPropsSource(catalog);
+		expect(source).toContain(`\t/** Active Vent (hash -1129453144) */\n\t"StructureActiveVent": {`);
+		expect(source).toContain("\t\t/** Integer for mode state *\\/ oops (read, write) Modes: 0 Outward, 1 Inward. */\n\t\tMode?: number;");
+		expect(source).toContain("\t\t/** (read-only) */\n\t\tPressure?: number;");
+		expect(source).toContain(`"StructureTransformerMedium(Reversed)": {`); // quoted: not an identifier
 	});
 });

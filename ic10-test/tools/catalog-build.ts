@@ -1,5 +1,6 @@
 /**
- * Builds the device catalogue into ic10-test/generated/ (plan §6).
+ * Builds the device catalogue into ic10-test/generated/ (plan §6): catalog.json, and
+ * prefab-props.ts, the property types `sim().device()` is checked against.
  *
  *   npm run catalog:build      (node --conditions=source ic10-test/tools/catalog-build.ts)
  *
@@ -13,9 +14,11 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DEVICES } from "@stationeers-ic/ic10";
 import { buildCatalog, type DescriptionSource, parseEnglishXml } from "../src/catalog/build.ts";
-import { CATALOG_PATH, type CatalogPrefab, GENERATED_DIR } from "../src/catalog/catalog.ts";
+import { CATALOG_PATH, GENERATED_DIR } from "../src/catalog/catalog.ts";
+import { modPrefabs } from "../src/catalog/mods.ts";
 import { type StationpediaEnums, stationpediaDescriptions } from "../src/catalog/stationpedia.ts";
-import { englishXmlPath, MODS_FILE, stationpediaDir } from "./game-paths.ts";
+import { prefabPropsSource } from "../src/catalog/types.ts";
+import { englishXmlPath, stationpediaDir } from "./game-paths.ts";
 
 const descriptions: DescriptionSource[] = [];
 const exportDir = stationpediaDir();
@@ -30,13 +33,15 @@ if (xmlPath) {
 	descriptions.push({ source: "game", label: `game english.xml (${date})`, data: parseEnglishXml(readFileSync(xmlPath, "utf8")) });
 }
 
-const modPrefabs = existsSync(MODS_FILE)
-	? (JSON.parse(readFileSync(MODS_FILE, "utf8")) as { prefabs: CatalogPrefab[] }).prefabs
-	: [];
-const { catalog, undescribed } = buildCatalog({ devices: Object.values(DEVICES), modPrefabs, descriptions });
+const { catalog, undescribed } = buildCatalog({
+	devices: Object.values(DEVICES),
+	modPrefabs: [...modPrefabs().values()],
+	descriptions,
+});
 
 await mkdir(GENERATED_DIR, { recursive: true });
 await writeFile(CATALOG_PATH, `${JSON.stringify(catalog)}\n`);
+await writeFile(join(GENERATED_DIR, "prefab-props.ts"), prefabPropsSource(catalog));
 
 const prefabs = Object.values(catalog.prefabs);
 const mods = prefabs.filter((p) => p.source === "mod").length;

@@ -15,7 +15,7 @@ const MACHINES = [
 ] as const;
 
 const LIGHT_NAME = "Manufacturing Room - Light";
-const LIGHTS = ["StructureLightLongWide", "StructureLightLong", "StructureDiode"];
+const LIGHTS = ["StructureLightLongWide", "StructureLightLong", "StructureDiode"] as const;
 
 function build() {
 	let builder = sim({ root: REPO_ROOT });

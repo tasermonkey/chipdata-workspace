@@ -753,6 +753,15 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     logic types are described. The export also shows 10 game prefabs with extra logic types the
     fork's data lacks (batteries: `ImportQuantity`, `ExportQuantity`; transformers: `PowerActual`),
     from a newer game version or a power mod. The catalogue keeps the fork's for now.
+  - Step 2 is done. At runtime, `sim()` adds each prefab in `data/mods/prefabs.json` to the
+    emulator's device table, so mods' devices have exactly their own properties with the game's
+    Read/Write (a script writing one they lack halts, as in game). Game prefabs with data but no
+    device class (`Landingpad_DataConnectionPiece`) are built the same way. `custom: true` is now only
+    for prefabs in neither, and the script tests no longer use it. That found a wrong guess in the
+    Printer Control test: its power input is a Light Diode (`ModularDeviceLight`), since the
+    flip-cover switch it used has no `Color`. At compile time, `catalog:build` also writes
+    `generated/prefab-props.ts`, so `sim().device()` and `.housing()` props are type-checked, with
+    descriptions in hovers; `ic10-test/test/prefab-props.typecheck.ts` pins that typos fail.
 
 Suggested first regression tests (Phase 4):
 

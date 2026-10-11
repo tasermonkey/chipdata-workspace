@@ -95,6 +95,7 @@ describe("sim() builder", () => {
 			() => sim().network("a").network("b").device("x", "StructureWallLight", {}, { network: "a" }).housing("ic", { code: "" }),
 			/several networks/,
 		],
+		// @ts-expect-error The types reject it too.
 		["an unknown property", () => sim().device("x", "StructureWallLight", { Bogus: 1 }), /rejected/],
 		["a line that doesn't parse", () => sim().housing("ic", { code: "move r0 1\n%%%" }), /"ic" line 1/],
 	])("rejects %s", async (_what, declare, error) => {

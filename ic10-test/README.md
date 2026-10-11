@@ -130,7 +130,17 @@ and the reports are available as `chipReport`, `deviceReport` and `worldReport`.
 
 `npm run catalog:build` (run automatically before `npm test` and `npm run typecheck`) writes
 `generated/catalog.json`: every prefab's logic types with Read/Write, its slots and its modes (by
-value), and a description of each logic type.
+value), and a description of each logic type. It also writes `generated/prefab-props.ts`, which types
+`sim()`: a misspelt prefab or property is a compile error, and hovering a property shows its
+description, Read/Write and, for `Mode`, the mode names.
+
+```ts
+sim().device("vent", "StructureActiveVent", { Mdoe: 1 });   // error: 'Mdoe' does not exist
+sim().housing("ac", { code, prefab: "StructureAirConditioner", props: { TemperatureInput: 300 } });
+```
+
+A prefab in a variable needs the `KnownPrefab` type (or `as const` on a list of names);
+`PropsOf<"StructureActiveVent">` is one prefab's properties. A `custom` device takes any names.
 
 - **Prefabs** come from the emulator's game data, plus mods' devices in `data/mods/prefabs.json`
   (console parts, `StationBatteryNuclear`, mirrored devices, …), which is committed.

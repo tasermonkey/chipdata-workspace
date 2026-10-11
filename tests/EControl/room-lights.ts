@@ -14,7 +14,7 @@ export const LIGHTS = [
 	"StructureWallLight",
 	"StructureWallLightBattery",
 	"StructureLightLongAngled",
-];
+] as const;
 
 /** One light of each type, an occupancy sensor on d0 (and d1 for `sensors: 2`), and a grow light to leave alone. */
 function build(script: string, sensors: 1 | 2) {

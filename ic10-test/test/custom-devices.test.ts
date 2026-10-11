@@ -69,6 +69,7 @@ describe("mods' devices (data/mods/)", () => {
 		expect(readOnly.chip("ic")).toHaveRegister("r0", 0.5);
 		expect(readOnly.chip("ic")).toHaveHalted({ line: 1 });
 
+		// @ts-expect-error A dial has no Color: the types say so, and so does the build.
 		await expect(sim().device("dial", "ModularDeviceDial", { Color: 1 }).build()).rejects.toThrow(/has no logic property "Color"/);
 	});
 
@@ -133,6 +134,7 @@ describe("custom devices (in neither the emulator nor data/mods/)", () => {
 	});
 
 	it("must be asked for: an unknown prefab is a build error", async () => {
+		// @ts-expect-error Not a known prefab: the types say so, and so does the build.
 		const build = sim().device("widget", "ModFutureWidget").housing("ic", { code: "yield" }).build();
 		await expect(build).rejects.toThrow(/"widget": no device ModFutureWidget in the emulator or data\/mods\/.*custom: true/);
 	});

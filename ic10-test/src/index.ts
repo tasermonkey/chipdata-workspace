@@ -19,7 +19,16 @@ export { SimBudgetError, SimHaltError, SimRunError } from "./scheduler/errors.ts
 export type { Halt } from "./scheduler/scheduler.ts";
 export { findScripts, readScript } from "./scripts.ts";
 export type { Cancel, Interval, When, WorldEvent } from "./world/events.ts";
-export { type DeviceOptions, type HousingOptions, type Pin, SimBuilder, type SimOptions, sim } from "./world/sim.ts";
+export {
+	type DeviceOptions,
+	type HousingOptions,
+	type KnownPrefab,
+	type Pin,
+	type PropsOf,
+	SimBuilder,
+	type SimOptions,
+	sim,
+} from "./world/sim.ts";
 export type { Change, Recording, Snapshot } from "./world/snapshot.ts";
 export type { EnvWorldOptions } from "./world/from-env.ts";
 export { ChipHandle, DeviceHandle, NetworkHandle, type RunBudget, SlotHandle, World } from "./world/world.ts";
