@@ -162,13 +162,13 @@ describe("toHaveNoErrors / toHaveHalted", () => {
 	});
 
 	it("counts warnings by default, and weak errors only when asked", async () => {
-		// Reading a property the device doesn't have is a warning; the chip keeps going.
-		const world = await oneChip("l r0 d0 Charge\nyield");
+		// An alias that hides a built-in constant is a warning; the chip keeps going.
+		const world = await oneChip("alias pi r0\nyield");
 		await world.runTicks(1);
 		expect(world.chip("ic").halted).toBe(false);
 		expect(world.chip("ic")).not.toHaveNoErrors();
 		expect(world.chip("ic")).toHaveNoErrors({ severity: "strong" });
-		expect(failure(() => expect(world.chip("ic")).toHaveNoErrors())).toMatch(/line 0 "l r0 d0 Charge": warning: /);
+		expect(failure(() => expect(world.chip("ic")).toHaveNoErrors())).toMatch(/line 0 "alias pi r0": warning: /);
 	});
 });
 

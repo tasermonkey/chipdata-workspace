@@ -53,13 +53,14 @@ scripts on 2026-10-07 (see the Appendix).
 | G7 | Packaging and initialisation. | The ESM build has extensionless imports and won't load in Node. `Builder.init()` sandbox pass throws `no_network_for_port`. i18n is never initialised. | Fork (§3) |
 | G8 | Devices are property bags with no behaviour. | Turning a vent on doesn't move any gas. | Harness world model (§5) |
 | G10 | **`ld` and `sd` don't work at all.** `calculateDevicePinOrId` turns a failed pin parse into error code `0`, then treats that as pin 0, so it never tries the ID lookup. `ld r3 $1488 On` and `ld r3 r1 On` both fail with `pin_not_allowed_in_instruction`. | Printer Control can't run (line 38 `ld Tmp Param1 On`), nor can anything else using reference IDs. Device-ID arguments also rejected `define`d IDs (`define DEBUG_1 $4D655` / `sd DEBUG_1 …`). | **Fixed in fork**: a failed pin parse falls through to the ID lookup, and device-ID arguments accept defines. Covered by instruction tests and `fork-fixes.test.ts`. |
-| G12 | No **Logic Mirror** in the emulator or its game data. | Scripts that read another network through a mirror can't be tested. | Fork extension point (proxy device) + harness (§5.4) |
+| G12 | No **Logic Mirror** in the emulator or its game data. | Scripts that read another network through a mirror can't be tested. | **Done**: fork extension point (`DeviceProps.hooks`) + harness `sim().mirror()` (§5.4) |
 | G11 | Instruction errors can **throw out of `step()`** instead of being recorded. | One bad line crashes the test with a JS stack trace instead of halting the chip. | **Fixed in fork** (catch in `step()`); the harness also catches as a safety net |
 | G13 | **`jal` and the branch-and-link instructions store the wrong return address**: their own line instead of the next one. Upstream's `beqal` test expected the wrong value. | `j ra` jumps back to the `jal`, so a `jal sub` … `j ra` loop never gets past the call. 31 of the 38 scripts use `jal`. Found by the first `sim()` test in which day comes partway through the run. | **Fixed in fork** (`ra` = line + 1), with tests in `fork-fixes.test.ts` |
 | G14 | **Batch reads of no devices all return 0.** In game `Average` is NaN (0 / 0) and `Maximum` is −∞; `Sum` and `Minimum` are 0 (per [dcramer/stationeers](https://github.com/dcramer/stationeers/blob/main/docs/ic10-instructions.md#device-access-and-missing-batch-data), unofficial). | The mixer scripts' "NaN means a missing device" check never fires, so a missing tank looks like the mixer being off. Found writing the review 1.11 test. | **Fixed in fork**, with tests in `fork-fixes.test.ts` |
 | G15 | **The "is a device set" instructions error on an empty pin.** `sdse`, `sdns`, `bdse`, `bdns`, `brdse`, `brdns`, `bdseal` and `bdnsal` required a device on the pin, so testing for one halted the chip. | The Arc Furnace script loops over d0–d5 with `bdns dr0` and halted at the first empty pin. | **Fixed in fork**: those instructions take a pin that may be empty, with tests in `fork-fixes.test.ts` |
 | G16 | **Slots the game data lists no logic types for read 0.** The Larre's Target Slot (255, the plant at its arm) is one. | `ls r1 larre 255 Mature` always read 0. | **Fixed in fork**: such a slot reads whatever its item has; slots that list their logic types are unchanged |
 | G17 | **`sdse` / `sdns` take only a pin.** The wiki gives them `device(d?\|r?\|id)`, so the game also accepts a reference ID (set = on the network). | `sdse r0 $1488` fails in the emulator. No script uses it yet. | Fork, when a script needs it |
+| G18 | **Reading a logic type the device can't read is only a warning.** In game `l`, `ld` and `lb` throw `IncorrectLogicType` and the chip halts (read from `Assembly-CSharp.dll`, 2026-10-11). | A script reading the wrong property carries on with 0 instead of stopping. Found while reading the Logic Mirror's code (§5.4); no script in `ic10/` does it. | **Fixed in fork**: such a read is a strong error (the harness halts the chip), with tests in `fork-fixes.test.ts`. `s` no longer reads a write-only logic type's old value. |
 | G9 | Toolchain is Bun-only. | Tests import `bun:test`, scripts run with `bun tools/*.ts`, there's a `bunfig.toml`, and CI uses Bun. | Fork conversion (§3) |
 
 ---
@@ -421,10 +422,12 @@ with a screwdriver. Reads and writes through the mirror act on the target "as if
 itself is present in the logic network". It needs power (10 W), and unpowered it returns no data.
 Known bug: it doesn't forward `ls` (slot reads).
 
-**Neither the emulator nor its game-data source has this device**, so the harness defines it as a
-proxy device in the engine adapter: a `StructureLogicMirror` whose property reads and writes are
-forwarded to the target. The fork needs a small extension point for that: a device whose `props`
-read and write through hooks.
+**The emulator's game data doesn't have this device**, and the Stationpedia export has only its hash
+(no logic types), so the harness defines it: a `StructureLogicMirror` whose reads and writes go to
+the target. The fork's extension point for that is `DeviceProps.hooks`: when set, an instruction's
+`read`, `write`, `canLoad` and `canStore` go through it, while the world's own view (`forceRead`,
+`forceWrite`, snapshots) keeps the device's own values. Errors the target raises are moved onto the
+mirror, since a chip only collects errors from devices on its own network.
 
 ```ts
 const world = await sim()
@@ -438,26 +441,31 @@ const world = await sim()
 await world.runTicks(1);
 expect(world.chip("ic")).toHaveRegister("r0", 0.7);
 
-world.device("mirror").setPowered(false);
+world.mirror("mirror").setPowered(false);
 await world.runTicks(1);
 expect(world.chip("ic")).toHaveRegister("r0", 0);                  // unpowered: no data
 ```
 
-**Behaviour, with the parts the wiki doesn't settle.** Each unsettled item is a world option, so a
-test can switch it once it's been checked in game.
+**Behaviour, from the game's code.** The game's `LogicMirror` (read from `Assembly-CSharp.dll`,
+2026-10-11) overrides only `CanLogicRead`, `GetLogicValue`, `CanLogicWrite` and `SetLogicValue`,
+each passed to its target, and nothing else in the game mentions it. That settles every guess the
+plan had (it had a world option for each; they were dropped, 2026-10-11):
 
-| Through the mirror | Default | Basis | Option |
-|---|---|---|---|
-| `l`/`s` on a pin set to the mirror, and `ld`/`sd` with the **mirror's** reference ID | Forwarded to the target | Wiki | — |
-| Mirror unpowered | Reads return 0, writes are dropped | Wiki says "no data"; 0 rather than an error is a guess | `mirror.unpoweredReads: "zero" \| "error"` |
-| `ls` / `ss` (slots) | **Not** forwarded; returns 0 | Wiki "Bugs" section | `mirror.forwardSlots` |
-| `PrefabHash`, `ReferenceId`, `NameHash` read through it | The target's | Guess from "as if the target is present" | `mirror.identity: "target" \| "mirror"` |
-| `lb`/`sb`/`lbn` on the mirror's network using the **target's** prefab or name | Not visible; batch ops see a Logic Mirror, not the target | Guess | `mirror.visibleToBatch` |
-| `ld` on the mirror's network using the **target's** own reference ID | Not found | Guess | `mirror.targetIdVisible` |
-| No target set | Reads 0, writes dropped | Guess | — |
+| Through the mirror | Game | Why |
+|---|---|---|
+| `l`/`s` on a pin set to the mirror, and `ld`/`sd` with the **mirror's** reference ID | Passed to the target | The four overrides |
+| Mirror unpowered | Reads 0, writes are dropped, no error | Only the value methods check power; the `Can…` checks still pass |
+| `ls` / `ss` (slots) | **Halts the chip** (`IncorrectLogicType`) | Slot logic isn't overridden and the mirror has no slots (the wiki's "doesn't forward `ls`" bug) |
+| `PrefabHash`, `ReferenceId`, `NameHash` read through it | The target's | They're logic types like any other |
+| `lb`/`sb`/`lbn` with the **target's** prefab or name | Not visible: batch ops see a Logic Mirror | They match on the device's own prefab and name hashes. `lb HASH("StructureLogicMirror") …` reads through to the target |
+| `ld` with the **target's** own reference ID | Not found (`DeviceNotFound`) | The housing only accepts an ID on its own data network |
+| No target set | **Halts the chip** (`IncorrectLogicType`) | With no target the `Can…` checks are false, and `l`/`s` throw |
+| A logic type the target lacks, powered or not | Halts the chip, naming both: `"mirror" (…) → "sensor" (…) has no logic type …` | The `Can…` check comes before the power check |
 
-The debugger shows a mirror as `mirror → sensor (outside)`, with the target's properties nested
-underneath.
+`world.mirror(key)` gives the mirror's handle: `target`, `setTarget(key | undefined)` (a
+screwdriver, in game), `powered` and `setPowered`. It has no values of its own, so `get`/`set` on it
+throw and point at the target. The debugger (§6b), once built, should show a mirror as
+`mirror → sensor (outside)`.
 
 ---
 
@@ -661,8 +669,9 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 - **Phase 3 is done (2026-10-08).** All twelve §4.6 matchers are in `ic10-test/src/matchers/vitest-setup.ts`, loaded
   through `setupFiles`. Each is backed by a plain `check*` function in `src/matchers/checks.ts`.
   Details settled while building them:
-  - `toHaveNoErrors()` counts **warnings and above** by default. That includes reading a property
-    the device doesn't have, which the emulator records as a warning without halting.
+  - `toHaveNoErrors()` counts **warnings and above** by default. That included reading a property
+    the device doesn't have, which the emulator recorded as a warning without halting (it halts
+    since G18, as in game).
     `{ severity }` changes the threshold.
   - `toOnlyChange` takes a world with `{ since: snapshot }`, or `world.diff(...)`. It accepts aliases
     and `*`, and ignores a housing's `LineNumber`, which the emulator updates on every line.
@@ -882,6 +891,15 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     would stop both exactly (CoolCleanMarsAir has that line commented out). Your decision: both
     are fine as they are (the floor is only a rough reserve, and the coolant is backed by a tank);
     each script has a comment saying so.
+  - The Logic Mirror is done (§5.4). The game's `LogicMirror` code, read from the DLL, settled
+    every guess in §5.4's table. Two guesses were wrong: `ls` and a mirror with no target both halt
+    the chip rather than read 0. So the five world options were dropped (your decision), and the
+    harness follows the game. Fork: `DeviceProps.hooks` (instructions' reads and writes go through
+    it), with tests. Harness: `sim().mirror(key, { target, network, powered })`, `world.mirror(key)`
+    with `setTarget` and `setPowered`, errors that name both devices (`"mirror" (…) → "sensor"
+    (…)`), and `ic10-test/test/mirror.test.ts`. No script in `ic10/` uses a mirror yet. Reading the
+    DLL also found G18: reading a logic type a device can't read was only a warning, where the game
+    halts the chip. Fixed in the fork (your decision); no script test changed, so no script did it.
 
 Suggested first regression tests (Phase 4):
 

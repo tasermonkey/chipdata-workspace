@@ -4,6 +4,7 @@ import { modPrefabs } from "../catalog/mods.ts";
 import { type DebugGate, getDefaultDebugGate } from "../debug/gate.ts";
 import { buildEngine, type Engine, type EngineDeviceSpec, type EngineHousingSpec } from "../engine/build.ts";
 import { hasDeviceData, isCatalogued } from "../engine/device.ts";
+import { MIRROR_PREFAB } from "../engine/mirror.ts";
 import { parseId, type ReferenceId } from "../engine/ids.ts";
 import { ChipState, Scheduler } from "../scheduler/scheduler.ts";
 import { readScript } from "../scripts.ts";
@@ -78,6 +79,20 @@ export interface DeviceOptions extends AttachOptions {
 	custom?: boolean;
 }
 
+/** A Logic Mirror: where it is, and the device on another network it stands in for. */
+export interface MirrorOptions {
+	/** Key of the device it stands in for. Left out: none chosen yet, so reads and writes halt the chip. */
+	target?: string;
+	/** Data network it's on, where chips see it. May be left out when the world has one network. */
+	network?: string;
+	/** Reference ID: a number or the game's `$hex` form. Default: the next one in a fixed sequence. */
+	id?: ReferenceId;
+	/** In-game name, for `lbn` / `sbn`. Default: the prefab name. */
+	name?: string;
+	/** Whether it has power. Default true. Unpowered, reads are 0 and writes are dropped. */
+	powered?: boolean;
+}
+
 export type Pin = "d0" | "d1" | "d2" | "d3" | "d4" | "d5";
 
 /** A chip housing and its program: exactly one of `file` or `code`. */
@@ -106,6 +121,7 @@ interface DeviceDecl {
 	props: Record<string, number>;
 	options: DeviceOptions;
 	housing?: HousingOptions<KnownPrefab>;
+	mirror?: MirrorOptions;
 }
 
 /** First automatic reference ID; later ones count up, skipping any given explicitly. */
@@ -161,6 +177,23 @@ export class SimBuilder {
 		return this;
 	}
 
+	/**
+	 * Add a Logic Mirror (`StructureLogicMirror`): on its own network it stands in for `target`, a
+	 * device on another, as in game. `l` / `s` (and `ld` / `sd` with the mirror's ID) read and write
+	 * the target, `PrefabHash` and `ReferenceId` included; batch instructions see a Logic Mirror.
+	 */
+	mirror(key: string, options: MirrorOptions = {}): this {
+		const { id, name, network } = options;
+		this.decls.push({
+			key,
+			prefab: MIRROR_PREFAB,
+			props: {},
+			options: { ...(id !== undefined && { id }), ...(name !== undefined && { name }), ...(network !== undefined && { network }) },
+			mirror: options,
+		});
+		return this;
+	}
+
 	/** Add a chip housing running a program, with devices on its pins. */
 	housing<P extends KnownPrefab = "StructureCircuitHousing">(key: string, options: HousingOptions<P>): this {
 		this.decls.push({
@@ -186,6 +219,7 @@ export class SimBuilder {
 		for (const decl of this.decls) {
 			if (keys.has(decl.key)) throw new Error(`sim: "${decl.key}" is declared twice`);
 			keys.add(decl.key);
+			if (decl.mirror) continue;
 			if (decl.housing && decl.options.custom) {
 				throw new Error(`sim: housing "${decl.key}": a housing can't be custom`);
 			}
@@ -213,6 +247,7 @@ export class SimBuilder {
 				network: this.networkOf(decl, networks),
 				props: decl.props,
 				...(modPrefabs().has(decl.prefab) && { mod: modPrefabs().get(decl.prefab)! }),
+				...(decl.mirror && { mirror: this.mirrorSpec(decl.key, decl.mirror, ids) }),
 			};
 			if (!decl.housing) return base;
 			const pins: Record<string, number> = {};
@@ -266,6 +301,15 @@ export class SimBuilder {
 			};
 		});
 		return assembleWorld(engine, entries, chips, opts, this.atmospheres);
+	}
+
+	private mirrorSpec(key: string, mirror: MirrorOptions, ids: Map<string, number>): NonNullable<EngineDeviceSpec["mirror"]> {
+		const powered = mirror.powered ?? true;
+		if (mirror.target === undefined) return { powered };
+		if (mirror.target === key) throw new Error(`sim: mirror "${key}" can't be its own target`);
+		const target = ids.get(mirror.target);
+		if (target === undefined) throw new Error(`sim: mirror "${key}" { target }: no device "${mirror.target}"`);
+		return { target, powered };
 	}
 
 	/** The pipes and room a device is attached to, or undefined if none. */

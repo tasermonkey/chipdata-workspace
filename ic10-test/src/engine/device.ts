@@ -79,7 +79,10 @@ export class CustomDevice extends Structure {
 /** Whether the device has a logic property of this name (readable or writable). */
 export function hasProp(device: Device, prop: string): boolean {
 	const props = device.hasProps ? device.props : undefined;
-	return !!props && (props.canLoad(prop) || props.canStore(prop));
+	if (!props) return false;
+	// A device whose logic goes through hooks (a Logic Mirror) answers canLoad for another device.
+	if (props.hooks) return (device.rawData?.logics ?? []).some((logic) => logic.name === prop);
+	return props.canLoad(prop) || props.canStore(prop);
 }
 
 function requireProp(device: Device, prop: string): void {

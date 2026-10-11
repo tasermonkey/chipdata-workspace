@@ -6,6 +6,7 @@
  */
 import { type Device, type Ic10Error, Logics } from "@stationeers-ic/ic10";
 import { formatId } from "./ids.ts";
+import { mirroredErrors, NO_TARGET_MESSAGE } from "./mirror.ts";
 
 const NOT_FOUND = /^Device -?\d+ property (\S+) not found$/;
 const NO_PERMISSION = /^Device -?\d+ has no permission to (read|write) (\S+)$/;
@@ -43,9 +44,15 @@ function list(names: string[]): string {
 export function describePropertyError(error: Ic10Error, keyOf: (id: number) => string | undefined): string | undefined {
 	const device = error.device;
 	if (!device) return undefined;
-	const prefab = device.prefabName?.value ?? `prefab hash ${device.hash}`;
-	const key = keyOf(device.id);
-	const who = key ? `"${key}" (${prefab} ${formatId(device.id)})` : `${prefab} ${formatId(device.id)}`;
+	const name = (d: Device) => {
+		const prefab = d.prefabName?.value ?? `prefab hash ${d.hash}`;
+		const key = keyOf(d.id);
+		return key ? `"${key}" (${prefab} ${formatId(d.id)})` : `${prefab} ${formatId(d.id)}`;
+	};
+	if (error.message === NO_TARGET_MESSAGE) return `${name(device)} has no target, so nothing can be read or written through it`;
+	// An error a Logic Mirror passed on from its target names the target, through the mirror.
+	const mirror = mirroredErrors.get(error);
+	const who = mirror ? `${name(mirror)} → ${name(device)}` : name(device);
 	const names = propertyNames(device);
 
 	const known = (label: string, which: keyof NonNullable<typeof names>) => (names ? `; ${label} ${list(names[which])}` : "");

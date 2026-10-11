@@ -10,6 +10,7 @@ import {
 	writeSlot,
 } from "../engine/device.ts";
 import { formatId } from "../engine/ids.ts";
+import { LogicMirror } from "../engine/mirror.ts";
 import type { EnvSchema } from "@stationeers-ic/ic10";
 import { describeChip, SimBudgetError, SimRunError } from "../scheduler/errors.ts";
 import type { AutoYield, ChipState, Halt, Scheduler, TraceEntry } from "../scheduler/scheduler.ts";
@@ -162,6 +163,52 @@ export class DeviceHandle {
 	/** One of the device's slots, for `ls` / `ss`. Throws if the device has no such slot. */
 	slot(index: number): SlotHandle {
 		return new SlotHandle(this.entry.device, index);
+	}
+}
+
+/**
+ * A Logic Mirror (`sim().mirror()`). It has no logic values of its own to get or set: chips read
+ * and write its target through it, so read the target's handle instead.
+ */
+export class MirrorHandle extends DeviceHandle {
+	private get mirror(): LogicMirror {
+		return this.raw as LogicMirror;
+	}
+
+	/** The device it stands in for, or undefined. */
+	get target(): DeviceHandle | undefined {
+		const target = this.mirror.target;
+		return target && this.world.deviceById(target.id);
+	}
+
+	/** Point it at another device, by key, as a screwdriver does in game; undefined for none. */
+	setTarget(key: string | undefined): this {
+		this.mirror.target = key === undefined ? undefined : this.world.device(key).raw;
+		return this;
+	}
+
+	get powered(): boolean {
+		return this.mirror.powered;
+	}
+
+	/** Power it or cut its power. Unpowered, reads through it are 0 and writes are dropped. */
+	setPowered(powered: boolean): this {
+		this.mirror.powered = powered;
+		return this;
+	}
+
+	override get(prop: string): number {
+		throw new Error(this.ownValues(prop));
+	}
+
+	override set(prop: string, _value: number): this {
+		throw new Error(this.ownValues(prop));
+	}
+
+	private ownValues(prop: string): string {
+		const target = this.target;
+		const instead = target ? `; use world.device("${target.key}").${prop}` : "";
+		return `"${this.key}" is a Logic Mirror: it has no ${prop} of its own${instead}`;
 	}
 }
 
@@ -438,7 +485,10 @@ export class World {
 	constructor(devices: DeviceEntry[], events: EventQueue, atmospheres: AtmosphereEntry[], options: WorldOptions) {
 		this.events = events;
 		this.options = options;
-		for (const entry of devices) this.devices.set(entry.key, new DeviceHandle(this, entry));
+		for (const entry of devices) {
+			const handle = entry.device instanceof LogicMirror ? new MirrorHandle(this, entry) : new DeviceHandle(this, entry);
+			this.devices.set(entry.key, handle);
+		}
 		for (const entry of atmospheres) this.atmospheres.set(entry.key, entry);
 	}
 
@@ -486,6 +536,13 @@ export class World {
 	device(key: string): DeviceHandle {
 		const handle = this.devices.get(key);
 		if (!handle) throw new Error(`no device "${key}" (devices: ${[...this.devices.keys()].join(", ")})`);
+		return handle;
+	}
+
+	/** A Logic Mirror, by key. */
+	mirror(key: string): MirrorHandle {
+		const handle = this.device(key);
+		if (!(handle instanceof MirrorHandle)) throw new Error(`"${key}" is a ${handle.prefab}, not a Logic Mirror`);
 		return handle;
 	}
 

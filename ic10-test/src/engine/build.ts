@@ -10,6 +10,7 @@ import {
 import { EngineChip } from "./chip.ts";
 import type { CatalogPrefab } from "../catalog/catalog.ts";
 import { CustomDevice, isCatalogued, listProps, registerModPrefab, writeProp, writePropIfPresent } from "./device.ts";
+import { LogicMirror } from "./mirror.ts";
 
 export interface EngineDeviceSpec {
 	/** Test-side key, used in error messages. */
@@ -22,6 +23,8 @@ export interface EngineDeviceSpec {
 	props: Record<string, number>;
 	/** A mod's device (data/mods/), registered with the emulator before it's built. */
 	mod?: CatalogPrefab;
+	/** A Logic Mirror: the reference ID of its target (none: no target yet), and whether it's powered. */
+	mirror?: { target?: number; powered: boolean };
 }
 
 export interface EngineHousingSpec extends EngineDeviceSpec {
@@ -85,6 +88,10 @@ export function buildEngine(spec: EngineSpec): Engine {
 	const keyOf = (id: number) => keys.get(id) ?? String(id);
 	const builder = parseEnv(env, keyOf);
 	if (custom.size > 0) addCustomDevices(builder, [...custom.values()], spec.housings);
+	for (const device of spec.devices) {
+		if (device.mirror?.target === undefined) continue;
+		(builder.Devices.get(device.id) as LogicMirror).target = builder.Devices.get(device.mirror.target);
+	}
 	const engine = prepareEngine(builder, spec.seed, keyOf);
 
 	// A housing's own properties are written after its chip is reset, with the harness's messages.
@@ -129,7 +136,14 @@ function addCustomDevices(builder: Builder, devices: EngineDeviceSpec[], housing
 			throw new Error(`sim: "${spec.key}": ${spec.prefab} is in the emulator's catalogue, so it can't be custom`);
 		}
 		if (spec.mod) registerModPrefab(spec.mod);
-		const device = new CustomDevice(spec.id, spec.prefab);
+		let device: CustomDevice;
+		if (spec.mirror) {
+			const mirror = new LogicMirror(spec.id);
+			mirror.powered = spec.mirror.powered;
+			device = mirror;
+		} else {
+			device = new CustomDevice(spec.id, spec.prefab);
+		}
 		if (spec.name !== undefined) device.name = spec.name;
 		builder.Networks.get(spec.network)!.apply(device);
 		for (const [prop, value] of Object.entries(spec.props)) {

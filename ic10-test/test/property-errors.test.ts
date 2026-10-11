@@ -28,12 +28,9 @@ describe("property errors name the device and what it has", () => {
 		);
 	});
 
-	it("reading one it doesn't have (a warning: the chip carries on), listing the first 16", async () => {
-		const { halt, errors } = await messages("l r0 d0 Activate\nyield", { d0: "vent" });
-		expect(halt).toBeUndefined();
-		expect(errors).toEqual([
-			expect.stringMatching(/^"vent" \(StructureActiveVent \$1002\) has no logic type Activate; it has CombustionOutput, .* and \d+ more$/),
-		]);
+	it("reading one it doesn't have (the chip halts, as in game), listing the first 16", async () => {
+		const { halt } = await messages("l r0 d0 Activate\nyield", { d0: "vent" });
+		expect(halt).toMatch(/^"vent" \(StructureActiveVent \$1002\) has no logic type Activate; it has CombustionOutput, .* and \d+ more$/);
 	});
 
 	it("in a batch write, naming one of the devices", async () => {

@@ -57,8 +57,35 @@ the device and says what it does have, in halt messages, `toHaveNoErrors` and `t
 "battery" (StationBatteryNuclear $1001) can't write Ratio: it's read-only; writable: Lock, On
 ```
 
-(The emulator's own message was "Device -236516384 property 38 not found".) As in the emulator, a
-bad write halts the chip and a bad read is a warning, which `toHaveNoErrors` still reports.
+(The emulator's own message was "Device -236516384 property 38 not found".) As in game, a
+bad write or a bad read halts the chip.
+
+## Logic Mirror
+
+A Logic Mirror (`StructureLogicMirror`) on one data network stands in for a target device on
+another. Declare it with `.mirror`:
+
+```ts
+sim()
+	.network("base")
+	.network("outside")
+	.device("sensor", "StructureGasSensor", { RatioNitrogen: 0.7 }, { network: "outside" })
+	.mirror("mirror", { target: "sensor", network: "base" }) // powered: true by default
+	.housing("ic", { code: "l r0 d0 RatioNitrogen\nyield", network: "base", pins: { d0: "mirror" } })
+```
+
+It follows the game's code (plan §5.4):
+- `l`/`s` on its pin, and `ld`/`sd` with the mirror's own ID, read and write the target.
+  `PrefabHash` and `ReferenceId` read through it are the target's.
+- Unpowered (`world.mirror("mirror").setPowered(false)`), reads are 0 and writes are dropped.
+- With no target, `ls`/`ss` through it, or a logic type the target lacks, the chip halts. The
+  message names both: `"mirror" (StructureLogicMirror $1003) → "sensor" (StructureGasSensor $1001)
+  has no logic type Setting; …`.
+- Batch instructions see a Logic Mirror, not the target, and the target's own ID isn't on the
+  mirror's network.
+
+`world.mirror(key)` has `target`, `setTarget(key | undefined)`, `powered` and `setPowered`. A mirror
+has no logic values of its own, so `get`/`set` on it throw; use the target's handle.
 
 ## Execution model
 
@@ -109,6 +136,7 @@ fails at once if every chip has stopped and no events are due.
 - `world.chip(key)`: `reg("Stage" | "r15")`, `setReg`, `registers()`, `aliases()`, `stack()`, `stackAt(i)`,
   `sp`, `ra`, `line`, `findLabel`, `errors`, `halt`, `ended`, `sleeping`, `switchedOff`, `restarts`, `autoYields`,
   `autoYieldLog`, `pins`, `status`, `recentLines(n)`, `db`.
+- `world.mirror(key)`: a Logic Mirror's `target`, `setTarget`, `powered`, `setPowered` (see "Logic Mirror").
 - `world.listDevices()`, `world.listChips()`, `world.deviceById(id)`.
 - `world.network(id).byName(...)` / `.byType(...)`.
 - `world.snapshot()` / `world.diff(before)`; `world.record("vent.On")` samples a value every tick.
@@ -124,7 +152,7 @@ Add `@tasermonkey/ic10-test/vitest` (in this repo, `./ic10-test/src/matchers/vit
 | `toHaveRegisterCloseTo(name, v, digits = 2)` | chip | Within `10^-digits / 2`. |
 | `toHaveStack([...])` / `toHaveStackAt(i, v)` | chip | The stack below `sp` / one entry. |
 | `toBeAtLine(index | label)` | chip | It runs that line next, or halted on it. |
-| `toHaveNoErrors({ severity })` | chip | Not halted, and no errors at or above `severity` (default `"warning"`, which includes reading a property a device doesn't have). |
+| `toHaveNoErrors({ severity })` | chip | Not halted, and no errors at or above `severity` (default `"warning"`, such as an alias that hides a built-in constant). |
 | `toHaveHalted({ line, error, code })` | chip | Halted, optionally on that line with a matching message (string or RegExp) or code. |
 | `toOnlyChange(paths, { since })` | world, or `world.diff(...)` | Nothing else changed. Paths can use aliases (`ic.Stage`) and `*`. A housing's `LineNumber` is ignored unless listed. |
 | `toToggleAtMost(n)` | `world.record(...)` | The value changed at most `n` times. |
