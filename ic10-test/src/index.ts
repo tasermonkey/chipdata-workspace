@@ -1,4 +1,27 @@
 export {
+	GASES,
+	type GasAmounts,
+	type GasInfo,
+	type GasName,
+	GRID_VOLUME,
+	gasInfo,
+	IDEAL_GAS_CONSTANT,
+	isGasName,
+	LIQUID_PIPE_VOLUME,
+	ONE_ATMOSPHERE,
+	PIPE_VOLUME,
+} from "./atmos/gases.ts";
+export {
+	type Atmosphere,
+	exchangeHeat,
+	type GasParcel,
+	Mixture,
+	type MixtureInit,
+	type PressureInit,
+	Reservoir,
+	type ReservoirInit,
+} from "./atmos/mixture.ts";
+export {
 	type Access,
 	type Catalog,
 	type CatalogDescription,

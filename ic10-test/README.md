@@ -203,6 +203,30 @@ writable for a store, or in a slot for the slot forms. It reports a `HASH()` of 
 too. A type in a register, or a logic type given as a number, is skipped. It returns findings with
 0-based lines; the workspace's `tests/scripts-batch-ops.test.ts` runs it over every script.
 
+## Atmospheres
+
+The gas core (`src/atmos/`) models gas plausibly rather than exactly: an ideal gas, mixed
+perfectly, with no phase changes. Its constants and each gas's specific heat come from the game's
+`Assembly-CSharp.dll` (`R` 8.3144, a pipe segment 10 L, a grid cell 8000 L). A gas's name is also
+its logic type suffix (`Ratio${name}`).
+
+```ts
+const waste = new Mixture({ volume: 20 * PIPE_VOLUME, temperature: 400, gases: { CarbonDioxide: 30 } });
+const air = Mixture.fromPressure({ volume: 8000, temperature: 293, pressure: 101.3, ratios: { Nitrogen: 7, Oxygen: 3 } });
+const outside = new Reservoir({ temperature: 150, pressure: 20, ratios: { CarbonDioxide: 95, Nitrogen: 5 } });
+
+waste.pressure;                  // kPa, from P = nRT/V
+waste.merge(outside.take(2));    // 2 mol of outside air; temperatures mix by heat capacity
+exchangeHeat(waste, air, 0.1);   // 10% of the way to a shared temperature, energy conserved
+```
+
+- `Mixture` is a pipe network or sealed room: `moles`, `ratio`, `pressure`, `temperature`,
+  `heatCapacity`, `add`, `take`, `takeGas`, `merge`, `addHeat`, `setTemperature`.
+- `Reservoir` is outside air too big to change: gas taken comes out at its composition, gas and
+  heat put in vanish, and `set({ temperature, pressure, ratios })` changes the weather.
+- Liquids count toward moles and ratios, not pressure. Gases don't condense or boil yet (they do
+  in game); that's planned for later.
+
 ## Env files
 
 `World.fromEnv(env, options)` builds a world from the emulator's env JSON: an object, JSON text, or a

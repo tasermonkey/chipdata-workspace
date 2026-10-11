@@ -631,7 +631,7 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 | **5 Catalogue** | §6 sources (game, fork data, Stationpedia export, wiki `Special:Export` import), generated `.d.ts`, CLI lookup, runtime surfacing, static batch-op checks. | Mistyped properties in tests fail to compile, and every script's batch instructions are checked against the catalogue. (Originally "1.4-style misuse is flagged", which a catalogue check can't do; see §6.) |
 | **6 World behaviour** | §5 model library, pipe and room atmospheres, and the Logic Mirror proxy device (§5.4). | An Alaska Cooler test cools a pipe over N ticks through the vent model. |
 | **7 VS Code debugger** | §6b. Build the adapter and a small extension in `ic10-test/vscode/`, reusing vscode-ic10's grammar and adapter pieces. Add the CodeLens on tests and the scopes from the table. | Breakpoint in an `.ic10` file, "Debug IC10" on a test, step line by line, and watch registers and `vent.On` change. |
-| **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, and extracting `ic10-test/` to its own repo. | — |
+| **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, phase changes in the gas core (condensing and boiling from the game's per-gas curves, with latent heat; e.g. an Alaska coolant pipe left full in the cold), and extracting `ic10-test/` to its own repo. | — |
 
 **Status (2026-10-08):**
 - **Phase 0 is done.** The fork has been converted (CI passes). The root npm workspace uses
@@ -697,7 +697,8 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     - Tanks no longer have logic in the current game (a tank just adds volume to its pipe network),
       so the air mixers now read pipe analyzers: "PA Nitrogen", "PA CO2", "PA O2" and
       "PA Breathable Air", alongside the existing "PA N-CO2".
-    - 1.3 (Alaska vent modes) still needs an in-game check.
+    - 1.3 (Alaska vent modes) still needs an in-game check. (Settled in Phase 6 from the
+      Stationpedia text, and fixed.)
 
   - Behaviour tests for the short scripts (60 lines or fewer): Mars CO2, Grow Lights, Filter
     Controller MKI, Nitrice Crusher (its chip is in a filtration unit), Cold Night Extraction, the
@@ -730,7 +731,7 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     the test pins 9921.
 
 - **Phase 4 is done (2026-10-10).** The §1 review bugs are covered and fixed, apart from 1.3 (Alaska
-  vent modes), which needs an in-game check. Afterwards, also test-first: review 2.5 (Battery
+  vent modes), which needs an in-game check (fixed in Phase 6). Afterwards, also test-first: review 2.5 (Battery
   Control and Battery Controller 1 read only "Base CA") and 2.2 in CoolCleanMarsAir and Alaska
   (`EMPTY_KPA`). Then the rest of §2: 2.10 (Suit MKII stops heating and cooling at the setting),
   and 2.9, which turned out to be missed presses rather than repeated ones. A button press is a
@@ -779,6 +780,33 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 - **Phase 5 is done (2026-10-11).** Deferred: the wiki import (§6), and typing property names on
   handles after `build()` (`world.device("vent").set(…)`, `toHaveProps`), which would need the
   builder to remember each key's prefab. Next is Phase 6, world behaviour (§5).
+
+- **Phase 6 (from 2026-10-11).** Decisions:
+  - Heat: mixing and heat transfer use each gas's specific heat from the game, read once from
+    `Assembly-CSharp.dll` and committed as a small table.
+  - A device attached to a pipe or room reads its port values (`Pressure`, `PressureOutput`,
+    `RatioNitrogenInput`, …) from that atmosphere. Setting one of them on the device by hand is an
+    error that says to change the pipe instead. Devices with nothing attached work as before.
+  - Models are plausible, with rates a test can tune; defaults come from the game's DLL where
+    they're easy to find.
+  - Tests that move to atmospheres: Alaska, CoolCleanMarsAir, both Cooling Air Management scripts
+    and Cold Night Extraction. The rest keep setting values by hand.
+  - The Larre model moves into the shared library, rebuilt on the model API, with its guesses
+    written down.
+  - Order: 1.3 fix, the gas core, pipes and rooms in the world, the model API, vents and a heat
+    exchange model (then the Alaska test), the rest of the library, the Logic Mirror, docs.
+  - The Stationpedia export has `StructureLogicMirror` (a real hash, no logic types, no
+    description), so §5.4's "neither source has it" only holds for the fork's data.
+  - Review 1.3 (Alaska vent modes) is fixed. It was settled by the game's Stationpedia text for the
+    Active Vent ("'Outward' … pump gas into a space; 'Inward' … pump gas out"; Mode 0 Outward,
+    1 Inward), with no in-game check needed. Cooling now draws outside air into the coolant pipe
+    (Mode 1), and stopping empties it back outside (Mode 0). Two tests failed first.
+  - The gas core is done (`ic10-test/src/atmos/`): `Mixture` (a pipe or sealed room),
+    `Reservoir` (outside air too big to change) and `exchangeHeat`. From the game's DLL: each
+    gas's specific heat (`Chemistry.SpecificHeat`), R = 8.3144, a pipe segment 10 L, a grid cell
+    8000 L, one atmosphere 101.325 kPa. The 28 gases match the catalogue's `Ratio<Gas>` logic
+    types one for one, and a test pins that. Liquids count toward moles and ratios, not pressure.
+    Gases don't change phase yet, unlike in game; that moves to Phase 8 (your decision).
 
 Suggested first regression tests (Phase 4):
 
