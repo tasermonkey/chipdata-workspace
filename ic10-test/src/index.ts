@@ -8,6 +8,7 @@ export {
 	loadCatalog,
 	prefabInfo,
 } from "./catalog/catalog.ts";
+export { type BatchOpCatalog, type BatchOpFinding, type BatchOpProblem, checkBatchOps } from "./lint/batch-ops.ts";
 export * from "./matchers/checks.ts";
 export { chipReport, deviceReport, worldReport } from "./matchers/report.ts";
 export { type DebugGate, type DebugLineInfo, setDefaultDebugGate } from "./debug/gate.ts";

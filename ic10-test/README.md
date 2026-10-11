@@ -171,6 +171,15 @@ canAccess(vent!, "PressureInternal", "r");
 loadCatalog().logicTypes.On;                       // { text: "The current state of the device, 0 for off, 1 for on", source: "game" }
 ```
 
+## Checking scripts without running them
+
+`checkBatchOps(source, loadCatalog())` checks a script's batch instructions (`lb`, `lbn`, `lbs`,
+`lbns`, `sb`, `sbn`, `sbs`) against the catalogue: for a device type it can resolve (`HASH("…")`, a
+hash number, or a define of either), the prefab must have the logic type, readable for a load and
+writable for a store, or in a slot for the slot forms. It reports a `HASH()` of an unknown prefab
+too. A type in a register, or a logic type given as a number, is skipped. It returns findings with
+0-based lines; the workspace's `tests/scripts-batch-ops.test.ts` runs it over every script.
+
 ## Env files
 
 `World.fromEnv(env, options)` builds a world from the emulator's env JSON: an object, JSON text, or a

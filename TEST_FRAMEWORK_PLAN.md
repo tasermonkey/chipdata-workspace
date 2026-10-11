@@ -544,10 +544,12 @@ We follow CC BY-SA, the simpler of the two:
 2. **Runtime validation.** When a script reads or writes a property the device doesn't have, or
    writes a read-only one, it's reported with the line number. The emulator already enforces
    permissions; the harness surfaces it clearly.
-3. **Static validation, no test needed.** For `lb`/`sb`/`lbn`/`sbn`/`lbs` with a literal
-   `HASH("StructureX")`, check that the property exists on that prefab and has the right permission.
-   This would have flagged review item 1.4, which reads the vent setting `PressureInternal` where a
-   measurement was intended.
+3. **Static validation, no test needed.** For `lb`/`sb`/`lbn`/`sbn`/`lbs`/`lbns`/`sbs` whose device
+   type is a known prefab (`HASH("StructureX")`, a hash number, or a define of either), check that
+   the property exists on that prefab and has the right permission. This was first said to flag
+   review item 1.4, but it can't: 1.4 read through a pin (`l`), whose device a static check can't
+   know, and `PressureInternal` is a real, readable vent property; the bug was reading a setting
+   where a measurement was meant, which the catalogue can't tell apart.
 4. **A CLI lookup:** `npx ic10-test props StructureFiltration` prints a table of name, R/W and
    description.
 
@@ -626,7 +628,7 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 | **2 Harness core** | Workspace layout, engine adapter, World builder, tick scheduler with 128-line auto-yield, budgets, halt-on-error, accessors with aliases, snapshots and history. Scripted events (§5.1) and the debug gate (§6b) start here too, since later phases depend on them. | The VCCR test in §4.4 passes. An infinite `runUntil` fails with a trace in milliseconds. |
 | **3 Matchers and reports** | §4.6, including the auto-yield matchers and failure reports. | Failure output is readable without a debugger. |
 | **4 Tests for your scripts** | Write failing regression tests for [CODE_REVIEW.md](CODE_REVIEW.md) §1 first, then fix the scripts. Then add behaviour tests for the simpler scripts. | The review bugs are covered and fixed. |
-| **5 Catalogue** | §6 sources (game, fork data, Stationpedia export, wiki `Special:Export` import), generated `.d.ts`, CLI lookup, runtime surfacing, static batch-op checks. | Mistyped properties in tests fail to compile, and 1.4-style misuse is flagged. |
+| **5 Catalogue** | §6 sources (game, fork data, Stationpedia export, wiki `Special:Export` import), generated `.d.ts`, CLI lookup, runtime surfacing, static batch-op checks. | Mistyped properties in tests fail to compile, and every script's batch instructions are checked against the catalogue. (Originally "1.4-style misuse is flagged", which a catalogue check can't do; see §6.) |
 | **6 World behaviour** | §5 model library, pipe and room atmospheres, and the Logic Mirror proxy device (§5.4). | An Alaska Cooler test cools a pipe over N ticks through the vent model. |
 | **7 VS Code debugger** | §6b. Build the adapter and a small extension in `ic10-test/vscode/`, reusing vscode-ic10's grammar and adapter pieces. Add the CodeLens on tests and the scopes from the table. | Breakpoint in an `.ic10` file, "Debug IC10" on a test, step line by line, and watch registers and `vent.On` change. |
 | **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, and extracting `ic10-test/` to its own repo. | — |
@@ -762,6 +764,10 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     flip-cover switch it used has no `Color`. At compile time, `catalog:build` also writes
     `generated/prefab-props.ts`, so `sim().device()` and `.housing()` props are type-checked, with
     descriptions in hovers; `ic10-test/test/prefab-props.typecheck.ts` pins that typos fail.
+  - Step 3 is done: `checkBatchOps` (`ic10-test/src/lint/`) and `tests/scripts-batch-ops.test.ts`,
+    which runs it over every script. It checks 263 of the 286 batch instructions (the other 23 take
+    their device type from a register) and finds nothing, in the current scripts and in the
+    originals before Phase 4. It guards new code; it couldn't have caught review 1.4 (see §6).
 
 Suggested first regression tests (Phase 4):
 
