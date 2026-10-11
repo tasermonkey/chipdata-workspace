@@ -974,6 +974,16 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     - Step Out counts calls and `j ra`s, since an inner call can return with the same `sp` the step
       started at. It stops after the function's own return.
     - A function that returns some other way (`jr`, a jump to a label) can still confuse Step Out.
+  - Step 4 is done: attaching from Vitest. When `IC10_DEBUG=<port>` is set, the setup file
+    connects to the adapter (`attachDebugger`, `ic10-test/src/debug/attach.ts`) and makes its agent
+    the default gate. Tests need no changes. If the debugger goes away, the test runs on.
+    - Checked on Vitest 5: `vitest run <file>:<line>` selects the `it` starting on that line, also
+      with an absolute Windows path, and `--testTimeout=0` turns the timeout off (the default
+      failed a 7 s test at 5 s). No test in `tests/` sets its own timeout.
+    - `ic10-test/test/debug-attach.test.ts` runs a fixture test in a child Vitest against a real
+      socket. It stops at a breakpoint, steps, sets a register (which makes the test's expectation
+      fail, so the edit really reaches the test), continues, and checks that the run ends with
+      "terminated" and only that test run.
 
 Suggested first regression tests (Phase 4):
 

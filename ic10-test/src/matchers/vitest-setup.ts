@@ -5,7 +5,7 @@
  * test: { setupFiles: ["@tasermonkey/ic10-test/vitest"] }
  * ```
  */
-import { expect, type MatcherState } from "vitest";
+import { afterAll, expect, type MatcherState } from "vitest";
 import {
 	type AutoYieldOptions,
 	checkAutoYieldAtMost,
@@ -100,3 +100,12 @@ export const ic10Matchers = {
 };
 
 expect.extend(ic10Matchers);
+
+// Launched by the VS Code debugger (IC10_DEBUG=<port>): connect to it, so this file's worlds can be
+// stepped through. Tests need no changes.
+const debugAddress = process.env.IC10_DEBUG;
+if (debugAddress) {
+	const { attachDebugger } = await import("../debug/attach.ts");
+	const attached = await attachDebugger(debugAddress);
+	afterAll(() => attached.close());
+}

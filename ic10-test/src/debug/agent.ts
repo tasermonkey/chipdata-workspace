@@ -112,6 +112,17 @@ export class DebugAgent {
 		this.event({ event: "terminated" });
 	}
 
+	/** The adapter has gone: stop nothing more, and let a stopped or waiting test run on. */
+	detach(): void {
+		this.breakpoints.clear();
+		this.filters = { halt: false, autoYield: false };
+		if (!this.configured) {
+			this.configured = true;
+			this.markConfigured();
+		}
+		this.carryOn({ kind: "run" });
+	}
+
 	// --- the gate --------------------------------------------------------------------------------
 
 	private beforeLine(info: DebugLineInfo): void | Promise<void> {

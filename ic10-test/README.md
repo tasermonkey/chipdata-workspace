@@ -388,6 +388,12 @@ keep their starting registers and stack, and take the same options as `sim()`.
 line, on halts, on automatic yields, after each tick and after each scripted event. The VS Code debugger
 will attach through this.
 
+When `IC10_DEBUG` is set (`port` or `host:port`), the Vitest setup file (`@tasermonkey/ic10-test/vitest`)
+connects to the debugger there before the tests run and makes its agent the default gate
+(`attachDebugger`), so tests need no changes. Each test is held back until the debugger has set its
+breakpoints. If the debugger goes away, the test runs on without stopping. The debugger runs one test at a
+time with Vitest's `file:line` filter and `--testTimeout=0`, so a paused test doesn't time out.
+
 `DebugAgent` is the debugger's side in the test process: a gate (`agent.gate`) that talks to the VS Code
 adapter over a `Transport`, using the protocol in `src/debug/protocol.ts` (exported as
 `@tasermonkey/ic10-test/debug-protocol`). It decides in the test process where to stop: breakpoints by file

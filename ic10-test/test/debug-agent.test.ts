@@ -432,6 +432,17 @@ describe("debug agent", () => {
 		expect((await adapter.request("source", { sourceRef: 2 })).content).toBe("move r0 1\nyield");
 	});
 
+	it("lets a stopped test run on when the debugger goes away", async () => {
+		const { adapter, agent, world, file, ic } = await debugged();
+		await adapter.request("setBreakpoints", { path: file, breakpoints: [{ line: 3 }] });
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(3);
+		await adapter.nextStop();
+		agent.detach();
+		await run;
+		expect(ic.reg("Stage")).toBe(3);
+	});
+
 	it("answers a bad request with an error", async () => {
 		const { adapter } = await debugged();
 		await expect(adapter.request("stackTrace", { thread: 99 })).rejects.toThrow("no thread 99");

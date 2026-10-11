@@ -1,0 +1,5 @@
+alias Count r0
+loop:
+add Count Count 1
+yield
+j loop
