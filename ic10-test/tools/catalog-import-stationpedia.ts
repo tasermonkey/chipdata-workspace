@@ -1,7 +1,8 @@
 /**
- * Regenerates ic10-test/data/mods/prefabs.json from the Stationpedia export: every prefab with logic
- * that the emulator's game data doesn't have (mods' devices), with its logic types, slots and modes.
- * Run after a game update or a mod change, then commit the file.
+ * Regenerates this machine's file of mods' devices, ic10-test/data/mods/<machine id>.json, from the
+ * Stationpedia export: every prefab with logic that the emulator's game data doesn't have, with its
+ * logic types, slots and modes. Run after a game update or a mod change, then commit that file.
+ * Each machine writes only its own file, so the files never conflict; the loader reads them all.
  *
  *   npm run catalog:import-stationpedia [-- <Stationpedia folder>]
  *
@@ -15,7 +16,10 @@ import { dirname, join } from "node:path";
 import { DEVICES } from "@stationeers-ic/ic10";
 import type { CatalogPrefab } from "../src/catalog/catalog.ts";
 import { type StationpediaPage, stationpediaPrefab, logicDifferences } from "../src/catalog/stationpedia.ts";
-import { MODS_FILE, stationpediaDir } from "./game-paths.ts";
+import { ownModsFile, readInstalledMods } from "../src/catalog/mods.ts";
+import { stationpediaDir, workshopDir } from "./game-paths.ts";
+
+const MODS_FILE = ownModsFile();
 
 const dir = process.argv[2] ?? stationpediaDir();
 if (!dir || !existsSync(join(dir, "Stationpedia.json"))) {
@@ -37,10 +41,13 @@ const changed = mods.filter((p) => old.has(p.prefab) && old.get(p.prefab) !== JS
 const removed = before.map((p) => p.prefab).filter((name) => !mods.some((p) => p.prefab === name));
 
 await mkdir(dirname(MODS_FILE), { recursive: true });
-const file = { gameVersion: stationpedia.version, prefabs: mods };
+const workshop = workshopDir(dirname(dir));
+if (!workshop) console.warn("No Steam workshop folder found for the game; installedMods will be empty.");
+const installedMods = workshop ? readInstalledMods(workshop) : [];
+const file = { gameVersion: stationpedia.version, installedMods, prefabs: mods };
 await writeFile(MODS_FILE, `${JSON.stringify(file, null, "\t")}\n`);
 
-console.log(`${mods.length} mod prefabs (game ${stationpedia.version}) → ${MODS_FILE}`);
+console.log(`${mods.length} mod prefabs, ${installedMods.length} workshop mods (game ${stationpedia.version}) → ${MODS_FILE}`);
 const list = (names: string[]) => (names.length ? names.join(", ") : "none");
 console.log(`  added: ${list(added)}\n  changed: ${list(changed)}\n  removed: ${list(removed)}`);
 

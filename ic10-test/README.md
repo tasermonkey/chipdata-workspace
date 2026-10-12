@@ -186,9 +186,9 @@ sim().housing("ac", { code, prefab: "StructureAirConditioner", props: { Temperat
 A prefab in a variable needs the `KnownPrefab` type (or `as const` on a list of names);
 `PropsOf<"StructureActiveVent">` is one prefab's properties. A `custom` device takes any names.
 
-- **Prefabs** come from the emulator's game data, plus mods' devices in `data/mods/prefabs.json`
+- **Prefabs** come from the emulator's game data, plus mods' devices in `data/mods/*.json`
   (console parts, `StationBatteryNuclear`, mirror-image layouts such as
-  `StructureAirConditionerMirrored`, …), which is committed.
+  `StructureAirConditionerMirrored`, …), which are committed: one file per machine's export.
 - **Descriptions** come from a local Stationpedia export (below), then the installed game's
   `Language/english.xml`; the game is found through `STATIONEERS_DIR` or the default Steam path.
   Without either (e.g. in CI) there are none; everything else is the same. The build says which it
@@ -202,11 +202,21 @@ A prefab in a variable needs the `KnownPrefab` type (or `as const` on a list of 
    your mods, load a save, and run `stationpedia_export` in the F3 console. It writes
    `<game>/Stationpedia/Enums.json` and `Stationpedia.json`.
 2. `npm run catalog:import-stationpedia` (or `-- <folder>` if the export is elsewhere) rewrites
-   `data/mods/prefabs.json` with every prefab that has logic but isn't in the emulator's data, and
-   prints what was added, changed or removed. It also lists game prefabs whose logic types differ
-   from the emulator's data; the catalogue keeps the emulator's, since that's what it enforces.
-3. Commit `data/mods/prefabs.json`. Only names, hashes, Read/Write, slots and modes go in it; the
-   export's descriptions stay local, and `catalog:build` reads them from the export folder.
+   this machine's file, `data/mods/<machine id>.json`, with every prefab that has logic but isn't
+   in the emulator's data, and prints what was added, changed or removed. It also lists game
+   prefabs whose logic types differ from the emulator's data; the catalogue keeps the emulator's,
+   since that's what it enforces.
+3. Commit that file. Only names, hashes, Read/Write, slots and modes go in it; the export's
+   descriptions stay local, and `catalog:build` reads them from the export folder.
+
+The machine id is a random 8-hex string made on first use and kept in `.local/machine.json`
+(git-ignored). Each machine's file is its own, so two machines never edit the same file. Each file
+also lists the workshop mods (`installedMods`: id, name, version) installed when it was made, so a
+difference between two files can be traced to a mod version.
+
+The loader reads every `data/mods/*.json`. The local machine's file wins; prefabs only another file
+has are merged in. Where another file gives a prefab different logic, the build warns and keeps the
+local one.
 
 ```ts
 import { loadCatalog, prefabInfo, canAccess } from "@tasermonkey/ic10-test";

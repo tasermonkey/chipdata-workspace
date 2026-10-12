@@ -1,9 +1,7 @@
 /** Where the catalogue tools find the game, and where they keep their data. */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-export { MODS_PATH as MODS_FILE } from "../src/catalog/mods.ts";
+import { join, resolve } from "node:path";
 
 const STATIONEERS_APP_ID = "544550";
 
@@ -70,6 +68,13 @@ export function englishXmlPath(): string | undefined {
 	const dir = gameDir();
 	const path = dir && join(dir, "rocketstation_Data/StreamingAssets/Language/english.xml");
 	return path && existsSync(path) ? path : undefined;
+}
+
+/** Steam's workshop folder for Stationeers (one subfolder per subscribed mod), if the game is in a Steam library. */
+export function workshopDir(gameFolder: string): string | undefined {
+	const library = resolve(gameFolder, "../../..");
+	const path = join(library, "steamapps/workshop/content", STATIONEERS_APP_ID);
+	return existsSync(path) ? path : undefined;
 }
 
 /** The Stationpedia export's folder (<game>/Stationpedia), if it exists. */
