@@ -42,29 +42,42 @@ import type { DebugProtocol } from "@vscode/debugprotocol";
 
 /** What a launch configuration of type `ic10-test` gives. */
 export interface Ic10LaunchArgs extends DebugProtocol.LaunchRequestArguments {
-	/** The test file. */
-	test: string;
+	/** The test file. Give this or `scenario`. */
+	test?: string;
 	/** The 1-based line of an `it` (or `describe`) to run alone; the whole file if left out. */
 	line?: number;
-	/** Where to run Vitest: the folder with its config. Default: the nearest one above the test. */
+	/**
+	 * A world to run without a test: a world module (its default export builds and returns the
+	 * world) or env JSON. It runs as fast as it can until nothing can change, or until stopped.
+	 */
+	scenario?: string;
+	/** For an env JSON scenario: the `.ic10` file a chip runs instead of its `code`. */
+	program?: string;
+	/** The housing whose chip runs `program`. Default: the only one. */
+	chip?: string;
+	/** Where to run: the folder with the Vitest config (or package.json). Default: the nearest one above the file. */
 	cwd?: string;
 	/** Stop before the first line any chip runs. */
 	stopOnEntry?: boolean;
-	/** The Node.js to run Vitest with. Default `node` (from PATH). */
+	/** The Node.js to run with. Default `node` (from PATH). */
 	runtimeExecutable?: string;
-	/** More arguments for `vitest run`. */
+	/** More arguments for `vitest run`, or for the scenario runner. */
 	args?: string[];
 	env?: Record<string, string>;
 	/**
-	 * Run Vitest under VS Code's Node debugger too, so breakpoints in the test's TypeScript stop
-	 * as well. The extension handles it, by giving the session a launcher that does that.
+	 * Run under VS Code's Node debugger too, so breakpoints in the TypeScript (the test, or a world
+	 * module) stop as well. The extension handles it, by giving the session a launcher that does that.
 	 */
 	debugTypeScript?: boolean;
 }
 
-/** The command that runs the test. */
+/** The command that runs the test: `command [...nodeArgs] program [...args]`. */
 export interface LaunchSpec {
 	command: string;
+	/** Options for Node itself, before the program. */
+	nodeArgs: string[];
+	/** The script Node runs: Vitest's, or the scenario runner. */
+	program: string;
 	args: string[];
 	cwd: string;
 	/** What to add to the environment the process would get anyway: `IC10_DEBUG`, and the launch's `env`. */
@@ -86,7 +99,8 @@ export type Launcher = (spec: LaunchSpec, output: (category: "stdout" | "stderr"
 
 export const spawnLauncher: Launcher = (spec, output) => {
 	const env = { ...process.env, ...spec.env };
-	const child = spawn(spec.command, spec.args, { cwd: spec.cwd, env, windowsHide: true });
+	const args = [...spec.nodeArgs, spec.program, ...spec.args];
+	const child = spawn(spec.command, args, { cwd: spec.cwd, env, windowsHide: true });
 	child.stdout.setEncoding("utf8").on("data", (text: string) => output("stdout", text));
 	child.stderr.setEncoding("utf8").on("data", (text: string) => output("stderr", text));
 	const exited = new Promise<number | null>((done) => {
@@ -192,25 +206,23 @@ export class Ic10TestSession extends DebugSession {
 
 	protected override async launchRequest(response: DebugProtocol.LaunchResponse, args: Ic10LaunchArgs): Promise<void> {
 		try {
-			if (!existsSync(resolve(args.test))) throw new Error(`no test file ${resolve(args.test)}`);
-			const test = realPath(args.test);
-			const cwd = args.cwd ? realPath(args.cwd) : findVitestRoot(dirname(test));
-			const vitest = findVitest(cwd);
+			const run = args.scenario !== undefined ? scenarioRun(args) : testRun(args);
 			this.stopOnEntry = args.stopOnEntry ?? false;
 
 			// Vitest takes a few seconds to start: say so, so the wait doesn't look like nothing happening.
-			const what = `${basename(test)}${args.line ? `, line ${args.line}` : ""}`;
-			this.sendEvent(new OutputEvent(`ic10-test: starting Vitest for ${what} (in ${cwd})\n`, "console"));
+			this.sendEvent(new OutputEvent(`ic10-test: starting ${run.title} for ${run.what} (in ${run.cwd})\n`, "console"));
 			if (this.progress) {
 				this.starting = `ic10-test-start-${process.pid}-${Date.now()}`;
-				this.sendEvent(new ProgressStartEvent(this.starting, "Starting Vitest", what));
+				this.sendEvent(new ProgressStartEvent(this.starting, `Starting ${run.title}`, run.what));
 			}
 
 			const port = await this.listen();
 			const spec: LaunchSpec = {
 				command: args.runtimeExecutable ?? "node",
-				args: [vitest, "run", args.line ? `${test}:${args.line}` : test, "--testTimeout=0", ...(args.args ?? [])],
-				cwd,
+				nodeArgs: run.nodeArgs,
+				program: run.program,
+				args: [...run.args, ...(args.args ?? [])],
+				cwd: run.cwd,
 				env: { ...args.env, IC10_DEBUG: String(port) },
 			};
 			this.launched = this.launcher(spec, (category, text) => this.sendEvent(new OutputEvent(text, category)));
@@ -602,6 +614,65 @@ class AgentLink {
  */
 export function realPath(path: string): string {
 	return realpathSync.native(resolve(path));
+}
+
+/** What to run for a launch, and how to say so. */
+interface RunPlan {
+	/** "Vitest", or "the scenario". */
+	title: string;
+	/** The file, and the test's line. */
+	what: string;
+	nodeArgs: string[];
+	program: string;
+	args: string[];
+	cwd: string;
+}
+
+function testRun(args: Ic10LaunchArgs): RunPlan {
+	if (args.test === undefined) throw new Error('a launch needs a "test" file, or a "scenario"');
+	const test = existingPath(args.test, "test file");
+	const cwd = args.cwd ? realPath(args.cwd) : findVitestRoot(dirname(test));
+	return {
+		title: "Vitest",
+		what: `${basename(test)}${args.line ? `, line ${args.line}` : ""}`,
+		nodeArgs: [],
+		program: findVitest(cwd),
+		args: ["run", args.line ? `${test}:${args.line}` : test, "--testTimeout=0"],
+		cwd,
+	};
+}
+
+/** A scenario runs under plain Node, with the harness's TypeScript (and the emulator's) loaded as is. */
+function scenarioRun(args: Ic10LaunchArgs): RunPlan {
+	const scenario = existingPath(args.scenario!, "scenario");
+	const cwd = args.cwd ? realPath(args.cwd) : findVitestRoot(dirname(scenario));
+	const program = args.program !== undefined ? existingPath(args.program, "program") : undefined;
+	return {
+		title: "the scenario",
+		what: basename(scenario) + (program ? ` with ${basename(program)}` : ""),
+		nodeArgs: ["--conditions=source"],
+		program: findHarnessFile(cwd, "run-scenario"),
+		args: [
+			scenario,
+			...(program !== undefined ? ["--program", program] : []),
+			...(args.chip !== undefined ? ["--chip", args.chip] : []),
+		],
+		cwd,
+	};
+}
+
+function existingPath(path: string, what: string): string {
+	if (!existsSync(resolve(path))) throw new Error(`no ${what} ${resolve(path)}`);
+	return realPath(path);
+}
+
+/** One of the harness's exported files, as installed for `cwd`. */
+export function findHarnessFile(cwd: string, entry: string): string {
+	try {
+		return createRequire(join(cwd, "noop.js")).resolve(`@tasermonkey/ic10-test/${entry}`);
+	} catch {
+		throw new Error(`@tasermonkey/ic10-test isn't installed for ${cwd}, or is too old to run scenarios`);
+	}
 }
 
 /** The nearest folder at or above `start` with a Vitest config (or failing that, a package.json). */

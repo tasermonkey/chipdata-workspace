@@ -883,7 +883,7 @@ export class World {
 	}
 
 	/** Nothing can change any more: every chip has stopped, no events are due and there are no models. */
-	private idle(): boolean {
+	idle(): boolean {
 		return (
 			this.scheduler.chips.every((c) => c.stopped) && !this.events.pending(this.scheduler.tick) && this.models.size === 0
 		);

@@ -65,6 +65,12 @@
 				"category": "IC10 Test"
 			},
 			{
+				"command": "ic10-test.debugScenario",
+				"title": "Debug IC10 Scenario",
+				"category": "IC10 Test",
+				"icon": "$(debug-alt)"
+			},
+			{
 				"command": "ic10-test.stepTick",
 				"title": "Step Tick",
 				"category": "IC10 Test",
@@ -87,6 +93,13 @@
 			}
 		],
 		"menus": {
+			"editor/title": [
+				{
+					"command": "ic10-test.debugScenario",
+					"when": "ic10-test.scenarioFile && !inDebugMode",
+					"group": "navigation"
+				}
+			],
 			"debug/toolBar": [
 				{
 					"command": "ic10-test.stepTick",
@@ -124,6 +137,10 @@
 				{
 					"command": "ic10-test.debugTest",
 					"when": "false"
+				},
+				{
+					"command": "ic10-test.debugScenario",
+					"when": "ic10-test.scenarioFile"
 				}
 			]
 		},
@@ -152,18 +169,27 @@
 				],
 				"configurationAttributes": {
 					"launch": {
-						"required": [
-							"test"
-						],
 						"properties": {
 							"test": {
 								"type": "string",
-								"description": "The test file to run.",
+								"description": "The test file to run. Give this or \"scenario\".",
 								"default": "${file}"
 							},
 							"line": {
 								"type": "number",
 								"description": "The line of the it(...) or describe(...) to run alone. Leave it out to run the whole file."
+							},
+							"scenario": {
+								"type": "string",
+								"description": "A world to run with no test: a world module (x.world.ts, whose default export builds and returns the world) or env JSON. It runs as fast as it can until every chip has stopped and no events are due, or until you stop it."
+							},
+							"program": {
+								"type": "string",
+								"description": "For an env JSON scenario: the .ic10 file a chip runs instead of the env's code, so breakpoints in it work."
+							},
+							"chip": {
+								"type": "string",
+								"description": "The housing (its name in the env, or $hex ID) whose chip runs \"program\". Default: the only one."
 							},
 							"stopOnEntry": {
 								"type": "boolean",
@@ -219,6 +245,16 @@
 							"name": "Debug IC10 in ${1:a test}",
 							"test": "^\"\\${workspaceFolder}/${2:tests/x.test.ts}\"",
 							"line": 1
+						}
+					},
+					{
+						"label": "IC10 Test: Debug a scenario",
+						"description": "Run a world module (or env JSON) with no test and step through its IC10 scripts",
+						"body": {
+							"type": "ic10-test",
+							"request": "launch",
+							"name": "Debug IC10 scenario ${1:x}",
+							"scenario": "^\"\\${workspaceFolder}/${2:x.world.ts}\""
 						}
 					}
 				]

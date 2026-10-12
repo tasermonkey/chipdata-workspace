@@ -122,7 +122,8 @@ has no logic values of its own, so `get`/`set` on it throw; use the target's han
 
 A run that goes over `maxTicks` (default 10,000) or `maxLinesPerRun` (default 1,000,000) fails with a
 `SimBudgetError` whose message shows every chip's state and the last lines executed. `runUntil` also
-fails at once if every chip has stopped and no events are due.
+fails at once if every chip has stopped and no events are due; `world.idle()` says whether that's so (and
+there are no models).
 
 ## Inspecting
 
@@ -380,7 +381,9 @@ aren't modelled. Rates are per game tick (0.5 s) and scale with `dt`.
 `World.fromEnv(env, options)` builds a world from the emulator's env JSON: an object, JSON text, or a
 path relative to `root`. Devices are keyed by their `name` when it's unique, otherwise by reference
 ID in `$hex` form (`world.device("$300")`); `{ testKeysById: { $300: "vent" } }` names them yourself. Chips
-keep their starting registers and stack, and take the same options as `sim()`.
+keep their starting registers and stack, and take the same options as `sim()`. `{ programs: { Controller:
+"controller.ic10" } }` runs a housing's chip from a file instead of the env's `code` (relative to `root`),
+so its handle has a `path` and the debugger stops at breakpoints in it.
 
 ## Debugging
 
@@ -418,6 +421,33 @@ Logic Mirror shows its target), Atmospheres, World (tick, time, lines this tick,
 to come, models) and Defines. Registers, stack entries, device properties and slot values can be edited; a
 new value is an expression on the chip (`Max`, `$1488`). Readings from a pipe or room can't. A hover on a
 logic type's name shows its catalogue description.
+
+**Scenarios: a world without a test.** `@tasermonkey/ic10-test/run-scenario` runs one under plain Node,
+which is how the debugger launches a scenario:
+
+```
+node --conditions=source node_modules/@tasermonkey/ic10-test/src/debug/run-scenario.ts <scenario> [--program <file.ic10>] [--chip <key>]
+```
+
+The scenario is a world module, whose default export builds the world and returns it (with any events and
+models), or env JSON, where `--program` runs a chip from an `.ic10` file (the `--chip` housing, or the only
+one). With `IC10_DEBUG` set it attaches first. It runs ticks as fast as it can until `world.idle()`, then
+says so and exits, or exits when the debugger goes away. `loadScenario(file, { program, chip })` builds the
+world without running it, for a test that checks a scenario still loads.
+
+```ts
+// greenhouse.world.ts
+import { sim } from "@tasermonkey/ic10-test";
+
+export default async () => {
+  const world = await sim({ root: import.meta.dirname })
+    .device("sensor", "StructureGasSensor", { Temperature: 290 })
+    .housing("ic", { file: "greenhouse.ic10", pins: { d0: "sensor" } })
+    .build();
+  world.every({ ticks: 60 }, (w) => w.device("sensor").add("Temperature", -40), { label: "nightfall" });
+  return world;
+};
+```
 
 Also exported: `createEnv` (a lower-level world from emulator env JSON), `readScript` / `findScripts`,
 `parseId` / `formatId`, and `hash(name)`, the game's `HASH()`.

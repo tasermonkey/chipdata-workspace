@@ -292,6 +292,36 @@ describe("debug adapter", () => {
 		expect(exitedEvents).toBe(0);
 	}, 60_000);
 
+	it("runs a scenario (a world module) with no test, and ends once nothing can change", async () => {
+		const output = collectOutput(dc);
+		const COUNTDOWN = join(FIXTURES, "countdown.ic10");
+		await dc.hitBreakpoint({ scenario: join(FIXTURES, "countdown.world.ts") } as Ic10LaunchArgs, { path: COUNTDOWN, line: 4 });
+		expect(output()).toMatch(/^ic10-test: starting the scenario for countdown\.world\.ts/);
+		const left = await dc.evaluateRequest({ expression: "Left", context: "watch" });
+		expect(left.body.result).toBe("3");
+
+		await dc.setBreakpointsRequest({ source: { path: COUNTDOWN }, breakpoints: [] });
+		const exited = dc.waitForEvent("exited");
+		const terminated = dc.waitForEvent("terminated");
+		await dc.continueRequest({ threadId: 1 });
+		expect((await exited).body.exitCode, output()).toBe(0);
+		await terminated;
+		expect(output()).toMatch(/every chip has stopped and no events are due \(tick \d+\)/);
+	}, 60_000);
+
+	it("runs env JSON as a scenario, with an .ic10 file as a chip's program", async () => {
+		const EXAMPLES = join(import.meta.dirname, "..", "examples");
+		const SCRIPT = join(EXAMPLES, "scenario.ic10");
+		const line = readFileSync(SCRIPT, "utf8").split("\n").findIndex((l) => l.startsWith("add Nights")) + 1;
+		const args = { scenario: join(EXAMPLES, "scenario.env.json"), program: SCRIPT } as Ic10LaunchArgs;
+		await dc.hitBreakpoint(args, { path: SCRIPT, line });
+		const frame = (await dc.stackTraceRequest({ threadId: 1 })).body.stackFrames[0]!;
+		expect(frame).toMatchObject({ line, source: { path: SCRIPT } });
+		const terminated = dc.waitForEvent("terminated");
+		await dc.terminateRequest({});
+		await terminated;
+	}, 60_000);
+
 	it("says why a launch can't start", async () => {
 		await dc.initializeRequest();
 		await expect(dc.launchRequest({ test: join(FIXTURES, "missing.debug.ts") } as Ic10LaunchArgs)).rejects.toThrow(

@@ -1,13 +1,13 @@
 /**
- * Debugging the TypeScript too: a launcher that starts Vitest under VS Code's own JavaScript
- * debugger (js-debug), as a child of the IC10 session, so breakpoints in the test (and anything it
- * imports) stop as well as those in the .ic10 scripts. The IC10 session still waits for the agent:
- * the port is in the environment js-debug gives Vitest, and Vitest's worker inherits it.
+ * Debugging the TypeScript too: a launcher that starts Vitest (or the scenario runner) under VS
+ * Code's own JavaScript debugger (js-debug), as a child of the IC10 session, so breakpoints in the
+ * test or world module (and anything it imports) stop as well as those in the .ic10 scripts. The
+ * IC10 session still waits for the agent: the port is in the environment js-debug gives the
+ * process, and Vitest's worker inherits it.
  *
  * Stopping either session ends the other: the IC10 session's Stop kills the child through `kill`,
  * and the child ending resolves `exited`, which ends the IC10 session.
  */
-import { basename } from "node:path";
 import * as vscode from "vscode";
 import type { Launcher } from "./adapter.ts";
 
@@ -36,10 +36,11 @@ export function jsDebugLauncher(parent: vscode.DebugSession): Launcher {
 		const config: vscode.DebugConfiguration = {
 			type: "node",
 			request: "launch",
-			name: `Vitest: ${basename(spec.args[1] ?? "tests")}`,
+			name: `${parent.name} (TypeScript)`,
 			runtimeExecutable: spec.command,
-			program: spec.args[0],
-			args: spec.args.slice(1),
+			runtimeArgs: spec.nodeArgs,
+			program: spec.program,
+			args: spec.args,
 			cwd: spec.cwd,
 			env: spec.env,
 			// The test runs in Vitest's worker, a child process.
@@ -58,11 +59,11 @@ export function jsDebugLauncher(parent: vscode.DebugSession): Launcher {
 		vscode.debug.startDebugging(parent.workspaceFolder, config, options).then(
 			(started) => {
 				if (started) return;
-				output("stderr", "ic10-test: VS Code's JavaScript debugger didn't start Vitest\n");
+				output("stderr", "ic10-test: VS Code's JavaScript debugger didn't start the test process\n");
 				finish(1);
 			},
 			(error: unknown) => {
-				output("stderr", `ic10-test: can't start Vitest under the JavaScript debugger: ${String(error)}\n`);
+				output("stderr", `ic10-test: can't start the test process under the JavaScript debugger: ${String(error)}\n`);
 				finish(1);
 			},
 		);

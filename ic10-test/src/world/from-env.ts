@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import type { EnvSchema, Housing } from "@stationeers-ic/ic10";
 import { buildEngineFromEnv } from "../engine/build.ts";
 import { formatId, parseId, type ReferenceId } from "../engine/ids.ts";
+import { readScript } from "../scripts.ts";
 import { assembleWorld, type ChipDecl, type SimOptions } from "./sim.ts";
 import type { DeviceEntry, World } from "./world.ts";
 
@@ -12,17 +13,25 @@ export interface EnvWorldOptions extends SimOptions {
 	 * their `name` when it's unique, otherwise by reference ID in `$hex` form.
 	 */
 	testKeysById?: Record<ReferenceId, string>;
+	/**
+	 * Run a chip from an `.ic10` file instead of the env's `code`, by its housing's key, e.g.
+	 * `{ Controller: "controller.ic10" }` (relative to `root`). Its handle then has the file's
+	 * `path`, so the debugger stops at breakpoints in it.
+	 */
+	programs?: Record<string, string>;
 }
 
 /** Build a world from emulator env JSON: an object, JSON text, or a path to a file. */
 export async function worldFromEnv(source: EnvSchema | string, options: EnvWorldOptions = {}): Promise<World> {
 	const root = options.root ?? process.cwd();
-	const env: EnvSchema =
+	let env: EnvSchema =
 		typeof source !== "string"
 			? source
 			: JSON.parse(source.trimStart().startsWith("{") ? source : readFileSync(resolve(root, source), "utf8"));
 
 	const keyOf = envKeys(env, options.testKeysById ?? {});
+	const programs = options.programs ?? {};
+	if (options.programs) env = withPrograms(env, programs, keyOf, root);
 	const engine = buildEngineFromEnv(env, options.seed ?? 1, (id) => keyOf.get(id) ?? formatId(id));
 
 	const networkTypes = new Map(env.networks.map((n) => [n.id, n.type]));
@@ -42,9 +51,29 @@ export async function worldFromEnv(source: EnvSchema | string, options: EnvWorld
 		const housing = engine.devices.get(id) as Housing;
 		const pins: Record<string, string> = {};
 		for (const [index, device] of housing.connectedDevices) pins[`d${index}`] = keyOf.get(device.id) ?? formatId(device.id);
-		chips.push({ key: keyOf.get(id)!, id, source: "<env>", pins });
+		const key = keyOf.get(id)!;
+		const file = programs[key];
+		chips.push({ key, id, source: file ?? "<env>", ...(file !== undefined && { path: resolve(root, file) }), pins });
 	}
 	return assembleWorld(engine, entries, chips, options);
+}
+
+/** The env with the chips in these housings running these files instead (the env isn't changed). */
+function withPrograms(
+	env: EnvSchema,
+	programs: Record<string, string>,
+	keyOf: Map<number, string>,
+	root: string,
+): EnvSchema {
+	const code = new Map<number, string>();
+	for (const [key, file] of Object.entries(programs)) {
+		const housing = env.devices.find((d) => keyOf.get(d.id) === key);
+		if (!housing) throw new Error(`fromEnv: programs: no device "${key}"`);
+		const chip = "chip" in housing ? housing.chip : undefined;
+		if (!chip) throw new Error(`fromEnv: programs: "${key}" has no chip`);
+		code.set(chip, readScript(resolve(root, file)));
+	}
+	return { ...env, chips: env.chips.map((c) => (code.has(c.id) ? { ...c, code: code.get(c.id)! } : c)) };
 }
 
 /** Keys for every device: given ones first, then unique names, then `$hex` IDs. */

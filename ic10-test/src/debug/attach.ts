@@ -8,6 +8,8 @@ export interface Attached {
 	agent: DebugAgent;
 	/** Say the test file is done and close the connection. */
 	close(): Promise<void>;
+	/** Resolves when the connection closes, from either end. */
+	closed: Promise<void>;
 }
 
 /**
@@ -25,13 +27,17 @@ export async function attachDebugger(address: string): Promise<Attached> {
 	const agent = new DebugAgent(socketTransport(socket));
 	setDefaultDebugGate(agent.gate);
 	// If the debugger goes away, let the test run on as if it had never been there.
-	socket.on("close", () => {
-		setDefaultDebugGate(undefined);
-		agent.detach();
-	});
+	const closed = new Promise<void>((resolve) =>
+		socket.on("close", () => {
+			setDefaultDebugGate(undefined);
+			agent.detach();
+			resolve();
+		}),
+	);
 	socket.on("error", () => {});
 	return {
 		agent,
+		closed,
 		close: () =>
 			new Promise((resolve) => {
 				setDefaultDebugGate(undefined);

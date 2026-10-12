@@ -17,5 +17,4 @@ keep working.
 | Data breakpoints | `data-breakpoints.test.ts` | `data-breakpoints.ic10` | Right-click `r15 (Stage)`, the heater's `On` or the sensor's `Temperature`: Break on Value Change |
 | Inline values | any, e.g. `variables.test.ts` | `variables.ic10` | Stop anywhere: values show at the ends of the lines above |
 | Debugging the TypeScript too | `typescript.test.ts` | `typescript.ic10` | Turn on the setting **IC10 Test: Debug TypeScript** (or use the launch configuration "Debug IC10 and TypeScript in the current test file"); a breakpoint in `roomModel` and one on `s Heater On 1` take turns; stopping either session ends both |
-
-Launching from a scenario (Phase 7 step 12) will add an example here.
+| Launching from a scenario (no test) | `scenario.test.ts` only checks it loads | `scenario.ic10`, run by `scenario.world.ts` or `scenario.env.json` | The **Debug IC10 Scenario** button (editor title) on any of the three, or the launch configuration "Debug the IC10 scenario in the current file"; it runs as fast as it can until stopped, so set the breakpoint on `add Nights Nights r3` (condition `r3 == 1`) first |

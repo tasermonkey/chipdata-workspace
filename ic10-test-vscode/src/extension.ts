@@ -3,13 +3,16 @@
  * a "▶ Debug IC10" CodeLens above each test, a command that debugs the test at the cursor, the
  * tick commands (Step Tick, Run N Ticks, Run Until Event) on the debug toolbar, and inline values.
  * With `debugTypeScript` (or the setting of that name), Vitest runs under the JavaScript debugger
- * too (see js-debug.ts).
+ * too (see js-debug.ts). A scenario (a world module, or env JSON) can be debugged with no test: F5
+ * or the "Debug IC10 Scenario" button on it, or on an .ic10 file beside one (see scenarios.ts).
  */
+import { basename } from "node:path";
 import * as vscode from "vscode";
 import type { EventInfo } from "@tasermonkey/ic10-test/debug-protocol";
 import { type Ic10CustomRequests, type Ic10LaunchArgs, Ic10TestSession } from "./adapter.ts";
 import { findInlineValues, resolveInlineValues } from "./inline-values.ts";
 import { jsDebugLauncher } from "./js-debug.ts";
+import { type ScenarioLaunch, scenarioFor } from "./scenarios.ts";
 import { describeTest, findTests, type TestBlock, testAt } from "./tests.ts";
 
 /** The languages a test file can be in. */
@@ -23,9 +26,14 @@ export function activate(context: vscode.ExtensionContext): void {
 				return new vscode.DebugAdapterInlineImplementation(new Ic10TestSession(launcher) as unknown as vscode.DebugAdapter);
 			},
 		}),
-		vscode.debug.registerDebugConfigurationProvider("ic10-test", { resolveDebugConfiguration }),
+		vscode.debug.registerDebugConfigurationProvider("ic10-test", {
+			resolveDebugConfiguration,
+			resolveDebugConfigurationWithSubstitutedVariables,
+		}),
 		vscode.commands.registerCommand("ic10-test.debugTestAtCursor", debugTestAtCursor),
 		vscode.commands.registerCommand("ic10-test.debugTest", debugTest),
+		vscode.commands.registerCommand("ic10-test.debugScenario", debugScenario),
+		trackScenarioEditor(),
 		vscode.commands.registerCommand("ic10-test.stepTick", stepTick),
 		vscode.commands.registerCommand("ic10-test.runTicks", runTicks),
 		vscode.commands.registerCommand("ic10-test.runUntilEvent", runUntilEvent),
@@ -111,18 +119,42 @@ function resolveDebugConfiguration(
 ): vscode.DebugConfiguration | undefined {
 	if (!config.type && !config.request && !config.name) {
 		const editor = vscode.window.activeTextEditor;
-		if (!editor || !isTestFile(editor.document)) {
-			void vscode.window.showInformationMessage("Open a test file to debug its IC10 scripts.");
+		const scenario = editor && scenarioOf(editor.document);
+		if (editor && isTestFile(editor.document)) config = launchConfig(editor.document.uri, undefined);
+		else if (scenario) config = scenarioConfig(scenario);
+		else {
+			void vscode.window.showInformationMessage(
+				"Open a test file, or a scenario (a .world.ts module, env JSON, or an .ic10 with one beside it), to debug its IC10 scripts.",
+			);
 			return undefined;
 		}
-		config = launchConfig(editor.document.uri, undefined);
 	}
-	if (!config.test) {
-		void vscode.window.showErrorMessage('An ic10-test launch configuration needs a "test" file.');
+	if (!config.test && !config.scenario) {
+		void vscode.window.showErrorMessage('An ic10-test launch configuration needs a "test" file or a "scenario".');
 		return undefined;
 	}
 	if (config.debugTypeScript === undefined) {
 		config.debugTypeScript = vscode.workspace.getConfiguration("ic10-test", folder).get("debugTypeScript", false);
+	}
+	return config;
+}
+
+/**
+ * A `scenario` that's an .ic10 file (`"scenario": "${file}"` with a script open) means the world
+ * beside it; so does env JSON with its script beside it but no `program`.
+ */
+function resolveDebugConfigurationWithSubstitutedVariables(
+	_folder: vscode.WorkspaceFolder | undefined,
+	config: vscode.DebugConfiguration,
+): vscode.DebugConfiguration | undefined {
+	if (typeof config.scenario !== "string" || config.program !== undefined) return config;
+	const found = scenarioFor(config.scenario);
+	if (found) return { ...config, ...found };
+	if (config.scenario.toLowerCase().endsWith(".ic10")) {
+		void vscode.window.showErrorMessage(
+			`No scenario beside ${basename(config.scenario)}: add ${basename(config.scenario, ".ic10")}.world.ts (or .env.json) next to it.`,
+		);
+		return undefined;
 	}
 	return config;
 }
@@ -140,6 +172,45 @@ async function debugTestAtCursor(): Promise<void> {
 /** Debug one test (or group) of a file, or the whole file. What a CodeLens runs. */
 async function debugTest(uri: vscode.Uri, test: TestBlock | undefined): Promise<void> {
 	await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(uri), launchConfig(uri, test));
+}
+
+/** Debug the scenario a file stands for (see scenarios.ts): the editor-title button. */
+async function debugScenario(uri?: vscode.Uri): Promise<void> {
+	const document = uri
+		? await vscode.workspace.openTextDocument(uri)
+		: vscode.window.activeTextEditor?.document;
+	const scenario = document && scenarioOf(document);
+	if (!scenario) {
+		void vscode.window.showInformationMessage(
+			"Open a scenario to debug: a .world.ts module, env JSON, or an .ic10 with x.world.ts or x.env.json beside it.",
+		);
+		return;
+	}
+	await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(document.uri), scenarioConfig(scenario));
+}
+
+function scenarioOf(document: vscode.TextDocument): ScenarioLaunch | undefined {
+	return document.uri.scheme === "file" ? scenarioFor(document.uri.fsPath, document.getText()) : undefined;
+}
+
+/** Keeps `ic10-test.scenarioFile` true while the editor in front stands for a scenario. */
+function trackScenarioEditor(): vscode.Disposable {
+	const update = (): void => {
+		const document = vscode.window.activeTextEditor?.document;
+		void vscode.commands.executeCommand("setContext", "ic10-test.scenarioFile", !!document && !!scenarioOf(document));
+	};
+	update();
+	return vscode.Disposable.from(
+		vscode.window.onDidChangeActiveTextEditor(update),
+		vscode.workspace.onDidSaveTextDocument((d) => d === vscode.window.activeTextEditor?.document && update()),
+	);
+}
+
+function scenarioConfig(launch: ScenarioLaunch): vscode.DebugConfiguration & Ic10LaunchArgs {
+	const name = launch.program
+		? `${basename(launch.scenario)} running ${basename(launch.program)}`
+		: basename(launch.scenario);
+	return { type: "ic10-test", request: "launch", name: `Debug IC10 scenario: ${name}`, ...launch };
 }
 
 /**

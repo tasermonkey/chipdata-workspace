@@ -1,0 +1,22 @@
+# Launching from a scenario: no test, just a world to explore.
+# scenario.world.ts builds the world: a sensor, a light, and nightfall and
+# daybreak every 30 ticks. scenario.env.json is the same world as env JSON.
+# - F5 with this file open runs scenario.world.ts beside it. The "Debug IC10
+#   Scenario" button on scenario.world.ts or scenario.env.json does the
+#   same, as do the launch configurations "Debug the IC10 scenario ...".
+# - It runs as fast as it can until you stop it, so set a breakpoint first:
+#   on "add Nights Nights r3" with the condition r3 == 1, then Run Until
+#   Event "daybreak", and watch Nights in Registers.
+alias Sensor d0
+alias Light d1
+alias Nights r15
+define Dark 273
+loop:
+yield
+l r0 Sensor Temperature
+slt r1 r0 Dark
+l r2 Light On
+s Light On r1
+sgt r3 r1 r2 # it has just got dark
+add Nights Nights r3
+j loop

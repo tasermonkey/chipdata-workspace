@@ -16,7 +16,8 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./vitest": "./src/matchers/vitest-setup.ts",
-		"./debug-protocol": "./src/debug/protocol.ts"
+		"./debug-protocol": "./src/debug/protocol.ts",
+		"./run-scenario": "./src/debug/run-scenario.ts"
 	},
 	"scripts": {
 		"catalog:build": "node --conditions=source tools/catalog-build.ts",

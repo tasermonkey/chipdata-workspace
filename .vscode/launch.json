@@ -2,6 +2,12 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"type": "ic10-test",
+			"request": "launch",
+			"name": "Debug IC10 scenario example",
+			"scenario": "${workspaceFolder}/ic10-test-vscode/examples/scenario.env.json"
+		},
+		{
 			// Work on the extension: opens a second VS Code window running it from source.
 			"name": "Run the IC10 Test extension",
 			"type": "extensionHost",
@@ -25,6 +31,21 @@
 			"request": "launch",
 			"test": "${file}",
 			"debugTypeScript": true
+		},
+		{
+			// No test: the open world module (x.world.ts) or env JSON, or the one beside the open .ic10.
+			"name": "Debug the IC10 scenario in the current file",
+			"type": "ic10-test",
+			"request": "launch",
+			"scenario": "${file}"
+		},
+		{
+			// The examples' scenario as env JSON, running scenario.ic10 on its one chip.
+			"name": "Debug the IC10 scenario example as env JSON",
+			"type": "ic10-test",
+			"request": "launch",
+			"scenario": "${workspaceFolder}/ic10-test-vscode/examples/scenario.env.json",
+			"program": "${workspaceFolder}/ic10-test-vscode/examples/scenario.ic10"
 		}
 	]
 }

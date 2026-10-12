@@ -1101,9 +1101,33 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
       ending without an exit code. The js-debug side needs VS Code, so it's checked by hand with the
       new `typescript` example (a room modelled in TypeScript, a thermostat script) and the launch
       configuration "Debug IC10 and TypeScript in the current test file".
+  - Step 12 is done: **launching from a scenario**, a world to explore with no test. Your choices:
+    a scenario is a **world module** (`x.world.ts`, whose default export builds and returns the
+    world, with any events and models) or **env JSON** plus a `program` `.ic10` for one of its
+    chips; it runs **as fast as it can**; the session **ends** once every chip has stopped and no
+    events are due; and it starts **four ways** (below).
+    - `ic10-test/src/debug/run-scenario.ts` (exported as `@tasermonkey/ic10-test/run-scenario`) runs
+      it under plain Node (`node --conditions=source`, no Vitest, so it starts in about half a
+      second). It attaches through `IC10_DEBUG` like a test, runs ticks until `world.idle()` (now
+      public), says why it stopped, and exits when the debugger goes away. `loadScenario` builds the
+      world for tests.
+    - The harness gained `World.fromEnv(env, { programs: { housing: "x.ic10" } })`: the chip runs the
+      file instead of the env's `code`, with its `path`, so breakpoints work. `Attached` gained
+      `closed`.
+    - The adapter takes `scenario`, `program` and `chip` in place of `test`. Its launch spec now has
+      `nodeArgs`, `program` and `args`, so the TypeScript debugging of step 11 works for world modules
+      too.
+    - The four ways: a launch configuration (`"scenario": "${file}"` works on a world module, an env
+      file or an `.ic10`); F5 with no launch.json on any of them; on an `.ic10`, the world module
+      beside it (`x.world.ts`) or else the env JSON (`x.env.json`, `x.json`) with the script as its
+      program; and a **Debug IC10 Scenario** button in the editor title whenever the open file stands
+      for a scenario (`src/scenarios.ts`, with its own tests).
+    - Adapter tests launch a world-module scenario (a breakpoint, then running on to its end with the
+      reason) and an env JSON one with a program. The new `scenario` example (a light at nightfall,
+      counting nights) has the world as a module and as env JSON, and two launch configurations.
   - A playground, `ic10-test-vscode/examples/`, has one small test and `.ic10` script per feature:
     breakpoints, stepping, variables, exceptions, several chips, a network of chips, the tick
-    commands, data breakpoints, and debugging the TypeScript too. The top of
+    commands, data breakpoints, debugging the TypeScript too, and a scenario. The top of
     each script says what to try. They run in `npm test`. Writing them found **G19** (§2), now fixed in the fork; the fix showed
     up **G20** (`bdnvl`/`bdnvs` inverted), fixed too.
 
