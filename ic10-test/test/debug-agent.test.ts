@@ -904,10 +904,12 @@ describe("debug agent: what you see while stopped", () => {
 		expect(events).toEqual([{ name: "dusk", value: "tick 4", ref: 0, readOnly: true }]);
 
 		const defines = (await scope("Defines")).rows;
+		// In the order they were made: a define is set when the script compiles (as in game, G34), so before the
+		// aliases, which are set when their lines run.
 		expect(defines.map((r) => [r.name, r.value])).toEqual([
+			["Max", "5"],
 			["Stage", "alias r15"],
 			["Vent", "alias d0"],
-			["Max", "5"],
 		]);
 		await adapter.request("continue", {});
 		await run;
