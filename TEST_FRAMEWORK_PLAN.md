@@ -997,7 +997,7 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     - The agent is used only after its `hello`, and breakpoints set before then are sent first. If
       the versions differ, the run stops with a message.
     - How Vitest is started is a parameter, so the extension can start it under the Node debugger
-      later (step 11).
+      (step 11).
     - `ic10-test-vscode/test/adapter.test.ts` drives it with `DebugClient`, as VS Code would,
       against real Vitest runs of fixture tests that use the harness through its package names. It
       covers a breakpoint in an `.ic10` file, Step Over, variables, hover, a register edit, the run
@@ -1083,8 +1083,27 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     defines, numbers and comments are skipped. Finding and labelling are pure functions
     (`ic10-test-vscode/src/inline-values.ts`) with their own tests. VS Code's `debug.inlineValues`
     setting turns them off.
+  - Step 11 is done: **debugging the TypeScript too.** With `"debugTypeScript": true` in a launch
+    configuration, or the setting `ic10-test.debugTypeScript` (your choice; off by default, used by
+    the CodeLens, the cursor command, F5 and any configuration that doesn't set it), the extension
+    gives the session a launcher (`src/js-debug.ts`) that starts Vitest through VS Code's own
+    JavaScript debugger (`vscode.debug.startDebugging`, `autoAttachChildProcesses` for the worker).
+    Breakpoints in the test's TypeScript then stop as well as those in `.ic10` scripts.
+    - The js-debug session is a child of the IC10 session (`parentSession`, compact, console merged
+      with the parent's, restart managed by the parent).
+    - It gets the same `IC10_DEBUG` port through its `env`. The adapter now hands launchers only
+      what to add to the environment, and the default launcher merges in its own.
+    - Stopping the IC10 session stops the child. The child ending (Stop, or Vitest exiting) ends
+      the IC10 session. A debug session has no exit code, so none is reported then.
+    - While a TypeScript breakpoint holds the worker, the agent can't answer: the IC10 session
+      shows running, and an IC10 Pause takes effect once the TypeScript carries on.
+    - An adapter test covers a launcher other than the default: what it's handed, and the session
+      ending without an exit code. The js-debug side needs VS Code, so it's checked by hand with the
+      new `typescript` example (a room modelled in TypeScript, a thermostat script) and the launch
+      configuration "Debug IC10 and TypeScript in the current test file".
   - A playground, `ic10-test-vscode/examples/`, has one small test and `.ic10` script per feature:
-    breakpoints, stepping, variables, exceptions, several chips, and the tick commands. The top of
+    breakpoints, stepping, variables, exceptions, several chips, a network of chips, the tick
+    commands, data breakpoints, and debugging the TypeScript too. The top of
     each script says what to try. They run in `npm test`. Writing them found **G19** (§2), now fixed in the fork; the fix showed
     up **G20** (`bdnvl`/`bdnvs` inverted), fixed too.
 

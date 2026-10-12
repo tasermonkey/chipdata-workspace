@@ -16,6 +16,6 @@ keep working.
 | Step Tick, Run N Ticks, Run Until Event | `ticks.test.ts` | `ticks.ic10` | Breakpoint on `move Phase 1`; the toolbar's watch, run-all and bell buttons |
 | Data breakpoints | `data-breakpoints.test.ts` | `data-breakpoints.ic10` | Right-click `r15 (Stage)`, the heater's `On` or the sensor's `Temperature`: Break on Value Change |
 | Inline values | any, e.g. `variables.test.ts` | `variables.ic10` | Stop anywhere: values show at the ends of the lines above |
+| Debugging the TypeScript too | `typescript.test.ts` | `typescript.ic10` | Turn on the setting **IC10 Test: Debug TypeScript** (or use the launch configuration "Debug IC10 and TypeScript in the current test file"); a breakpoint in `roomModel` and one on `s Heater On 1` take turns; stopping either session ends both |
 
-Debugging the TypeScript too, and launching from a scenario (Phase 7 steps 11–12) will each add an
-example here.
+Launching from a scenario (Phase 7 step 12) will add an example here.

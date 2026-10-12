@@ -1,0 +1,26 @@
+# Debugging the TypeScript too: breakpoints in typescript.test.ts stop as well.
+# Turn on the setting "IC10 Test: Debug TypeScript" and use the CodeLens, or
+# pick the launch configuration "Debug IC10 and TypeScript in the current test
+# file" with typescript.test.ts open. Then:
+# - Set a breakpoint on "s Heater On 1" here, and one in roomModel in the test.
+#   Continue: they take turns, the room's model first each tick, then the chip.
+# - The Call Stack shows the IC10 session (its chip) and Vitest's under it.
+#   Stop either one and both end.
+alias Heater d0
+alias Sensor d1
+define Low 290
+define High 296
+loop:
+l r0 Sensor Temperature
+blt r0 Low heat
+bgt r0 High idle
+yield
+j loop
+heat:
+s Heater On 1
+yield
+j loop
+idle:
+s Heater On 0
+yield
+j loop

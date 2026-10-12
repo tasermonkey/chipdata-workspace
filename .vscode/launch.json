@@ -16,6 +16,15 @@
 			"type": "ic10-test",
 			"request": "launch",
 			"test": "${file}"
+		},
+		{
+			// As above, with breakpoints in the test's TypeScript too (the setting ic10-test.debugTypeScript
+			// does the same for the CodeLens).
+			"name": "Debug IC10 and TypeScript in the current test file",
+			"type": "ic10-test",
+			"request": "launch",
+			"test": "${file}",
+			"debugTypeScript": true
 		}
 	]
 }

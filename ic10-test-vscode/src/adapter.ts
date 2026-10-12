@@ -55,6 +55,11 @@ export interface Ic10LaunchArgs extends DebugProtocol.LaunchRequestArguments {
 	/** More arguments for `vitest run`. */
 	args?: string[];
 	env?: Record<string, string>;
+	/**
+	 * Run Vitest under VS Code's Node debugger too, so breakpoints in the test's TypeScript stop
+	 * as well. The extension handles it, by giving the session a launcher that does that.
+	 */
+	debugTypeScript?: boolean;
 }
 
 /** The command that runs the test. */
@@ -62,12 +67,13 @@ export interface LaunchSpec {
 	command: string;
 	args: string[];
 	cwd: string;
-	env: Record<string, string | undefined>;
+	/** What to add to the environment the process would get anyway: `IC10_DEBUG`, and the launch's `env`. */
+	env: Record<string, string>;
 }
 
 /** A running test process. */
 export interface Launched {
-	/** Resolves with the exit code when it ends. */
+	/** Resolves with the exit code when it ends, or null if it isn't known. */
 	exited: Promise<number | null>;
 	kill(): void;
 }
@@ -79,14 +85,15 @@ export interface Launched {
 export type Launcher = (spec: LaunchSpec, output: (category: "stdout" | "stderr", text: string) => void) => Launched;
 
 export const spawnLauncher: Launcher = (spec, output) => {
-	const child = spawn(spec.command, spec.args, { cwd: spec.cwd, env: spec.env, windowsHide: true });
+	const env = { ...process.env, ...spec.env };
+	const child = spawn(spec.command, spec.args, { cwd: spec.cwd, env, windowsHide: true });
 	child.stdout.setEncoding("utf8").on("data", (text: string) => output("stdout", text));
 	child.stderr.setEncoding("utf8").on("data", (text: string) => output("stderr", text));
 	const exited = new Promise<number | null>((done) => {
-		child.on("exit", (code) => done(code));
+		child.on("exit", (code) => done(code ?? 1));
 		child.on("error", (error) => {
 			output("stderr", `can't start ${spec.command}: ${error.message}\n`);
-			done(null);
+			done(1);
 		});
 	});
 	return { exited, kill: () => child.kill() };
@@ -204,7 +211,7 @@ export class Ic10TestSession extends DebugSession {
 				command: args.runtimeExecutable ?? "node",
 				args: [vitest, "run", args.line ? `${test}:${args.line}` : test, "--testTimeout=0", ...(args.args ?? [])],
 				cwd,
-				env: { ...process.env, ...args.env, IC10_DEBUG: String(port) },
+				env: { ...args.env, IC10_DEBUG: String(port) },
 			};
 			this.launched = this.launcher(spec, (category, text) => this.sendEvent(new OutputEvent(text, category)));
 			void this.launched.exited.then((code) => this.end(code));
@@ -530,7 +537,7 @@ export class Ic10TestSession extends DebugSession {
 		this.ended = true;
 		this.endProgress();
 		this.server?.close();
-		this.sendEvent(new ExitedEvent(code ?? 1));
+		if (code !== null) this.sendEvent(new ExitedEvent(code));
 		this.sendEvent(new TerminatedEvent());
 	}
 }

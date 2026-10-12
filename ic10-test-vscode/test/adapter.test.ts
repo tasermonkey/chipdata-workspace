@@ -4,7 +4,14 @@ import { join } from "node:path";
 import { DebugClient } from "@vscode/debugadapter-testsupport";
 import type { DebugProtocol } from "@vscode/debugprotocol";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { findVitestRoot, type Ic10LaunchArgs, Ic10TestSession } from "../src/adapter.ts";
+import {
+	findVitestRoot,
+	type Ic10LaunchArgs,
+	Ic10TestSession,
+	type Launcher,
+	type LaunchSpec,
+	spawnLauncher,
+} from "../src/adapter.ts";
 
 const FIXTURES = join(import.meta.dirname, "fixtures");
 const TESTS = join(FIXTURES, "chips.debug.ts");
@@ -38,11 +45,15 @@ function collectOutput(dc: DebugClient): () => string {
 describe("debug adapter", () => {
 	let server: Server;
 	let dc: DebugClient;
+	/** How the next session starts the test; a test can swap it before launching. */
+	let launcher: Launcher;
 
 	beforeEach(async () => {
+		launcher = spawnLauncher;
 		// The adapter runs in this process, as it will inside VS Code; the client talks to it over a socket.
 		server = createServer((socket) => {
-			const session = new Ic10TestSession();
+			// The session is made when the client connects, before a test can swap the launcher.
+			const session = new Ic10TestSession((spec, output) => launcher(spec, output));
 			session.setRunAsServer(true);
 			session.start(socket, socket);
 		});
@@ -258,6 +269,27 @@ describe("debug adapter", () => {
 		await terminated;
 		for (let i = 0; i < 50 && alive(worker); i++) await new Promise((resolve) => setTimeout(resolve, 100));
 		expect(alive(worker)).toBe(false);
+	}, 60_000);
+
+	it("hands another launcher (the JavaScript debugger's) only what to add to the environment, and ends without an exit code", async () => {
+		// As the extension's js-debug launcher does: VS Code supplies the rest of the environment,
+		// and a debug session ending says nothing about an exit code.
+		let spec: LaunchSpec | undefined;
+		launcher = (given, output) => {
+			spec = given;
+			const launched = spawnLauncher(given, output);
+			return { exited: launched.exited.then(() => null), kill: launched.kill };
+		};
+		let exitedEvents = 0;
+		dc.on("exited", () => exitedEvents++);
+		await dc.hitBreakpoint(launchArgs("counts once a tick", { env: { IC10_EXAMPLE: "1" } }), { path: COUNTER, line: 3 });
+		expect(spec!.env).toEqual({ IC10_EXAMPLE: "1", IC10_DEBUG: expect.stringMatching(/^\d+$/) });
+
+		await dc.setBreakpointsRequest({ source: { path: COUNTER }, breakpoints: [] });
+		const terminated = dc.waitForEvent("terminated");
+		await dc.continueRequest({ threadId: 1 });
+		await terminated;
+		expect(exitedEvents).toBe(0);
 	}, 60_000);
 
 	it("says why a launch can't start", async () => {

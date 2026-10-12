@@ -2,11 +2,14 @@
  * The VS Code side: registers the `ic10-test` debugger (its adapter runs inside the extension host),
  * a "▶ Debug IC10" CodeLens above each test, a command that debugs the test at the cursor, the
  * tick commands (Step Tick, Run N Ticks, Run Until Event) on the debug toolbar, and inline values.
+ * With `debugTypeScript` (or the setting of that name), Vitest runs under the JavaScript debugger
+ * too (see js-debug.ts).
  */
 import * as vscode from "vscode";
 import type { EventInfo } from "@tasermonkey/ic10-test/debug-protocol";
 import { type Ic10CustomRequests, type Ic10LaunchArgs, Ic10TestSession } from "./adapter.ts";
 import { findInlineValues, resolveInlineValues } from "./inline-values.ts";
+import { jsDebugLauncher } from "./js-debug.ts";
 import { describeTest, findTests, type TestBlock, testAt } from "./tests.ts";
 
 /** The languages a test file can be in. */
@@ -15,8 +18,10 @@ const TEST_LANGUAGES = ["typescript", "javascript"];
 export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.debug.registerDebugAdapterDescriptorFactory("ic10-test", {
-			createDebugAdapterDescriptor: () =>
-				new vscode.DebugAdapterInlineImplementation(new Ic10TestSession() as unknown as vscode.DebugAdapter),
+			createDebugAdapterDescriptor: (session) => {
+				const launcher = session.configuration.debugTypeScript === true ? jsDebugLauncher(session) : undefined;
+				return new vscode.DebugAdapterInlineImplementation(new Ic10TestSession(launcher) as unknown as vscode.DebugAdapter);
+			},
 		}),
 		vscode.debug.registerDebugConfigurationProvider("ic10-test", { resolveDebugConfiguration }),
 		vscode.commands.registerCommand("ic10-test.debugTestAtCursor", debugTestAtCursor),
@@ -96,9 +101,12 @@ function registerCodeLenses(): vscode.Disposable {
 	);
 }
 
-/** F5 with no launch.json: debug the test file in the editor. */
+/**
+ * F5 with no launch.json: debug the test file in the editor. A configuration that doesn't say
+ * whether to debug the TypeScript too goes by the `ic10-test.debugTypeScript` setting.
+ */
 function resolveDebugConfiguration(
-	_folder: vscode.WorkspaceFolder | undefined,
+	folder: vscode.WorkspaceFolder | undefined,
 	config: vscode.DebugConfiguration,
 ): vscode.DebugConfiguration | undefined {
 	if (!config.type && !config.request && !config.name) {
@@ -107,11 +115,14 @@ function resolveDebugConfiguration(
 			void vscode.window.showInformationMessage("Open a test file to debug its IC10 scripts.");
 			return undefined;
 		}
-		return launchConfig(editor.document.uri, undefined);
+		config = launchConfig(editor.document.uri, undefined);
 	}
 	if (!config.test) {
 		void vscode.window.showErrorMessage('An ic10-test launch configuration needs a "test" file.');
 		return undefined;
+	}
+	if (config.debugTypeScript === undefined) {
+		config.debugTypeScript = vscode.workspace.getConfiguration("ic10-test", folder).get("debugTypeScript", false);
 	}
 	return config;
 }
