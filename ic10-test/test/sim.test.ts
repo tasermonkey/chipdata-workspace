@@ -195,6 +195,14 @@ describe("halting", () => {
 		expect(world.db("ic").get("Error")).toBe(1);
 	});
 
+	it("doesn't let the failing instruction write anything (G19: it used to land in r0)", async () => {
+		const world = await oneChip("move r0 5\nmove r5 7\nadd stage r5 1\nyield");
+		await world.runTicks(1);
+		const chip = world.chip("ic");
+		expect(chip.halt?.line).toBe(2);
+		expect(chip.reg("r0")).toBe(5);
+	});
+
 	it("can fail the test on any halt", async () => {
 		const world = await oneChip(BAD, { failOnHalt: true });
 		const run = world.runTicks(1);
