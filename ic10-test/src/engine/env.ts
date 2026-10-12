@@ -2,7 +2,7 @@
  * Minimal engine adapter: build an emulator environment straight from the fork's env JSON and step
  * its chip. Phase 2's `sim()` builder sits on top of this; keep emulator internals in engine/.
  */
-import { Builder, type Device, type EnvSchema, type Ic10Runner } from "@stationeers-ic/ic10";
+import { Builder, type Device, type EnvSchema, type Ic10Runner } from "@tasermonkey/ic10";
 
 export interface Env {
 	builder: Builder;

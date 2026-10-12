@@ -9,7 +9,7 @@ import {
 	ItemEntity,
 	type Slot,
 	Structure,
-} from "@stationeers-ic/ic10";
+} from "@tasermonkey/ic10";
 import type { CatalogPrefab } from "../catalog/catalog.ts";
 
 /** Whether the emulator has a device class for this prefab, so its env format can build one. */

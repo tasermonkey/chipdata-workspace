@@ -13,7 +13,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { DEVICES } from "@stationeers-ic/ic10";
+import { DEVICES } from "@tasermonkey/ic10";
 import type { CatalogPrefab } from "../src/catalog/catalog.ts";
 import { type StationpediaPage, stationpediaPrefab, logicDifferences } from "../src/catalog/stationpedia.ts";
 import { ownModsFile, readInstalledMods } from "../src/catalog/mods.ts";

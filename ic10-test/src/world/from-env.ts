@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { EnvSchema, Housing } from "@stationeers-ic/ic10";
+import type { EnvSchema, Housing } from "@tasermonkey/ic10";
 import { buildEngineFromEnv } from "../engine/build.ts";
 import { formatId, parseId, type ReferenceId } from "../engine/ids.ts";
 import { readScript } from "../scripts.ts";

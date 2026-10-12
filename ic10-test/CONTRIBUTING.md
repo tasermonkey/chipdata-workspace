@@ -6,7 +6,7 @@ Notes for changing the harness itself. To use it to test your own scripts, see t
 ## Layout rules
 
 This package is self-contained so it can move to its own repository later. Nothing in `src/` may
-import from outside this directory, except `@stationeers-ic/ic10` and Node built-ins. Only
+import from outside this directory, except `@tasermonkey/ic10` (the emulator fork) and Node built-ins. Only
 `src/engine/` touches the emulator's internals.
 
 It runs as TypeScript source on Node 24+ (no build step yet). Its own tests run with `npm test` in

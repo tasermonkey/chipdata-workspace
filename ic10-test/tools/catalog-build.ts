@@ -12,7 +12,7 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { DEVICES } from "@stationeers-ic/ic10";
+import { DEVICES } from "@tasermonkey/ic10";
 import { buildCatalog, type DescriptionSource, parseEnglishXml } from "../src/catalog/build.ts";
 import { CATALOG_PATH, GENERATED_DIR } from "../src/catalog/catalog.ts";
 import { modPrefabs } from "../src/catalog/mods.ts";

@@ -1,4 +1,4 @@
-import type { Ic10Error } from "@stationeers-ic/ic10";
+import type { Ic10Error } from "@tasermonkey/ic10";
 import type { World } from "../world/world.ts";
 
 /** Where a chip is when the scheduler consults the gate. */

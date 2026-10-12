@@ -6,7 +6,7 @@ import {
 	ErrorSeverity,
 	Housing,
 	Ic10Runner,
-} from "@stationeers-ic/ic10";
+} from "@tasermonkey/ic10";
 import { EngineChip } from "./chip.ts";
 import type { CatalogPrefab } from "../catalog/catalog.ts";
 import { CustomDevice, isCatalogued, listProps, registerModPrefab, writeProp, writePropIfPresent } from "./device.ts";

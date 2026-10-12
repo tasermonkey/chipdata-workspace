@@ -7,7 +7,7 @@ import {
 	type Ic10Runner,
 	InstructionLine,
 	LabelLine,
-} from "@stationeers-ic/ic10";
+} from "@tasermonkey/ic10";
 import { describePropertyError } from "./describe.ts";
 import { hasProp, listProps, readProp, writePropIfPresent } from "./device.ts";
 

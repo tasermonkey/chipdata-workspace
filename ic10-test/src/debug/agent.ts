@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { Ic10Error } from "@stationeers-ic/ic10";
+import type { Ic10Error } from "@tasermonkey/ic10";
 import { formatValue } from "../matchers/report.ts";
 import type { ChipHandle, World } from "../world/world.ts";
 import { evaluate, evaluateCondition, interpolate } from "./evaluate.ts";

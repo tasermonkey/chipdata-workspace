@@ -4,7 +4,7 @@
  * found". Each error keeps the device it came from, so the harness can say which device, by test
  * key, prefab and reference ID, and list what it does have.
  */
-import { type Device, type Ic10Error, Logics } from "@stationeers-ic/ic10";
+import { type Device, type Ic10Error, Logics } from "@tasermonkey/ic10";
 import { formatId } from "./ids.ts";
 import { mirroredErrors, NO_TARGET_MESSAGE } from "./mirror.ts";
 

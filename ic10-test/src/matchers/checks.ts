@@ -3,7 +3,7 @@
  * return whether it passed plus a message, so they work outside Vitest too. `vitest.ts` wraps them
  * with `expect.extend`.
  */
-import type { Ic10Error } from "@stationeers-ic/ic10";
+import type { Ic10Error } from "@tasermonkey/ic10";
 import type { Change, Snapshot } from "../world/snapshot.ts";
 import { Recording } from "../world/snapshot.ts";
 import { ChipHandle, DeviceHandle, World } from "../world/world.ts";

@@ -10,7 +10,7 @@
  * - batch instructions and `ld` find devices by their own prefab, name and ID, so they see a Logic
  *   Mirror, not the target, and the target's ID isn't on the mirror's network.
  */
-import { type Device, ErrorSeverity, Ic10Error } from "@stationeers-ic/ic10";
+import { type Device, ErrorSeverity, Ic10Error } from "@tasermonkey/ic10";
 import { CustomDevice, registerModPrefab } from "./device.ts";
 
 export const MIRROR_PREFAB = "StructureLogicMirror";

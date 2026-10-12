@@ -1,4 +1,4 @@
-import type { Device, Ic10Error } from "@stationeers-ic/ic10";
+import type { Device, Ic10Error } from "@tasermonkey/ic10";
 import {
 	clearSlot,
 	listProps,
@@ -11,7 +11,7 @@ import {
 } from "../engine/device.ts";
 import { formatId } from "../engine/ids.ts";
 import { LogicMirror } from "../engine/mirror.ts";
-import type { EnvSchema } from "@stationeers-ic/ic10";
+import type { EnvSchema } from "@tasermonkey/ic10";
 import { describeChip, SimBudgetError, SimRunError } from "../scheduler/errors.ts";
 import type { AutoYield, ChipState, Halt, Scheduler, TraceEntry } from "../scheduler/scheduler.ts";
 import { secondsToTicks } from "../scheduler/time.ts";

@@ -2,7 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
 	resolve: {
-		// Resolve @stationeers-ic/ic10 to its TypeScript sources (the "source" export condition).
+		// Resolve @tasermonkey/ic10 to its TypeScript sources (the "source" export condition).
 		conditions: ["source"],
 	},
 	ssr: {

@@ -1,4 +1,4 @@
-import type { Ic10Error } from "@stationeers-ic/ic10";
+import type { Ic10Error } from "@tasermonkey/ic10";
 import type { DebugGate } from "../debug/gate.ts";
 import type { EngineChip, StepOutcome } from "../engine/chip.ts";
 import type { World } from "../world/world.ts";

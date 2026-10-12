@@ -4,7 +4,7 @@
  * named problem (a script bug or an emulator gap) is fixed; once one passes, its test fails so
  * the entry gets removed.
  */
-import { ErrorSeverity, JUMP_LIMIT_ERROR_CODE, ValidateIc10Runner } from "@stationeers-ic/ic10";
+import { ErrorSeverity, JUMP_LIMIT_ERROR_CODE, ValidateIc10Runner } from "@tasermonkey/ic10";
 import { describe, expect, it } from "vitest";
 import { readRepoScript, repoScripts } from "./support/paths.ts";
 

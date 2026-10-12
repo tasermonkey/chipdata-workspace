@@ -1,4 +1,4 @@
-import type { Device } from "@stationeers-ic/ic10";
+import type { Device } from "@tasermonkey/ic10";
 import { GASES, GRID_VOLUME, IDEAL_GAS_CONSTANT } from "../atmos/gases.ts";
 import { type Atmosphere, Mixture, type MixtureInit, type PressureInit, Reservoir, type ReservoirInit } from "../atmos/mixture.ts";
 import { hasProp, writeProp } from "../engine/device.ts";

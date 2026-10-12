@@ -3,7 +3,7 @@
 	"private": true,
 	"version": "0.0.0",
 	"type": "module",
-	"description": "Test harness for Stationeers IC10 scripts, built on the @stationeers-ic/ic10 emulator",
+	"description": "Test harness for Stationeers IC10 scripts, built on the @tasermonkey/ic10 emulator (a fork of @stationeers-ic/ic10)",
 	"license": "AGPL-3.0-or-later",
 	"repository": {
 		"type": "git",
@@ -26,7 +26,7 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"@stationeers-ic/ic10": "*"
+		"@tasermonkey/ic10": "^1.0.0"
 	},
 	"engines": {
 		"node": ">=24"
