@@ -387,6 +387,23 @@ so its handle has a `path` and the debugger stops at breakpoints in it.
 
 ## Debugging
 
+To step through a script while its test runs, install the VS Code extension in
+[`ic10-test-vscode/`](../ic10-test-vscode/) (a local `.vsix`; its README says how). Set a breakpoint in the
+`.ic10` file, then click **▶ Debug IC10** above the test. You get:
+- Step Over, Into and Out, a Call Stack frame per `jal`, and one thread per chip;
+- registers, the stack, devices, atmospheres and the world, with registers, stack entries and device
+  values editable;
+- hovers, Watch and the Debug Console;
+- halts as exceptions;
+- Step Tick, Run N Ticks and Run Until Event;
+- data breakpoints and inline values.
+
+It can also debug the test's TypeScript at the same time, or run a world with no test (a scenario, below).
+Tests need no changes for any of this. [`ic10-test-vscode/examples/`](../ic10-test-vscode/examples/) has a
+small example of each feature.
+
+The rest of this section is how that works, for anyone building on it.
+
 `sim({ debug: gate })` (or `setDefaultDebugGate(gate)`) installs hooks the scheduler awaits before and
 after every line, on halts, on automatic yields, after each tick and after each scripted event. The VS Code
 debugger attaches through this.

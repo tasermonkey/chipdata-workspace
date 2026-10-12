@@ -2,12 +2,6 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"type": "ic10-test",
-			"request": "launch",
-			"name": "Debug IC10 scenario example",
-			"scenario": "${workspaceFolder}/ic10-test-vscode/examples/scenario.env.json"
-		},
-		{
 			// Work on the extension: opens a second VS Code window running it from source.
 			"name": "Run the IC10 Test extension",
 			"type": "extensionHost",

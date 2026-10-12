@@ -475,8 +475,8 @@ plan had (it had a world option for each; they were dropped, 2026-10-11):
 
 `world.mirror(key)` gives the mirror's handle: `target`, `setTarget(key | undefined)` (a
 screwdriver, in game), `powered` and `setPowered`. It has no values of its own, so `get`/`set` on it
-throw and point at the target. The debugger (§6b), once built, should show a mirror as
-`mirror → sensor (outside)`.
+throw and point at the target. The debugger (§6b) shows a mirror's target as a row,
+`target = sensor (outside)`, that expands to the target device, and whether it's powered.
 
 ---
 
@@ -593,25 +593,46 @@ It launches from an `.ic10` file plus a `.ic.json` env file. However, it runs on
 it has the same engine gaps (§2): no ticks, real-time `sleep`, and the jump limit. Its debugger would
 show different behaviour from what our tests see.
 
-GPL-3.0 code can be combined with AGPL-3.0 (GPLv3 §13), so we can reuse its pieces: the TextMate
-grammar, language configuration, and the adapter's request handling. The **engine underneath must be
-our harness `World`**, so that debugging and testing behave identically.
+GPL-3.0 code can be combined with AGPL-3.0 (GPLv3 §13), so we could have reused its pieces. In the
+end none was copied (see the decisions below): its adapter has no real pause, keeps breakpoints
+globally and treats all three steps alike, and your installed IC10 extension already provides the
+grammar. Only its scope layout was kept. The **engine underneath is our harness `World`**, so
+debugging and testing behave identically.
+
+### Decisions (Phase 7, 2026-10-11)
+| Question | Decision |
+|---|---|
+| Where the adapter runs | In the extension, inline (`ic10-test-vscode/src/adapter.ts`, no `vscode` import, so `DebugClient` tests it without an editor). A small **agent** in the test process connects back over a socket. |
+| Who decides where to stop | The agent, in the test process. A run doesn't wait on the adapter for every line, and lets messages in every few milliseconds so Pause works. |
+| Where the extension lives | `ic10-test-vscode/`, a sibling of `ic10-test/` with its own package and LICENSE. It shares only the protocol's types and version (`@tasermonkey/ic10-test/debug-protocol`), so either can move to its own repo. |
+| Grammar | None: your IC10 extension (florpydorp) provides the `ic10` language. Ours declares the language and its breakpoints only. |
+| Code from vscode-ic10 | None. Only its scope layout. |
+| Distribution | A local `.vsix` (`npm run vscode:package -w ic10-test-vscode`), publisher `tasermonkey`, the repo as homepage. |
+| Sessions | Each launch is its own session; a new one doesn't stop the last. |
+| Call Stack | A frame per `jal` or branch-and-link call: the stack is the call stack, as in assembly. Step Over and Step Out go by that depth. |
+| CodeLens | Above `it`, `test` and `describe` in TypeScript and JavaScript, only in a workspace with IC10 in it; the setting `ic10-test.codeLens` turns it off. |
+| Debugging the TypeScript too | A launch attribute `debugTypeScript` and a setting `ic10-test.debugTypeScript` (off by default), not a second CodeLens. The JavaScript debugger runs as a child session; stopping either ends both. |
+| Scenarios | A world module (`x.world.ts`) or env JSON plus a `program`. Run under plain Node, as fast as it can, ending once every chip has stopped and nothing is due. Started by a launch configuration, F5, or an editor-title button; an `.ic10` stands for the scenario beside it. |
+| Step back | Not in Phase 7 (see Controls). |
 
 ### How it hooks into tests
 ```
 VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness inside a Vitest test process
-                 (in a small VS Code extension         (scheduler awaits a "debug gate"
-                  under ic10-test/vscode/)               before every line when
-                                                         IC10_DEBUG is set)
+                 (in the VS Code extension             or a scenario run under Node
+                  ic10-test-vscode/)                   (the agent is the scheduler's "debug
+                                                         gate" when IC10_DEBUG is set)
 ```
 - **Launch from a test.** A CodeLens "▶ Debug IC10" appears above each `it(...)`, and there's a
-  launch config of `{ "type": "ic10-test", "test": "tests/…/x.test.ts", "name": "pulls in night air" }`.
-  The adapter starts Vitest for that one test with `IC10_DEBUG=<port>` and a long timeout. The
+  launch config of `{ "type": "ic10-test", "test": "tests/…/x.test.ts", "line": 27 }`.
+  The adapter starts Vitest for that one test with `IC10_DEBUG=<port>` and no timeout. The
   harness connects back, and execution pauses at breakpoints set in the `.ic10` file.
-- **Debug both together.** A compound launch config can attach the normal Node debugger to the same
-  process, so you can break in the TypeScript test *and* step through the IC10 script.
-- **Launch from a scenario.** Point the debugger at an `.ic10` file plus a world definition (TS
-  builder module or env JSON) for exploring without a test.
+- **Debug both together.** With `"debugTypeScript": true` (or the setting), the extension starts the
+  test under VS Code's JavaScript debugger as a child of the IC10 session, so you can break in the
+  TypeScript test *and* step through the IC10 script. (The plan first said a compound launch
+  config; that would start two processes, not attach to one.)
+- **Launch from a scenario.** Point the debugger at a world module (`x.world.ts`), or env JSON plus
+  the `.ic10` a chip runs, for exploring without a test. An `.ic10` with a world beside it works
+  too.
 
 ### What you see while paused
 | Feature | Details |
@@ -633,8 +654,13 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 - **Break on halt**: IC10 errors appear as exception stops, e.g. "Halted: invalid register at line
   58". This is toggled in the Breakpoints panel.
 - **Break on auto-yield** (optional): stops when a chip is preempted at 128 lines.
-- **Step back (later)**: the harness already snapshots state each tick, so DAP's step-back and
-  reverse-continue can rewind a tick.
+- **Step back (Phase 8)**: this first said the harness already snapshots state each tick, so DAP's
+  step-back and reverse-continue could rewind a tick. That was wrong. `snapshot()` is taken on
+  demand, not each tick, and records registers, device properties and readings as numbers for
+  `diff()` and reports; it has no restore. It leaves out slots, the stack, the line each chip is on,
+  its defines and calls, sleeps, scheduled events and models' state. Rewinding
+  needs a full save and restore of the world (or replaying from the start to a tick, since runs are
+  deterministic), so it moves to Phase 8.
 
 ---
 
@@ -649,8 +675,8 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 | **4 Tests for your scripts** | Write failing regression tests for [CODE_REVIEW.md](CODE_REVIEW.md) §1 first, then fix the scripts. Then add behaviour tests for the simpler scripts. | The review bugs are covered and fixed. |
 | **5 Catalogue** | §6 sources (game, fork data, Stationpedia export, wiki `Special:Export` import), generated `.d.ts`, CLI lookup, runtime surfacing, static batch-op checks. | Mistyped properties in tests fail to compile, and every script's batch instructions are checked against the catalogue. (Originally "1.4-style misuse is flagged", which a catalogue check can't do; see §6.) |
 | **6 World behaviour** | §5 model library, pipe and room atmospheres, and the Logic Mirror proxy device (§5.4). | An Alaska Cooler test cools a pipe over N ticks through the vent model. |
-| **7 VS Code debugger** | §6b. Build the adapter and a small extension in `ic10-test/vscode/`, reusing vscode-ic10's grammar and adapter pieces. Add the CodeLens on tests and the scopes from the table. | Breakpoint in an `.ic10` file, "Debug IC10" on a test, step line by line, and watch registers and `vent.On` change. |
-| **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, phase changes in the gas core (condensing and boiling from the game's per-gas curves, with latent heat; e.g. an Alaska coolant pipe left full in the cold), and extracting `ic10-test/` to its own repo. | — |
+| **7 VS Code debugger** | §6b. Build the adapter and a small extension in `ic10-test-vscode/` (first planned as `ic10-test/vscode/`, reusing vscode-ic10's grammar and adapter pieces; see §6b's decisions). Add the CodeLens on tests and the scopes from the table. | Breakpoint in an `.ic10` file, "Debug IC10" on a test, step line by line, and watch registers and `vent.On` change. |
+| **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, the debugger's step back (a full save and restore of a world; §6b), phase changes in the gas core (condensing and boiling from the game's per-gas curves, with latent heat; e.g. an Alaska coolant pipe left full in the cold), and extracting `ic10-test/` to its own repo. | — |
 
 **Status (2026-10-08):**
 - **Phase 0 is done.** The fork has been converted (CI passes). The root npm workspace uses
@@ -919,7 +945,10 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   the climate tests on them, and the Logic Mirror. Deferred to Phase 8: phase changes in the gas
   core. Next is Phase 7, the VS Code debugger (§6b).
 
-- **Phase 7 (from 2026-10-11).** Decisions:
+- **Phase 7 is done (2026-10-12).** The debugger has everything in §6b except step back, which
+  moved to Phase 8. The decisions are in §6b's table. Next: checking the fork's instructions
+  against the wiki's reference (`ic10-test/local/instructions.md`), since G20 showed the upstream
+  instruction tests can encode wrong behaviour. The steps, from 2026-10-11:
   - The DAP adapter runs in the extension, as §6b's diagram shows. A small agent in the Vitest
     process, loaded by the setup file when `IC10_DEBUG` is set, connects back over a socket
     (newline-delimited JSON). Breakpoints and stepping are decided in the agent, so a run doesn't
@@ -1125,6 +1154,15 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     - Adapter tests launch a world-module scenario (a breakpoint, then running on to its end with the
       reason) and an env JSON one with a program. The new `scenario` example (a light at nightfall,
       counting nights) has the world as a module and as env JSON, and two launch configurations.
+  - Step 13 is done: the docs.
+    - §6b now has the decisions table. Its step-back claim is corrected: `snapshot()` has no
+      restore. The "compound launch config" is replaced by what was built (a child JavaScript
+      session).
+    - The harness README's Debugging section now starts with how to use the debugger.
+    - The extension's README covers installing it, the ways to start it, debugging the TypeScript
+      too, and scenarios.
+    - §8 covers the extension's licence. The `.vsix` bundles `@vscode/debugadapter` (MIT) and now
+      carries its notice (`ic10-test-vscode/THIRD_PARTY_NOTICES.md`).
   - A playground, `ic10-test-vscode/examples/`, has one small test and `.ic10` script per feature:
     breakpoints, stepping, variables, exceptions, several chips, a network of chips, the tick
     commands, data breakpoints, debugging the TypeScript too, and a scenario. The top of
@@ -1147,8 +1185,13 @@ Suggested first regression tests (Phase 4):
 
 ## 8. Licensing notes
 - The fork stays **AGPL-3.0**. Keep its LICENSE, and mark modified files with change notices (§5a).
-- `ic10-test/` imports the fork, so if it's distributed it should be AGPL-3.0 too. Give the
-  subdirectory its own LICENSE file when it's created.
+- `ic10-test/` imports the fork, so if it's distributed it should be AGPL-3.0 too. It's
+  `AGPL-3.0-or-later`, with its own LICENSE file.
+- `ic10-test-vscode/` (the debugger extension) is `AGPL-3.0-or-later` too, with its own LICENSE. It
+  copies no code from vscode-ic10 (GPL-3.0), so it owes that project nothing. Its bundle includes
+  `@vscode/debugadapter` (MIT, Microsoft), whose notice ships in the `.vsix` as
+  `THIRD_PARTY_NOTICES.md`; `@vscode/debugprotocol` is types only. The bundle also includes the
+  harness's protocol module, which is ours and under the same licence.
 - **Your IC10 scripts** are input to the emulator, not linked code, so they can carry any licence.
   The repo has no LICENSE at the moment, which means "all rights reserved" by default.
 - Generated catalogue text from `english.xml` is RocketWerkz's. Keep it out of git (§6).
