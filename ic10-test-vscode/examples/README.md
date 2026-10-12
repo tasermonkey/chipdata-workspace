@@ -12,6 +12,7 @@ keep working.
 | Variables, editing, hover, Watch, Debug Console | `variables.test.ts` | `variables.ic10` | Breakpoint on `yield`; every scope; set `Stage` to `Max`; watch `vent.On` |
 | Halts and automatic yields | `exceptions.test.ts` | `halts.ic10`, `auto-yields.ic10` | No breakpoint needed for the halt; tick **Automatic yields** under Breakpoints for the other |
 | Several chips, inline code | `chips.test.ts` | `chips.ic10` (plus inline `setup`) | Breakpoint on `add`; switch threads; open the inline chip's source |
+| A network of chips sharing work through each other's stacks | `network.test.ts` | `controller.ic10` (waits in a yield loop for both workers' acknowledgements), `worker.ic10` (run by two housings) | Breakpoint in `worker.ic10` with the condition `db.Setting == 2`; Step Tick in the controller's wait loop; a data breakpoint on the controller's stack entry 4 stops in workerB when it answers |
 | Step Tick, Run N Ticks, Run Until Event | `ticks.test.ts` | `ticks.ic10` | Breakpoint on `move Phase 1`; the toolbar's watch, run-all and bell buttons |
 | Data breakpoints | `data-breakpoints.test.ts` | `data-breakpoints.ic10` | Right-click `r15 (Stage)`, the heater's `On` or the sensor's `Temperature`: Break on Value Change |
 | Inline values | any, e.g. `variables.test.ts` | `variables.ic10` | Stop anywhere: values show at the ends of the lines above |

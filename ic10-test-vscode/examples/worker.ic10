@@ -1,0 +1,29 @@
+# A worker for controller.ic10. Two housings run this same file, so it has two
+# threads in the Call Stack: workerA and workerB. Each housing's Setting says
+# which slot of the controller's stack it reports to (1 or 2); its
+# acknowledgement goes two slots further on.
+# Things to try:
+# - A breakpoint on "mul" stops for both workers, in turn. Click a thread to see
+#   its registers: Job differs between them.
+# - Edit the breakpoint's condition to db.Setting == 2: it stops only for workerB.
+# - Inline values on the get and put lines show the entries they address.
+alias Controller d0
+alias Slot r0
+alias Job r1
+alias Result r2
+alias Last r3
+alias Ack r4
+l Slot db Setting
+add Ack Slot 2
+move Last 0 # no job answered yet
+loop:
+get Job db 0 # the job the controller put in this chip's stack
+beq Job Last idle # the same job as last time: nothing to do
+sleep Slot # pretend the work takes a while: workerA 1 s, workerB 2 s
+mul Result Job Job
+put Controller Slot Result # the answer, in the controller's stack
+put Controller Ack Job # and which job it answers, so the controller knows
+move Last Job
+idle:
+yield
+j loop

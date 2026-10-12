@@ -1,0 +1,40 @@
+# A network of chips: this controller and two workers (worker.ic10), passing work
+# through each other's memory. The controller puts a job into each worker's stack,
+# then waits, a yield at a time, until both have answered. Each worker puts its
+# result into this chip's stack, and beside it the job it answered (its
+# acknowledgement):
+#   stack[1] workerA's result   stack[3] the job workerA answered
+#   stack[2] workerB's result   stack[4] the job workerB answered
+# Things to try:
+# - Breakpoint on "get ResultA": it stops once a round, when both have answered.
+# - Breakpoint on "bne AckA Job wait" and Step Tick: watch the acknowledgements
+#   (inline values) catch up. workerA answers first; workerB takes longer.
+# - Variables, Stack: right-click "4 (above sp)", Break on Value Change. It
+#   stops in workerB, after the put that acknowledged its job.
+# - Variables, World on a worker's thread shows when its sleep ends.
+alias WorkerA d0
+alias WorkerB d1
+alias Job r0
+alias ResultA r1
+alias ResultB r2
+alias Total r3
+alias JobB r4
+alias AckA r5
+alias AckB r6
+move Job 0
+loop:
+add Job Job 1
+put WorkerA 0 Job # workerA's job, in its stack
+mul JobB Job 10
+put WorkerB 0 JobB # workerB's is ten times bigger
+wait:
+yield
+get AckA db 3 # the job workerA last answered
+get AckB db 4
+bne AckA Job wait # not this round's job yet: wait another tick
+bne AckB JobB wait
+get ResultA db 1 # both have answered: their results are here
+get ResultB db 2
+add Total ResultA ResultB
+s db Setting Total
+j loop
