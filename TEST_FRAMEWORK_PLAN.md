@@ -1072,6 +1072,17 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
       and the refusals. An adapter test covers a data breakpoint set while stopped, and one kept
       from an earlier session (sent before the test connects). The examples gained
       `data-breakpoints`.
+  - Step 10 is done: **inline values**, an `InlineValuesProvider` for the `ic10` language. While
+    stopped, each line up to the one stopped at (VS Code's convention, as for JavaScript) shows the
+    registers and register aliases it uses, and the device property an `l` or `s` reads or writes
+    (`Vent.On`), plus the entry `put`, `get` and `poke` address (`stack[10] = 3`). On the line
+    stopped at only, it shows where a `push` writes and what it overwrites, and what a `pop` or
+    `peek` reads (your request; on lines above, `sp` has moved on). The agent's `evaluate` gives
+    each value on the stopped chip, so aliases and device aliases work, and it now reads another
+    device's memory (`d0.stack[2]`; a housing's is its chip's stack). Instruction names, labels,
+    defines, numbers and comments are skipped. Finding and labelling are pure functions
+    (`ic10-test-vscode/src/inline-values.ts`) with their own tests. VS Code's `debug.inlineValues`
+    setting turns them off.
   - A playground, `ic10-test-vscode/examples/`, has one small test and `.ic10` script per feature:
     breakpoints, stepping, variables, exceptions, several chips, and the tick commands. The top of
     each script says what to try. They run in `npm test`. Writing them found **G19** (§2), now fixed in the fork; the fix showed

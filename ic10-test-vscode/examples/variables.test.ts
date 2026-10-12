@@ -19,6 +19,7 @@ describe("variables", () => {
 		expect(ic).toHaveRegister("r1", world.device("vent").id);
 		expect(ic).toHaveStack([7, 8]);
 		expect(ic).toHaveStackAt(10, 3);
+		expect(ic).toHaveProps({ Setting: 8 + 3 }); // peek and get read them
 		expect(world.device("vent")).toHaveProps({ On: 1 });
 		expect(ic).toHaveNoErrors();
 	});

@@ -1,11 +1,12 @@
 /**
  * The VS Code side: registers the `ic10-test` debugger (its adapter runs inside the extension host),
- * a "▶ Debug IC10" CodeLens above each test, a command that debugs the test at the cursor, and the
- * tick commands (Step Tick, Run N Ticks, Run Until Event) on the debug toolbar.
+ * a "▶ Debug IC10" CodeLens above each test, a command that debugs the test at the cursor, the
+ * tick commands (Step Tick, Run N Ticks, Run Until Event) on the debug toolbar, and inline values.
  */
 import * as vscode from "vscode";
 import type { EventInfo } from "@tasermonkey/ic10-test/debug-protocol";
 import { type Ic10CustomRequests, type Ic10LaunchArgs, Ic10TestSession } from "./adapter.ts";
+import { findInlineValues, resolveInlineValues } from "./inline-values.ts";
 import { describeTest, findTests, type TestBlock, testAt } from "./tests.ts";
 
 /** The languages a test file can be in. */
@@ -23,6 +24,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand("ic10-test.stepTick", stepTick),
 		vscode.commands.registerCommand("ic10-test.runTicks", runTicks),
 		vscode.commands.registerCommand("ic10-test.runUntilEvent", runUntilEvent),
+		vscode.languages.registerInlineValuesProvider({ language: "ic10" }, { provideInlineValues }),
 		registerCodeLenses(),
 	);
 }
@@ -127,6 +129,31 @@ async function debugTestAtCursor(): Promise<void> {
 /** Debug one test (or group) of a file, or the whole file. What a CodeLens runs. */
 async function debugTest(uri: vscode.Uri, test: TestBlock | undefined): Promise<void> {
 	await vscode.debug.startDebugging(vscode.workspace.getWorkspaceFolder(uri), launchConfig(uri, test));
+}
+
+/**
+ * Values beside the lines of the script that's stopped, up to the line it's stopped at (VS Code's
+ * `debug.inlineValues` setting turns them off). The debugger evaluates each one on the stopped
+ * chip, so aliases and device aliases work.
+ */
+async function provideInlineValues(
+	document: vscode.TextDocument,
+	viewPort: vscode.Range,
+	context: vscode.InlineValueContext,
+): Promise<vscode.InlineValue[]> {
+	const session = vscode.debug.activeDebugSession;
+	if (session?.type !== "ic10-test") return [];
+	const items = findInlineValues(document.getText(), context.stoppedLocation.end.line).filter(
+		(v) => v.line >= viewPort.start.line && v.line <= viewPort.end.line,
+	);
+	const evaluate = async (expression: string): Promise<string> => {
+		const body = (await session.customRequest("evaluate", { expression, frameId: context.frameId, context: "watch" })) as {
+			result: string;
+		};
+		return body.result;
+	};
+	const labels = await resolveInlineValues(items, evaluate);
+	return labels.map((label) => new vscode.InlineValueText(new vscode.Range(label.line, label.start, label.line, label.end), label.text));
 }
 
 // --- tick commands -------------------------------------------------------------------------------

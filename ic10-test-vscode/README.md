@@ -66,17 +66,31 @@ value changes:
 
 Data breakpoints take conditions, and they're kept for the next run of the same test.
 
+## Inline values
+
+While stopped, each line of the script up to the one stopped at shows, at its end:
+- the registers and register aliases it uses, and the device property an `l` or `s` reads or writes
+  (`Stage = 2`, `Vent.On = 1`);
+- for `put`, `get` and `poke`, the entry they address (`stack[10] = 3`, `Ctl.stack[0] = 5`);
+- on the line stopped at only: where a `push` writes and what it overwrites (`push → stack[2],
+  overwriting 7`), or what a `pop` or `peek` reads (`pop ← stack[1] = 8`). On lines above, `sp` has
+  moved on, so these would point at the wrong entry.
+
+They're the values now, not when the line last ran. VS Code's `debug.inlineValues` setting turns them
+off.
+
 ## Status
 
-Done so far (Phase 7 steps 5–9 of `TEST_FRAMEWORK_PLAN.md`):
+Done so far (Phase 7 steps 5–10 of `TEST_FRAMEWORK_PLAN.md`):
 - the adapter;
 - the extension, installed as a local `.vsix`;
 - the **▶ Debug IC10** CodeLens above each test (turn it off with the `ic10-test.codeLens`
   setting);
 - the tick commands;
-- data breakpoints.
+- data breakpoints;
+- inline values.
 
-Inline values come next.
+Debugging the TypeScript too comes next.
 
 ## Tests
 

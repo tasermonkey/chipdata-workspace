@@ -960,4 +960,17 @@ describe("evaluate", () => {
 		expect(evaluateCondition(ic, "Vent.On != 1")).toBe(false);
 		expect(evaluateCondition(ic, "Stage")).toBe(true);
 	});
+
+	it("reads stack entries, its own and another chip's as put and get address them", async () => {
+		const world = await sim({ debug: false })
+			.housing("setup", { code: "push 4\nput d0 2 9\nyield", pins: { d0: "control" } })
+			.housing("control", { code: "alias Setup d0\nyield", pins: { d0: "setup" } })
+			.build();
+		await world.runTicks(1);
+		const setup = world.chip("setup");
+		const control = world.chip("control");
+		expect([evaluate(setup, "stack[0]"), evaluate(setup, "stack[sp]"), evaluate(setup, "db.stack[0]")]).toEqual([4, 0, 4]);
+		expect([evaluate(setup, "d0.stack[2]"), evaluate(control, "stack[2]"), evaluate(control, "Setup.stack[0]")]).toEqual([9, 9, 4]);
+		expect(() => evaluate(setup, "stack[999]")).toThrow(/entries 0 to/);
+	});
 });

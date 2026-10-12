@@ -3,11 +3,13 @@ import type { ChipHandle } from "../world/world.ts";
 const PIN = /^(d[0-5]|db)$/;
 const COMPARISON = /^(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+)$/;
 const STACK = /^stack\[\s*(.+?)\s*\]$/;
+const MEMORY = /^(.+?)\.stack\[\s*(.+?)\s*\]$/;
 
 /**
  * The value of a name as a chip sees it, for breakpoint conditions, hovers and the debug console:
  * a number (`5`, `-1.5`, `$1488`, `%101`), a register or alias (`r15`, `Stage`, `sp`), a stack
- * entry (`stack[3]`, `stack[sp]`), a define or label, or a device property by pin, device alias or
+ * entry (`stack[3]`, `stack[sp]`), an entry in a device's memory as `put`/`get` address it
+ * (`d0.stack[2]`: a housing's is its chip's stack), a define or label, or a device property by pin, device alias or
  * key (`d0.On`, `vent.On`, `db.Setting`), or any other world path (`coolant.Temperature`). Throws
  * when it names nothing.
  */
@@ -29,6 +31,17 @@ export function evaluate(chip: ChipHandle, expression: string): number {
 	if (define) {
 		if (define.kind === "alias") throw new Error(`${expr} is the device ${define.value}; ask for one of its properties, e.g. ${expr}.On`);
 		return Number(define.value);
+	}
+
+	const memory = MEMORY.exec(expr);
+	if (memory) {
+		const key = deviceKeyFor(chip, memory[1]!);
+		if (key === undefined) throw new Error(`"${memory[1]}" isn't a pin, device alias or device`);
+		const index = evaluate(chip, memory[2]!);
+		if (!(Number.isInteger(index) && index >= 0)) throw new Error(`${expr}: ${index} isn't an index`);
+		// A housing's memory is its chip's stack; other devices (a logic sorter) have their own.
+		const housing = chip.world.listChips().find((c) => c.key === key);
+		return housing ? housing.stackAt(index) : chip.world.device(key).stackAt(index);
 	}
 
 	const dot = expr.lastIndexOf(".");

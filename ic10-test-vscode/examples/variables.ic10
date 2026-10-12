@@ -6,6 +6,10 @@
 #   readings come from the pipe, so they can't be edited.
 # - Atmospheres (the pipe, the outside air), World (tick, lines this tick),
 #   Defines.
+# Inline values: while stopped, each line up to the one stopped at shows its
+# registers, aliases and device properties at its end (Stage = 2, Vent.On = 1),
+# and the entry a put or get addresses (stack[10] = 3). Stop on a push to see
+# where it writes and what it would overwrite, or on the peek to see what it reads.
 # Things to try:
 # - Double-click r15 (Stage) and type Max. Double-click the vent's On and type 0.
 # - Hover Stage, then Setting (a logic type: its description).
@@ -26,5 +30,9 @@ l r2 Sensor Temperature
 sgt r3 r2 Warm
 s Vent On r3
 add Stage Stage 1
+peek r4 # the top of the stack: 8
+get r5 db 10 # what the put wrote: 3
+add r6 r4 r5
+s db Setting r6
 yield
 j loop
