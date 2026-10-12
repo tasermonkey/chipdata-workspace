@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createServer, type Server } from "node:net";
 import { join } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import { DebugClient } from "@vscode/debugadapter-testsupport";
 import type { DebugProtocol } from "@vscode/debugprotocol";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -35,11 +36,15 @@ function alive(pid: number): boolean {
 	}
 }
 
-/** Everything the adapter printed (Vitest's output among it), for failure messages and checks. */
+/**
+ * Everything the adapter printed (Vitest's output among it), for failure messages and checks. Colour
+ * codes are stripped: Vitest colours its output when run from a terminal that asks for colour, and
+ * the child inherits that.
+ */
 function collectOutput(dc: DebugClient): () => string {
 	let text = "";
 	dc.on("output", (e: DebugProtocol.OutputEvent) => (text += e.body.output));
-	return () => text;
+	return () => stripVTControlCharacters(text);
 }
 
 describe("debug adapter", () => {

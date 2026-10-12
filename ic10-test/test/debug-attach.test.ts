@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer, type Server, type Socket } from "node:net";
 import { dirname, join } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import { describe, expect, it } from "vitest";
 import { type AgentMessage, type Command, type EventMessage, PROTOCOL_VERSION, type Requests } from "../src/debug/protocol.ts";
 
@@ -111,8 +112,10 @@ describe("attaching from Vitest", () => {
 
 			await adapter.event("terminated");
 			expect(await exited).toBe(1);
-			expect(output).toMatch(/expected.*Count.*3/is);
-			expect(output).toMatch(/1 failed \| 1 skipped/);
+			// Without colour codes: Vitest colours its output when run from a terminal that asks for it.
+			const plain = stripVTControlCharacters(output);
+			expect(plain).toMatch(/expected.*Count.*3/is);
+			expect(plain).toMatch(/1 failed \| 1 skipped/);
 		} finally {
 			child.kill();
 			server.close();
