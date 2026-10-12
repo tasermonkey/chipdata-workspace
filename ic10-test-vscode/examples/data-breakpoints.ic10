@@ -1,0 +1,36 @@
+# Data breakpoints: stop when a value changes, wherever it changes.
+# Set a breakpoint on the first "yield" to get stopped, then remove it. In Variables,
+# right-click a value and choose "Break on Value Change":
+# - Registers, r15 (Stage). Continue: it stops after the line that changed it,
+#   and the stop names that line.
+# - Devices, d0 (heater), On. Only this script changes it.
+# - Devices, d1 (sensor), Temperature. It changes between ticks (the "cold snap"
+#   and "sunrise" events), so the stop names the event instead of a line.
+# - Stack, 0 (top): the push at the start set it; the "put" in heat changes it.
+# - Add Stage to Watch, then right-click it there: Watch expressions work too.
+# Right-click a data breakpoint in the Breakpoints view, Edit Condition, to stop
+# only on some changes (Stage == 2). Data breakpoints are kept for the next run.
+alias Stage r15
+alias Heater d0
+alias Sensor d1
+define Cold 280
+define Warm 290
+move Stage 0
+push 0
+loop:
+l r0 Sensor Temperature
+blt r0 Cold heat
+bgt r0 Warm idle
+yield
+j loop
+heat:
+s Heater On 1
+move Stage 1
+put db 0 r0 # remember how cold it got
+yield
+j loop
+idle:
+s Heater On 0
+move Stage 2
+yield
+j loop

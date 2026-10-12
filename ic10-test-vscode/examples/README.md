@@ -13,6 +13,7 @@ keep working.
 | Halts and automatic yields | `exceptions.test.ts` | `halts.ic10`, `auto-yields.ic10` | No breakpoint needed for the halt; tick **Automatic yields** under Breakpoints for the other |
 | Several chips, inline code | `chips.test.ts` | `chips.ic10` (plus inline `setup`) | Breakpoint on `add`; switch threads; open the inline chip's source |
 | Step Tick, Run N Ticks, Run Until Event | `ticks.test.ts` | `ticks.ic10` | Breakpoint on `move Phase 1`; the toolbar's watch, run-all and bell buttons |
+| Data breakpoints | `data-breakpoints.test.ts` | `data-breakpoints.ic10` | Right-click `r15 (Stage)`, the heater's `On` or the sensor's `Temperature`: Break on Value Change |
 
-Data breakpoints, inline values, debugging the TypeScript too, and launching from a scenario (Phase 7
-steps 9–12) will each add an example here.
+Inline values, debugging the TypeScript too, and launching from a scenario (Phase 7 steps 10–12) will
+each add an example here.

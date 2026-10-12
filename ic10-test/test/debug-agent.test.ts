@@ -3,7 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { DebugAgent, type Transport } from "../src/debug/agent.ts";
-import type { AdapterMessage, AgentMessage, Command, EventMessage, Requests } from "../src/debug/protocol.ts";
+import {
+	type AdapterMessage,
+	type AgentMessage,
+	type Command,
+	type EventMessage,
+	PROTOCOL_VERSION,
+	type Requests,
+} from "../src/debug/protocol.ts";
 import { evaluate, evaluateCondition } from "../src/debug/evaluate.ts";
 import { sim, type World } from "../src/index.ts";
 
@@ -102,7 +109,7 @@ describe("debug agent", () => {
 		const { adapter, world, ic } = await debugged();
 		const run = world.runTicks(1);
 		await new Promise((resolve) => setTimeout(resolve, 20));
-		expect(adapter.events[0]).toMatchObject({ event: "hello", version: 2 });
+		expect(adapter.events[0]).toMatchObject({ event: "hello", version: PROTOCOL_VERSION });
 		expect(ic.linesExecuted).toBe(0);
 		await adapter.request("configurationDone", {});
 		await run;
@@ -461,10 +468,14 @@ describe("debug agent", () => {
 		const { adapter, world } = await debugged(scriptFile("move r0 1\nmove r0 2\nmove r0 3\nyield"), { linesPerTick: 2 });
 		await adapter.request("setExceptionFilters", { halt: true, autoYield: true });
 		await adapter.request("configurationDone", {});
-		const run = world.runTicks(1);
+		const run = world.runTicks(2);
 		const stop = await adapter.nextStop();
 		expect(stop).toMatchObject({ reason: "autoYield" });
 		expect(stop.description).toMatch(/2 lines used in tick 0, after line 2/);
+		expect(await lineOf(adapter, 1)).toBe(2); // where it carries on, next tick
+		await adapter.request("stepIn", { thread: 1 });
+		await adapter.nextStop();
+		expect(await lineOf(adapter, 1)).toBe(3); // the step ran that line, rather than stopping on it again
 		await adapter.request("continue", {});
 		await run;
 	});
@@ -650,6 +661,128 @@ describe("debug agent: tick commands", () => {
 		expect([world.tick, ic.reg("Stage")]).toEqual([3, 3]); // before the chip's turn in tick 3
 		await adapter.request("runUntilEvent", { thread: 1 });
 		expect((await adapter.nextStop()).description).toBe('Event "pulse" ran at the start of tick 4');
+		await adapter.request("continue", {});
+		await run;
+	});
+});
+
+describe("debug agent: data breakpoints", () => {
+	/** The ref of a scope of thread 1, while stopped. */
+	async function scopeRef(adapter: FakeAdapter, name: string): Promise<number> {
+		const { scopes } = await adapter.request("scopes", { thread: 1 });
+		return scopes.find((s) => s.name === name)!.ref;
+	}
+
+	it("stops after the line that changed a register, and steps on from there", async () => {
+		const { adapter, world } = await debugged();
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		const run = world.runTicks(3);
+		await adapter.nextStop();
+		await adapter.request("stepIn", { thread: 1 });
+		await adapter.nextStop(); // past the alias, so the row is named by it
+		const info = await adapter.request("dataBreakpointInfo", { ref: await scopeRef(adapter, "Registers"), name: "r15 (Stage)" });
+		expect(info.description).toBe("r15 (Stage) on ic");
+		await adapter.request("setDataBreakpoints", { breakpoints: [{ dataId: info.dataId! }] });
+
+		await adapter.request("continue", {});
+		const stop = await adapter.nextStop(); // "move Stage 0" leaves it at 0: no stop there
+		expect(stop).toMatchObject({ reason: "data", thread: 1, description: "r15 (Stage) on ic: 0 → 1, by line 4 (add Stage Stage 1)" });
+		expect(await lineOf(adapter, 1)).toBe(4); // shown at the next line, the jal
+		await adapter.request("stepIn", { thread: 1 });
+		await adapter.nextStop();
+		expect(await lineOf(adapter, 1)).toBe(8); // the step ran the jal, rather than stopping on it again
+
+		await adapter.request("continue", {});
+		expect((await adapter.nextStop()).description).toMatch(/1 → 2, by line 4/);
+		await adapter.request("setDataBreakpoints", { breakpoints: [] });
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("watches expressions: a device another line sets, and a reading an event changes", async () => {
+		const adapter = new FakeAdapter();
+		const agent = new DebugAgent(adapter.transport);
+		const world = await sim({ debug: agent.gate })
+			.device("vent", "StructureActiveVent")
+			.device("sensor", "StructureGasSensor", { Temperature: 290 })
+			.housing("ic", { code: "loop:\nyield\ns d0 On 1\nyield\ns d0 On 0\nj loop", pins: { d0: "vent" } })
+			.build();
+		world.at({ tick: 2 }, (w) => w.device("sensor").set("Temperature", 250), { label: "dusk" });
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		const run = world.runTicks(4);
+		await adapter.nextStop();
+		const watch = async (name: string) => (await adapter.request("dataBreakpointInfo", { thread: 1, name })).dataId!;
+		await adapter.request("setDataBreakpoints", {
+			breakpoints: [{ dataId: await watch("vent.On") }, { dataId: await watch("sensor.Temperature") }],
+		});
+
+		const descriptions: string[] = [];
+		for (let i = 0; i < 3; i++) {
+			await adapter.request("continue", {});
+			descriptions.push((await adapter.nextStop()).description!);
+		}
+		expect(descriptions).toEqual([
+			"vent.On on ic: 0 → 1, by line 3 (s d0 On 1)",
+			'sensor.Temperature on ic: 290 → 250, by the event "dusk" at the start of tick 2',
+			"vent.On on ic: 1 → 0, by line 5 (s d0 On 0)",
+		]);
+		await adapter.request("setDataBreakpoints", { breakpoints: [] });
+		await adapter.request("continue", {});
+		await run;
+	});
+
+	it("takes a condition, works on the stack, and sees a change the test makes between runs", async () => {
+		const adapter = new FakeAdapter();
+		const agent = new DebugAgent(adapter.transport);
+		const world = await sim({ debug: agent.gate })
+			.device("vent", "StructureActiveVent")
+			.housing("ic", { code: "alias Stage r15\npush 5\nloop:\nadd Stage Stage 1\nyield\nj loop", pins: { d0: "vent" } })
+			.build();
+		// Set before the test runs, as VS Code does with a data breakpoint kept from the last session.
+		const id = (expr: string) => JSON.stringify({ world: 1, chip: "ic", expr, label: expr });
+		await adapter.request("setDataBreakpoints", {
+			breakpoints: [{ dataId: id("r15"), condition: "Stage == 3" }, { dataId: id("stack[0]") }, { dataId: id("d0.On") }],
+		});
+		await adapter.request("configurationDone", {});
+		const run = world.runTicks(2);
+		expect((await adapter.nextStop()).description).toBe("stack[0]: 0 → 5, by line 2 (push 5)");
+		await adapter.request("continue", {});
+		await run; // Stage reaches 2: the condition doesn't hold yet
+
+		world.device("vent").set("On", 1);
+		const more = world.runTicks(2);
+		expect((await adapter.nextStop()).description).toBe(
+			"d0.On: 0 → 1, between lines (a model, a pipe or room reading, or the test)",
+		);
+		await adapter.request("continue", {});
+		expect((await adapter.nextStop()).description).toBe("r15: 2 → 3, by line 4 (add Stage Stage 1)");
+		await adapter.request("continue", {});
+		await more;
+	});
+
+	it("says what can't be watched, and doesn't stop for a value edited while stopped", async () => {
+		const { adapter, world, ic } = await debugged();
+		await adapter.request("configurationDone", { stopOnEntry: true });
+		const run = world.runTicks(2);
+		await adapter.nextStop();
+		await adapter.request("stepIn", { thread: 1 });
+		await adapter.nextStop(); // the alias is defined now
+		const defines = await scopeRef(adapter, "Defines");
+		const devices = await scopeRef(adapter, "Devices");
+		expect(await adapter.request("dataBreakpointInfo", { thread: 1, name: "nope" })).toEqual({ dataId: null, description: "nope isn't a value" });
+		expect((await adapter.request("dataBreakpointInfo", { ref: defines, name: "loop" })).description).toBe(
+			"loop is a label, which never changes",
+		);
+		expect((await adapter.request("dataBreakpointInfo", { ref: devices, name: "db → ic" })).dataId).toBeNull();
+
+		const registers = await scopeRef(adapter, "Registers");
+		const { dataId } = await adapter.request("dataBreakpointInfo", { ref: registers, name: "r1" });
+		await adapter.request("setDataBreakpoints", { breakpoints: [{ dataId: dataId! }] });
+		await adapter.request("setVariable", { ref: registers, name: "r1", value: "40" });
+		await adapter.request("continue", {});
+		expect((await adapter.nextStop()).description).toBe("r1 on ic: 40 → 1, by line 9 (move r1 Stage)");
+		expect(ic.reg("r1")).toBe(1);
+		await adapter.request("setDataBreakpoints", { breakpoints: [] });
 		await adapter.request("continue", {});
 		await run;
 	});

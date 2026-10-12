@@ -384,9 +384,9 @@ keep their starting registers and stack, and take the same options as `sim()`.
 
 ## Debugging
 
-`sim({ debug: gate })` (or `setDefaultDebugGate(gate)`) installs hooks the scheduler awaits before every
-line, on halts, on automatic yields, after each tick and after each scripted event. The VS Code debugger
-will attach through this.
+`sim({ debug: gate })` (or `setDefaultDebugGate(gate)`) installs hooks the scheduler awaits before and
+after every line, on halts, on automatic yields, after each tick and after each scripted event. The VS Code
+debugger attaches through this.
 
 When `IC10_DEBUG` is set (`port` or `host:port`), the Vitest setup file (`@tasermonkey/ic10-test/vitest`)
 connects to the debugger there before the tests run and makes its agent the default gate
@@ -405,8 +405,11 @@ label it jumped to and the line it returns to), and the chip arriving back at th
 … `pop ra`), so this follows nested and recursive calls. Step Over stops once the chip is back at the depth
 it started at, and Step Out once it's a level up. Steps and Pause stop
 only on instructions; blank, comment and label lines run past. `evaluate(chip, "vent.On")` gives a value as
-conditions and hovers see it: numbers, registers, aliases, defines, labels, `d0.On`, `db.Setting`, or any
-world path.
+conditions and hovers see it: numbers, registers, aliases, stack entries (`stack[3]`), defines, labels,
+`d0.On`, `db.Setting`, or any world path. The tick commands (Step Tick, Run N Ticks, Run Until Event) use
+the tick and event hooks. Data breakpoints watch such expressions: after each line the agent compares
+them, so a stop names the line that changed one; before each line, after each event and at each tick's
+end, it catches changes made outside the chips (an event, a model, a pipe reading, the test).
 
 While stopped, the agent shows a chip's scopes: Registers (with aliases; values that are reference IDs
 labelled with their device), Stack (below `sp`, the top marked, and entries above it that hold something),

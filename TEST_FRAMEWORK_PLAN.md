@@ -1053,6 +1053,25 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
       in, so Pause works while every chip sleeps.
     - Agent tests cover each command. An adapter test runs all three through `DebugClient` on a
       fixture test with a `dusk` event.
+  - Step 9 is done: **data breakpoints** (right-click a value, Break on Value Change).
+    - What can be watched: registers, stack entries, device properties, pipe and room readings,
+      and Watch expressions. A data breakpoint's ID names the world, chip and expression (what
+      `evaluate` reads: `r15`, `d0.On`, the new `stack[3]`, `coolant.Temperature`). So VS Code
+      keeps it for the next run of the same test, and the agent picks it up once that chip's world
+      appears. Conditions work. Defines, labels, devices and slots are refused, with a reason.
+    - The gate has a new `afterLine` hook. After each line the agent compares the watched values,
+      and a change stops on the chip that ran the line, naming it: `r15 (Stage) on ic: 0 → 1, by
+      line 4 (add Stage Stage 1)`. Before each line, after each event and at each tick's end it
+      catches changes made outside the chips, naming the event if there was one. A value edited
+      while stopped isn't a change.
+    - After a stop that comes after a line (a data breakpoint, an automatic yield), the chip is
+      shown at its next line. Carrying on now runs that line instead of stopping on it again; a
+      first Step used to look as if it did nothing.
+    - Protocol version 3. Agent tests cover a register, a device a line sets, a reading an event
+      changes, a condition, the stack, a change the test makes between runs, edits while stopped,
+      and the refusals. An adapter test covers a data breakpoint set while stopped, and one kept
+      from an earlier session (sent before the test connects). The examples gained
+      `data-breakpoints`.
   - A playground, `ic10-test-vscode/examples/`, has one small test and `.ic10` script per feature:
     breakpoints, stepping, variables, exceptions, several chips, and the tick commands. The top of
     each script says what to try. They run in `npm test`. Writing them found **G19** (§2), now fixed in the fork; the fix showed

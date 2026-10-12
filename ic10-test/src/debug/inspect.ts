@@ -23,7 +23,8 @@ const PINS = ["d0", "d1", "d2", "d3", "d4", "d5"] as const;
  * good until `reset()` (when the run carries on).
  */
 export class Inspector {
-	private readonly refs = new Map<number, () => Node[]>();
+	/** Each ref's rows, and the chip they were asked for from (whose names an expression uses). */
+	private readonly refs = new Map<number, { chip: ChipHandle; children: () => Node[] }>();
 	private next = 1;
 
 	reset(): void {
@@ -39,27 +40,40 @@ export class Inspector {
 		];
 		if (chip.world.listAtmospheres().length > 0) scopes.push(["Atmospheres", () => atmospheres(chip.world)]);
 		scopes.push(["World", () => worldRows(chip)], ["Defines", () => defines(chip)]);
-		return scopes.map(([name, children]) => ({ name, ref: this.add(children) }));
+		return scopes.map(([name, children]) => ({ name, ref: this.add(chip, children) }));
 	}
 
 	variables(ref: number): VariableInfo[] {
-		return this.children(ref).map((node) => this.info(node));
+		const { chip, children } = this.entry(ref);
+		return children().map((node) => this.info(chip, node));
 	}
 
 	setVariable(ref: number, name: string, text: string): VariableInfo {
-		const node = this.children(ref).find((n) => n.name === name);
-		if (!node) throw new Error(`no "${name}" here any more`);
+		const { chip, node } = this.findNode(ref, name);
 		if (!node.set) throw new Error(`${name} can't be changed here`);
-		return { ...this.info(node), value: node.set(text) };
+		return { ...this.info(chip, node), value: node.set(text) };
+	}
+
+	/** The row `name` under `ref` (its name and what `evaluate` reads for it), and the chip it was asked for from. */
+	find(ref: number, name: string): { chip: ChipHandle; node: { name: string; evaluateName?: string } } {
+		const { chip, node } = this.findNode(ref, name);
+		return { chip, node: { name: node.name, ...(node.evaluateName !== undefined && { evaluateName: node.evaluateName }) } };
+	}
+
+	private findNode(ref: number, name: string): { chip: ChipHandle; node: Node } {
+		const { chip, children } = this.entry(ref);
+		const node = children().find((n) => n.name === name);
+		if (!node) throw new Error(`no "${name}" here any more`);
+		return { chip, node };
 	}
 
 	/** An expression's value, with rows to expand when it names a device or a pipe or room. */
 	evaluate(chip: ChipHandle, expression: string, context?: string): VariableInfo {
 		const expr = expression.trim();
 		const key = safely(() => deviceKeyFor(chip, expr));
-		if (key !== undefined) return this.info(deviceNode(chip, chip.world.device(key), expr));
+		if (key !== undefined) return this.info(chip, deviceNode(chip, chip.world.device(key), expr));
 		const atmosphere = chip.world.listAtmospheres().find((a) => a.key === expr);
-		if (atmosphere) return this.info(atmosphereNode(atmosphere));
+		if (atmosphere) return this.info(chip, atmosphereNode(atmosphere));
 		try {
 			return { name: expr, value: formatValue(evaluate(chip, expr), chip.world), ref: 0 };
 		} catch (error) {
@@ -69,23 +83,23 @@ export class Inspector {
 		}
 	}
 
-	private children(ref: number): Node[] {
-		const children = this.refs.get(ref);
-		if (!children) throw new Error(`no variables ${ref} (they last until the run carries on)`);
-		return children();
+	private entry(ref: number): { chip: ChipHandle; children: () => Node[] } {
+		const entry = this.refs.get(ref);
+		if (!entry) throw new Error(`no variables ${ref} (they last until the run carries on)`);
+		return entry;
 	}
 
-	private add(children: () => Node[]): number {
+	private add(chip: ChipHandle, children: () => Node[]): number {
 		const ref = this.next++;
-		this.refs.set(ref, children);
+		this.refs.set(ref, { chip, children });
 		return ref;
 	}
 
-	private info(node: Node): VariableInfo {
+	private info(chip: ChipHandle, node: Node): VariableInfo {
 		return {
 			name: node.name,
 			value: node.value,
-			ref: node.children ? this.add(node.children) : 0,
+			ref: node.children ? this.add(chip, node.children) : 0,
 			...(node.evaluateName !== undefined && { evaluateName: node.evaluateName }),
 			...(!node.set && { readOnly: true }),
 		};
@@ -116,6 +130,7 @@ function stack(chip: ChipHandle): Node[] {
 	return indices.map((i) => ({
 		name: i === sp - 1 ? `${i} (top)` : i >= sp ? `${i} (above sp)` : String(i),
 		value: formatValue(chip.stackAt(i), chip.world),
+		evaluateName: `stack[${i}]`,
 		set: (text: string) => {
 			chip.setStackAt(i, evaluate(chip, text));
 			return formatValue(chip.stackAt(i), chip.world);

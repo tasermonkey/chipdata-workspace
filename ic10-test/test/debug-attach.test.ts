@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { createServer, type Server, type Socket } from "node:net";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { AgentMessage, Command, EventMessage, Requests } from "../src/debug/protocol.ts";
+import { type AgentMessage, type Command, type EventMessage, PROTOCOL_VERSION, type Requests } from "../src/debug/protocol.ts";
 
 const FIXTURES = join(import.meta.dirname, "fixtures", "debug");
 const VITEST = join(dirname(createRequire(import.meta.url).resolve("vitest/package.json")), "vitest.mjs");
@@ -88,7 +88,7 @@ describe("attaching from Vitest", () => {
 
 		try {
 			await connected;
-			expect(await adapter.event("hello")).toMatchObject({ version: 2 });
+			expect(await adapter.event("hello")).toMatchObject({ version: PROTOCOL_VERSION });
 			const script = join(FIXTURES, "counter.ic10");
 			await adapter.request("setBreakpoints", { path: script, breakpoints: [{ line: 2 }] });
 			await adapter.request("configurationDone", {});

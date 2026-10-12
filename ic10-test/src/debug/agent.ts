@@ -1,7 +1,8 @@
 import { resolve } from "node:path";
 import type { Ic10Error } from "@stationeers-ic/ic10";
+import { formatValue } from "../matchers/report.ts";
 import type { ChipHandle, World } from "../world/world.ts";
-import { evaluateCondition, interpolate } from "./evaluate.ts";
+import { evaluate, evaluateCondition, interpolate } from "./evaluate.ts";
 import type { DebugGate, DebugLineInfo } from "./gate.ts";
 import { Inspector } from "./inspect.ts";
 import {
@@ -34,6 +35,30 @@ interface Thread {
 	calls: Call[];
 	/** Restarts seen (a restart starts the program again, with no calls). */
 	restarts: number;
+	/**
+	 * Set by a stop that comes after a line ran (a data breakpoint, an automatic yield), which shows
+	 * the chip at its next line: carrying on runs that line without stopping at it again.
+	 */
+	resumeAt?: number;
+}
+
+/** A data breakpoint: a value on one chip of one world, and what it was when last looked at. */
+interface Watch {
+	world: number;
+	chip: string;
+	/** What `evaluate` reads, on that chip: `r15`, `d0.On`, `stack[3]`, `coolant.Temperature`. */
+	expr: string;
+	label: string;
+	condition?: string;
+	last?: number;
+}
+
+/** What `dataBreakpointInfo` hands out, and `setDataBreakpoints` gets back. */
+interface DataId {
+	world: number;
+	chip: string;
+	expr: string;
+	label: string;
 }
 
 /**
@@ -103,6 +128,7 @@ export class DebugAgent {
 	private readonly inspector = new Inspector();
 	private readonly breakpoints = new Map<string, Map<number, BreakpointSpec>>();
 	private filters = { halt: true, autoYield: false };
+	private watches: Watch[] = [];
 
 	private readonly threads = new Map<number, Thread>();
 	private readonly worlds = new Map<World, { number: number; threads: Map<string, number> }>();
@@ -118,6 +144,7 @@ export class DebugAgent {
 		});
 		this.gate = {
 			beforeLine: (info) => this.beforeLine(info),
+			afterLine: (info) => this.afterLine(info),
 			onHalt: (info) => this.onHalt(info),
 			onAutoYield: (info) => this.onAutoYield(info),
 			onTick: (info) => this.onTick(info),
@@ -140,6 +167,7 @@ export class DebugAgent {
 	/** The adapter has gone: stop nothing more, and let a stopped or waiting test run on. */
 	detach(): void {
 		this.breakpoints.clear();
+		this.watches = [];
 		this.filters = { halt: false, autoYield: false };
 		if (!this.configured) {
 			this.configured = true;
@@ -160,16 +188,35 @@ export class DebugAgent {
 		const chip = info.world.chip(info.chip);
 		const pastEnd = info.line >= chip.lineCount;
 		const returned = trackCalls(thread, chip, info.line, previous);
+		const resuming = thread.resumeAt === info.line;
+		thread.resumeAt = undefined;
+
+		// A watched value that changed since the last line: something outside the chips did it.
+		const changed = this.changedWatch();
+		if (changed) return this.stopForData(thread, changed, "between lines (a model, a pipe or room reading, or the test)");
 
 		// Steps and Pause skip blank, comment and label lines: they run (and count toward the tick's
 		// lines) without stopping.
-		const step = this.mode.kind === "turn" ? this.turnStop(thread, info.tick, pastEnd) : this.stepStop(thread, returned, pastEnd);
+		const step =
+			this.mode.kind === "turn"
+				? this.turnStop(thread, info.tick, pastEnd)
+				: resuming
+					? undefined
+					: this.stepStop(thread, returned, pastEnd);
 		if (step && chip.isInstruction(info.line)) return this.stop(thread, step);
-		if (!pastEnd) {
+		if (!pastEnd && !resuming) {
 			const hit = this.breakpointAt(chip, info.line);
 			if (hit) return this.stop(thread, "breakpoint");
 		}
 		return this.letMessagesIn();
+	}
+
+	private afterLine(info: DebugLineInfo): void | Promise<void> {
+		const changed = this.changedWatch();
+		if (!changed) return;
+		const thread = this.thread(info.world, info.chip);
+		thread.resumeAt = info.world.chip(info.chip).line;
+		return this.stopForData(thread, changed, `by line ${info.line + 1} (${info.text.trim()})`);
 	}
 
 	private onHalt(info: DebugLineInfo & { error: Ic10Error }): void | Promise<void> {
@@ -184,6 +231,9 @@ export class DebugAgent {
 	}
 
 	private onTick(info: { world: World; tick: number }): void | Promise<void> {
+		// With every chip asleep, no line looks: a model's change shows here.
+		const changed = this.changedWatch();
+		if (changed) return this.stopForData(this.watchThread(changed.watch), changed, `in tick ${info.tick - 1}, between lines (a model or a pipe or room reading)`);
 		const mode = this.mode;
 		if (mode.kind === "ticks" && mode.world === info.world && info.tick >= mode.until) {
 			const ran = `Ran ${mode.ticks} ${mode.ticks === 1 ? "tick" : "ticks"}`;
@@ -194,6 +244,8 @@ export class DebugAgent {
 	}
 
 	private onEvent(info: { world: World; tick: number; label: string }): void | Promise<void> {
+		const changed = this.changedWatch();
+		if (changed) return this.stopForData(this.watchThread(changed.watch), changed, `by the event "${info.label}" at the start of tick ${info.tick}`);
 		const mode = this.mode;
 		if (mode.kind !== "event" || mode.world !== info.world) return;
 		if (mode.label !== undefined && mode.label !== info.label) return;
@@ -204,7 +256,123 @@ export class DebugAgent {
 		if (!this.filters.autoYield) return;
 		const thread = this.thread(info.world, info.chip);
 		const chip = info.world.chip(info.chip);
+		thread.resumeAt = chip.line;
 		return this.stop(thread, "autoYield", `Auto-yield: ${chip.linesPerTick} lines used in tick ${info.tick}, after line ${info.line + 1}`);
+	}
+
+	// --- data breakpoints ------------------------------------------------------------------------
+
+	/**
+	 * Look at every watched value; the first that changed (and whose condition holds) is returned.
+	 * Every watch takes its new value as the one to compare with next time, so a change is reported
+	 * once, where it's first seen.
+	 */
+	private changedWatch(): { watch: Watch; chip: ChipHandle; from: number; to: number } | undefined {
+		let hit: { watch: Watch; chip: ChipHandle; from: number; to: number } | undefined;
+		for (const watch of this.watches) {
+			const chip = this.watchChip(watch);
+			if (!chip) continue;
+			const value = safely(() => evaluate(chip, watch.expr));
+			if (value === undefined) continue;
+			const before = watch.last;
+			watch.last = value;
+			if (hit || before === undefined || Object.is(before, value)) continue;
+			if (watch.condition && !this.conditionHolds(chip, watch.condition, watch.label)) continue;
+			hit = { watch, chip, from: before, to: value };
+		}
+		return hit;
+	}
+
+	private conditionHolds(chip: ChipHandle, condition: string, what: string): boolean {
+		try {
+			return evaluateCondition(chip, condition);
+		} catch (error) {
+			this.output("stderr", `data breakpoint on ${what}: ${messageOf(error)}\n`);
+			return true; // a broken condition stops, so it gets noticed
+		}
+	}
+
+	private stopForData(
+		thread: Thread,
+		{ watch, chip, from, to }: { watch: Watch; chip: ChipHandle; from: number; to: number },
+		how: string,
+	): Promise<void> {
+		const show = (value: number) => formatValue(value, chip.world);
+		return this.stop(thread, "data", `${watch.label}: ${show(from)} → ${show(to)}, ${how}`);
+	}
+
+	/** Take every watched value as it is now (after an edit while stopped, say). */
+	private rebaseline(): void {
+		for (const watch of this.watches) {
+			const chip = this.watchChip(watch);
+			watch.last = chip ? safely(() => evaluate(chip, watch.expr)) : undefined;
+		}
+	}
+
+	/** A watch's chip, once its world has been seen. */
+	private watchChip(watch: Watch): ChipHandle | undefined {
+		for (const [world, entry] of this.worlds) {
+			if (entry.number === watch.world) return safely(() => world.chip(watch.chip));
+		}
+		return undefined;
+	}
+
+	private watchThread(watch: Watch): Thread {
+		for (const [, entry] of this.worlds) {
+			const id = entry.number === watch.world ? entry.threads.get(watch.chip) : undefined;
+			if (id !== undefined) return this.threadById(id);
+		}
+		throw new Error(`no chip ${watch.chip} in world ${watch.world}`);
+	}
+
+	private dataBreakpointInfo(args: Requests["dataBreakpointInfo"]["args"]): Requests["dataBreakpointInfo"]["result"] {
+		let chip: ChipHandle;
+		let expr: string;
+		let label: string;
+		if (args.ref) {
+			const found = this.inspector.find(args.ref, args.name);
+			chip = found.chip;
+			if (found.node.evaluateName === undefined) return { dataId: null, description: `${args.name} can't be watched` };
+			expr = found.node.evaluateName;
+			// A register row's name shows its aliases: `r15 (Stage)`.
+			label = found.node.name.startsWith(expr) ? found.node.name : expr;
+		} else {
+			const thread = args.thread !== undefined ? this.threadById(args.thread) : this.threads.values().next().value;
+			if (!thread) return { dataId: null, description: "no chip has run yet" };
+			chip = this.chipOf(thread);
+			expr = args.name.trim();
+			label = expr;
+		}
+		const define = chip.defines().find((d) => d.name === expr && d.kind !== "alias");
+		if (define) return { dataId: null, description: `${expr} is a ${define.kind}, which never changes` };
+		if (safely(() => evaluate(chip, expr)) === undefined) return { dataId: null, description: `${expr} isn't a value` };
+		const thread = this.thread(chip.world, chip.key);
+		const world = this.worlds.get(chip.world)!.number;
+		const dataId: DataId = { world, chip: chip.key, expr, label: `${label} on ${thread.info.name}` };
+		return { dataId: JSON.stringify(dataId), description: dataId.label };
+	}
+
+	private setDataBreakpoints(args: Requests["setDataBreakpoints"]["args"]): Requests["setDataBreakpoints"]["result"] {
+		const results: { verified: boolean; message?: string }[] = [];
+		const watches: Watch[] = [];
+		for (const spec of args.breakpoints) {
+			const id = parseDataId(spec.dataId);
+			if (!id) {
+				results.push({ verified: false, message: "not a data breakpoint this debugger made" });
+				continue;
+			}
+			// Keep what an unchanged watch last saw, so setting another one doesn't lose a change.
+			const old = this.watches.find((w) => w.world === id.world && w.chip === id.chip && w.expr === id.expr);
+			watches.push({ ...id, ...(spec.condition && { condition: spec.condition }), ...(old?.last !== undefined && { last: old.last }) });
+			results.push({ verified: true });
+		}
+		this.watches = watches;
+		for (const watch of watches) {
+			if (watch.last !== undefined) continue;
+			const chip = this.watchChip(watch);
+			if (chip) watch.last = safely(() => evaluate(chip, watch.expr));
+		}
+		return { breakpoints: results };
 	}
 
 	/** Whether the current step, Pause or stop-on-entry ends at this line. */
@@ -357,6 +525,10 @@ export class DebugAgent {
 			case "setExceptionFilters":
 				this.filters = { ...message.args };
 				return {};
+			case "dataBreakpointInfo":
+				return this.dataBreakpointInfo(message.args);
+			case "setDataBreakpoints":
+				return this.setDataBreakpoints(message.args);
 			case "configurationDone":
 				if (message.args.stopOnEntry) this.mode = { kind: "pause", reason: "entry" };
 				this.configured = true;
@@ -439,6 +611,8 @@ export class DebugAgent {
 	private carryOn(mode: Mode, announce?: number): void {
 		this.mode = mode;
 		this.inspector.reset();
+		// A value edited while stopped isn't a change to stop for.
+		if (this.resume) this.rebaseline();
 		const resume = this.resume;
 		this.resume = null;
 		if (resume && announce !== undefined) this.event({ event: "continued", thread: announce });
@@ -500,4 +674,22 @@ function pathKey(path: string): string {
 
 function messageOf(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
+}
+
+function parseDataId(text: string): DataId | undefined {
+	try {
+		const id = JSON.parse(text) as Partial<DataId>;
+		if (typeof id.world !== "number" || typeof id.chip !== "string" || typeof id.expr !== "string") return undefined;
+		return { world: id.world, chip: id.chip, expr: id.expr, label: typeof id.label === "string" ? id.label : id.expr };
+	} catch {
+		return undefined;
+	}
+}
+
+function safely<T>(get: () => T): T | undefined {
+	try {
+		return get();
+	} catch {
+		return undefined;
+	}
 }

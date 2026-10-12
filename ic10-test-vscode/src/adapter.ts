@@ -17,6 +17,7 @@ import {
 	type AgentMessage,
 	type BreakpointSpec,
 	type Command,
+	type DataBreakpointSpec,
 	PROTOCOL_VERSION,
 	type Requests,
 	type StopReason,
@@ -117,6 +118,7 @@ const STOP_REASONS: Record<StopReason, string> = {
 	autoYield: "exception",
 	tick: "step",
 	event: "event",
+	data: "data breakpoint",
 };
 
 /** Frame ids: the chip's thread and how far down its call stack (the agent keeps at most 256 calls). */
@@ -135,6 +137,7 @@ export class Ic10TestSession extends DebugSession {
 	private connected = false;
 
 	private readonly breakpoints = new Map<string, BreakpointSpec[]>();
+	private dataBreakpoints: DataBreakpointSpec[] = [];
 	private filters = { halt: true, autoYield: false };
 	private configured = false;
 	private stopOnEntry = false;
@@ -165,6 +168,7 @@ export class Ic10TestSession extends DebugSession {
 			supportsSetVariable: true,
 			supportsEvaluateForHovers: true,
 			supportsTerminateRequest: true,
+			supportsDataBreakpoints: true,
 			exceptionBreakpointFilters: [
 				{ filter: "halt", label: "Halts", description: "Stop when a chip halts on an error", default: true },
 				{
@@ -242,6 +246,41 @@ export class Ic10TestSession extends DebugSession {
 		this.filters = { halt: args.filters.includes("halt"), autoYield: args.filters.includes("autoYield") };
 		this.agent?.tell("setExceptionFilters", this.filters);
 		this.sendResponse(response);
+	}
+
+	/** Whether a variable (or a Watch expression) can have "Break on Value Change". */
+	protected override async dataBreakpointInfoRequest(
+		response: DebugProtocol.DataBreakpointInfoResponse,
+		args: DebugProtocol.DataBreakpointInfoArguments,
+	): Promise<void> {
+		if (!this.agent) {
+			response.body = { dataId: null, description: "the test hasn't reached its chips yet" };
+			return this.sendResponse(response);
+		}
+		const request = {
+			name: args.name,
+			...(args.variablesReference !== undefined && { ref: args.variablesReference }),
+			...(args.frameId !== undefined && { thread: threadOf(args.frameId) }),
+		};
+		await this.forward(response, "dataBreakpointInfo", request, ({ dataId, description }) => {
+			// The ID names the world, chip and value, so it's good in the next run of the same test.
+			response.body = { dataId, description, ...(dataId !== null && { accessTypes: ["write"], canPersist: true }) };
+		});
+	}
+
+	protected override async setDataBreakpointsRequest(
+		response: DebugProtocol.SetDataBreakpointsResponse,
+		args: DebugProtocol.SetDataBreakpointsArguments,
+	): Promise<void> {
+		this.dataBreakpoints = args.breakpoints.map((b) => ({ dataId: b.dataId, ...(b.condition && { condition: b.condition }) }));
+		if (!this.agent) {
+			// Kept from an earlier session: the agent gets them when it connects.
+			response.body = { breakpoints: this.dataBreakpoints.map(() => ({ verified: true })) };
+			return this.sendResponse(response);
+		}
+		await this.forward(response, "setDataBreakpoints", { breakpoints: this.dataBreakpoints }, (result) => {
+			response.body = result;
+		});
 	}
 
 	protected override configurationDoneRequest(response: DebugProtocol.ConfigurationDoneResponse): void {
@@ -455,6 +494,7 @@ export class Ic10TestSession extends DebugSession {
 	 */
 	private sync(agent: AgentLink): void {
 		for (const [path, breakpoints] of this.breakpoints) agent.tell("setBreakpoints", { path, breakpoints });
+		if (this.dataBreakpoints.length > 0) agent.tell("setDataBreakpoints", { breakpoints: this.dataBreakpoints });
 		agent.tell("setExceptionFilters", this.filters);
 		if (this.configured) agent.tell("configurationDone", { stopOnEntry: this.stopOnEntry });
 	}

@@ -8,7 +8,7 @@
  */
 
 /** Bumped when a message changes shape. The agent says its version first, in `hello`. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** A chip, which VS Code shows as a thread. */
 export interface ThreadInfo {
@@ -68,6 +68,13 @@ export interface VariableInfo {
 	readOnly?: boolean;
 }
 
+/** A data breakpoint: stop when the value `dataId` names changes (and `condition` holds, if given). */
+export interface DataBreakpointSpec {
+	/** From `dataBreakpointInfo`; it stays good across runs of the same test. */
+	dataId: string;
+	condition?: string;
+}
+
 /** A scripted event still to come, for choosing one to run until. */
 export interface EventInfo {
 	kind: "at" | "every" | "when";
@@ -80,14 +87,27 @@ export interface EventInfo {
 
 /**
  * Why the agent stopped. `tick`: a Step Tick reached the chip's next turn, or Run N Ticks ran its
- * ticks. `event`: Run Until Event saw its event fire.
+ * ticks. `event`: Run Until Event saw its event fire. `data`: a data breakpoint's value changed.
  */
-export type StopReason = "entry" | "breakpoint" | "step" | "pause" | "halt" | "autoYield" | "tick" | "event";
+export type StopReason = "entry" | "breakpoint" | "step" | "pause" | "halt" | "autoYield" | "tick" | "event" | "data";
 
 /** Each request's arguments and result. */
 export interface Requests {
 	/** Replace the breakpoints in one file (by absolute path). */
 	setBreakpoints: { args: { path: string; breakpoints: BreakpointSpec[] }; result: { breakpoints: BreakpointResult[] } };
+	/**
+	 * Whether a value can have a data breakpoint: the row `name` under `ref`, or (no `ref`) an
+	 * expression on the chip of `thread`. `dataId` is null when it can't, with the reason.
+	 */
+	dataBreakpointInfo: {
+		args: { thread?: number; ref?: number; name: string };
+		result: { dataId: string | null; description: string };
+	};
+	/** Replace every data breakpoint. */
+	setDataBreakpoints: {
+		args: { breakpoints: DataBreakpointSpec[] };
+		result: { breakpoints: { verified: boolean; message?: string }[] };
+	};
 	/** Which exception-like stops are on: halts (default on) and automatic yields (default off). */
 	setExceptionFilters: { args: { halt: boolean; autoYield: boolean }; result: Record<string, never> };
 	/** Breakpoints are set: the test may run. With `stopOnEntry`, stop before the first line. */

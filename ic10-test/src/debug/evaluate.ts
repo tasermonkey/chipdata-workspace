@@ -2,18 +2,28 @@ import type { ChipHandle } from "../world/world.ts";
 
 const PIN = /^(d[0-5]|db)$/;
 const COMPARISON = /^(.+?)\s*(==|!=|>=|<=|>|<)\s*(.+)$/;
+const STACK = /^stack\[\s*(.+?)\s*\]$/;
 
 /**
  * The value of a name as a chip sees it, for breakpoint conditions, hovers and the debug console:
- * a number (`5`, `-1.5`, `$1488`, `%101`), a register or alias (`r15`, `Stage`, `sp`), a define
- * or label, or a device property by pin, device alias or key (`d0.On`, `vent.On`, `db.Setting`),
- * or any other world path (`coolant.Temperature`). Throws when it names nothing.
+ * a number (`5`, `-1.5`, `$1488`, `%101`), a register or alias (`r15`, `Stage`, `sp`), a stack
+ * entry (`stack[3]`, `stack[sp]`), a define or label, or a device property by pin, device alias or
+ * key (`d0.On`, `vent.On`, `db.Setting`), or any other world path (`coolant.Temperature`). Throws
+ * when it names nothing.
  */
 export function evaluate(chip: ChipHandle, expression: string): number {
 	const expr = expression.trim();
 	const number = parseNumber(expr);
 	if (number !== undefined) return number;
 	if (chip.hasRegister(expr)) return chip.reg(expr);
+	const entry = STACK.exec(expr);
+	if (entry) {
+		const index = evaluate(chip, entry[1]!);
+		if (!(Number.isInteger(index) && index >= 0 && index < chip.stackLength)) {
+			throw new Error(`${expr}: the stack has entries 0 to ${chip.stackLength - 1}`);
+		}
+		return chip.stackAt(index);
+	}
 
 	const define = chip.defines().find((d) => d.name === expr);
 	if (define) {

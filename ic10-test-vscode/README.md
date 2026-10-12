@@ -54,16 +54,29 @@ ways to run on. Each goes by the chip focused in the Call Stack:
 [`examples/`](examples/) has one small test and script per feature, with what to try written at the top
 of each script.
 
+## Data breakpoints
+
+Right-click a value in Variables (a register, a stack entry, a device's property, a pipe or room
+reading) or an expression in Watch, and choose **Break on Value Change**. The debugger stops when the
+value changes:
+- after the line that changed it, naming that line. The chip is shown at its next line, and
+  carrying on runs that line without stopping at it again;
+- or, when something outside the chips changed it (a scripted event, a model, a pipe or room
+  reading, the test), before the next line, naming the event if there was one.
+
+Data breakpoints take conditions, and they're kept for the next run of the same test.
+
 ## Status
 
-Done so far (Phase 7 steps 5–8 of `TEST_FRAMEWORK_PLAN.md`):
+Done so far (Phase 7 steps 5–9 of `TEST_FRAMEWORK_PLAN.md`):
 - the adapter;
 - the extension, installed as a local `.vsix`;
 - the **▶ Debug IC10** CodeLens above each test (turn it off with the `ic10-test.codeLens`
   setting);
-- the tick commands.
+- the tick commands;
+- data breakpoints.
 
-Data breakpoints and inline values come next.
+Inline values come next.
 
 ## Tests
 

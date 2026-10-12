@@ -187,6 +187,44 @@ describe("debug adapter", () => {
 		await terminated;
 	}, 60_000);
 
+	it("breaks on a value change, also with a data breakpoint kept from an earlier session", async () => {
+		await Promise.all([
+			dc.configurationSequence(),
+			dc.launch(launchArgs("counts once a tick", { stopOnEntry: true })),
+			dc.assertStoppedLocation("entry", { path: COUNTER, line: 1 }),
+		]);
+		const registers = (await dc.scopesRequest({ frameId: 1000 })).body.scopes[0]!.variablesReference;
+		const info = await dc.send("dataBreakpointInfo", { variablesReference: registers, name: "r0" });
+		expect(info.body).toMatchObject({ description: "r0 on ic", accessTypes: ["write"], canPersist: true });
+		const dataId = info.body.dataId as string;
+		await dc.send("setDataBreakpoints", { breakpoints: [{ dataId }] });
+
+		const stopped = dc.waitForEvent("stopped");
+		await dc.continueRequest({ threadId: 1 });
+		expect((await stopped).body).toMatchObject({ reason: "data breakpoint", description: "r0 on ic: 0 → 1, by line 3 (add Count Count 1)" });
+		expect((await dc.stackTraceRequest({ threadId: 1 })).body.stackFrames[0]!.line).toBe(4); // after it
+		const terminated = dc.waitForEvent("terminated");
+		await dc.terminateRequest({});
+		await terminated;
+		await dc.stop();
+
+		// A new session gets the same data breakpoint before the test has connected.
+		await dc.start((server.address() as { port: number }).port);
+		const initialized = dc.waitForEvent("initialized");
+		await dc.initializeRequest();
+		const launched = dc.launch(launchArgs("counts once a tick"));
+		await initialized;
+		await dc.send("setDataBreakpoints", { breakpoints: [{ dataId, condition: "Count == 2" }] });
+		const again = dc.waitForEvent("stopped");
+		await dc.configurationDoneRequest();
+		await launched;
+		expect((await again).body.description).toBe("r0 on ic: 1 → 2, by line 3 (add Count Count 1)");
+		const done = dc.waitForEvent("terminated");
+		await dc.send("setDataBreakpoints", { breakpoints: [] });
+		await dc.continueRequest({ threadId: 1 });
+		await done;
+	}, 90_000);
+
 	// VS Code gives paths a lowercase drive letter. Run from there, Vitest used to load a second copy
 	// of its runner, and the setup file's afterAll failed, so no test loaded.
 	it.runIf(process.platform === "win32")("copes with a lowercase drive letter, as VS Code gives paths", async () => {

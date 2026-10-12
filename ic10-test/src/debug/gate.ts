@@ -21,6 +21,8 @@ export interface DebugLineInfo {
 export interface DebugGate {
 	/** Called before every line. Pausing is just not resolving until the user continues. */
 	beforeLine?(info: DebugLineInfo): void | Promise<void>;
+	/** A line ran (not called for running off the end of the program). `line` is the line that ran. */
+	afterLine?(info: DebugLineInfo): void | Promise<void>;
 	/** A chip halted on an error. */
 	onHalt?(info: DebugLineInfo & { error: Ic10Error }): void | Promise<void>;
 	/** A chip used up its lines for the tick and was preempted. */

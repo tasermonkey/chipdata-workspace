@@ -276,6 +276,7 @@ export class Scheduler {
 			case "ran":
 				break;
 		}
+		if (outcome.kind !== "end") await gate?.afterLine?.(info);
 
 		if (ticks && counts) chip.linesThisTick++;
 		if (ticks && !chip.doneThisTick && !chip.stopped && chip.linesThisTick >= chip.linesPerTick) {
