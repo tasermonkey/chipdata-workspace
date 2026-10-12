@@ -336,6 +336,9 @@ describe("VCCR Cooling Air Management", () => {
   The inline `code` setup keeps the test small. Pointing `file` at the real `VCIC - Printer
   Setup.ic10` also works, but then every ID it lists needs a matching device.
 - Test-side writes bypass read-only permissions, just as the game updates sensor readings.
+- A pin can only be set to a device on the housing's own data network, as in game (the screwdriver
+  lists only those). Pinning one on another network is a build error naming both networks
+  (2026-10-12). A Logic Mirror (§5.4) is how a chip reaches across.
 - Accessors:
   - `chip.reg("Stage" | "r15")`, `.sp`, `.ra`, `.stack(i)`, `.line`, `.errors`, `.halted`;
   - `world.db("ic")`;
@@ -462,7 +465,7 @@ const world = await sim()
   .network("outside")
   .device("sensor", "StructureGasSensor", { RatioNitrogen: 0.7 }, { network: "outside" })
   .mirror("mirror", { target: "sensor", network: "base" })        // powered by default
-  .housing("ic", { code: "l r0 d0 RatioNitrogen\nyield", pins: { d0: "mirror" } })
+  .housing("ic", { code: "l r0 d0 RatioNitrogen\nyield", network: "base", pins: { d0: "mirror" } })
   .build();
 
 await world.runTicks(1);

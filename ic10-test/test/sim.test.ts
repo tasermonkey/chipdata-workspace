@@ -95,6 +95,16 @@ describe("sim() builder", () => {
 			() => sim().network("a").network("b").device("x", "StructureWallLight", {}, { network: "a" }).housing("ic", { code: "" }),
 			/several networks/,
 		],
+		[
+			"a pin to a device on another network",
+			() =>
+				sim()
+					.network("a")
+					.network("b")
+					.device("x", "StructureWallLight", {}, { network: "b" })
+					.housing("ic", { code: "", network: "a", pins: { d0: "x" } }),
+			/"ic" d0: "x" is on network "b", not "a"/,
+		],
 		// @ts-expect-error The types reject it too.
 		["an unknown property", () => sim().device("x", "StructureWallLight", { Bogus: 1 }), /rejected/],
 		["a line that doesn't parse", () => sim().housing("ic", { code: "move r0 1\n%%%" }), /"ic" line 1/],

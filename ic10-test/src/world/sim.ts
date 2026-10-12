@@ -256,6 +256,13 @@ export class SimBuilder {
 				if (target === undefined) continue;
 				const id = ids.get(target);
 				if (id === undefined) throw new Error(`sim: "${decl.key}" ${pin}: no device "${target}"`);
+				// In game a pin can only be set to a device on the housing's own data network.
+				const targetNetwork = this.networkOf(this.decls.find((d) => d.key === target)!, networks);
+				if (targetNetwork !== base.network) {
+					throw new Error(
+						`sim: "${decl.key}" ${pin}: "${target}" is on network "${targetNetwork}", not "${base.network}"; a pin only reaches devices on the housing's network`,
+					);
+				}
 				pins[pin] = id;
 			}
 			return { ...base, code: programOf(decl.key, decl.housing, root), pins };
