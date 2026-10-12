@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const TARGET_SLOT = 255; // the Larre's "Target Slot": the plant at the arm

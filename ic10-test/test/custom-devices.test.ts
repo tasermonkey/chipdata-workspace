@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sim } from "../src/index.ts";
 
-describe("mods' devices (data/mods/)", () => {
+describe("mods' devices (the project's ic10-mods/)", () => {
 	it("are found by type and name in batch reads and writes", async () => {
 		const world = await sim({ debug: false })
 			.device("gaugeA", "ModularDeviceGauge3x3", { Setting: 2 }, { name: "Power Delta" })
@@ -121,7 +121,7 @@ describe("game prefabs the emulator has data for but no device class", () => {
 	});
 });
 
-describe("custom devices (in neither the emulator nor data/mods/)", () => {
+describe("custom devices (in neither the emulator nor the project's ic10-mods/)", () => {
 	it("accept every logic property, readable and writable", async () => {
 		const world = await sim({ debug: false })
 			.device("widget", "ModFutureWidget", { Setting: 3 }, { custom: true, name: "W" })
@@ -136,7 +136,7 @@ describe("custom devices (in neither the emulator nor data/mods/)", () => {
 	it("must be asked for: an unknown prefab is a build error", async () => {
 		// @ts-expect-error Not a known prefab: the types say so, and so does the build.
 		const build = sim().device("widget", "ModFutureWidget").housing("ic", { code: "yield" }).build();
-		await expect(build).rejects.toThrow(/"widget": no device ModFutureWidget in the emulator or data\/mods\/.*custom: true/);
+		await expect(build).rejects.toThrow(/"widget": no device ModFutureWidget in the emulator or the project's ic10-mods\/.*custom: true/);
 	});
 
 	it("can't be a known prefab or a housing", async () => {

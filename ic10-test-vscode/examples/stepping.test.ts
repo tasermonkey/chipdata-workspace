@@ -1,5 +1,5 @@
 // Step Over, Step Into, Step Out and the Call Stack: see stepping.ic10 for what to try.
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { describe, expect, it } from "vitest";
 
 describe("stepping", () => {

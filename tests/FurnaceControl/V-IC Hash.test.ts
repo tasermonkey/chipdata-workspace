@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 // From the Steam Workshop (AdvFurnaceControl/README.MD). The housings are compact IC housings, found by name.

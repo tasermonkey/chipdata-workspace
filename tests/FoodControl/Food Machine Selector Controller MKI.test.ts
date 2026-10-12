@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hash, sim, type World } from "@tasermonkey/ic10-test";
+import { hash, sim, type World } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const EQUALS = 1; // sorter instruction: PrefabHashEquals

@@ -1,6 +1,6 @@
 /** Helmet tests shared by the MKI and MKII suit controllers, which have the same helmetCheck. */
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 interface Outside {

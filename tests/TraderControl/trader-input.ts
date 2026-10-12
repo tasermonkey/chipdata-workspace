@@ -3,7 +3,7 @@
  * display) with VC or HC names, setting one of the satellite dishes' target angles.
  */
 import { describe, expect, it } from "vitest";
-import { sim, type World } from "@tasermonkey/ic10-test";
+import { sim, type World } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const BUTTONS = ["Add 1", "Add 5", "Add 10", "Sub 1", "Sub 5", "Sub 10"] as const;

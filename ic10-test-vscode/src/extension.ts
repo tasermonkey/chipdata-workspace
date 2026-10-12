@@ -1,5 +1,5 @@
 /**
- * The VS Code side: registers the `ic10-test` debugger (its adapter runs inside the extension host),
+ * The VS Code side: registers the `ic10-bench` debugger (its adapter runs inside the extension host),
  * a "▶ Debug IC10" CodeLens above each test, a command that debugs the test at the cursor, the
  * tick commands (Step Tick, Run N Ticks, Run Until Event) on the debug toolbar, and inline values.
  * With `debugTypeScript` (or the setting of that name), Vitest runs under the JavaScript debugger
@@ -8,7 +8,7 @@
  */
 import { basename } from "node:path";
 import * as vscode from "vscode";
-import type { EventInfo } from "@tasermonkey/ic10-test/debug-protocol";
+import type { EventInfo } from "@tasermonkey/ic10-bench/debug-protocol";
 import { type Ic10CustomRequests, type Ic10LaunchArgs, Ic10TestSession } from "./adapter.ts";
 import { findInlineValues, resolveInlineValues } from "./inline-values.ts";
 import { jsDebugLauncher } from "./js-debug.ts";
@@ -20,23 +20,23 @@ const TEST_LANGUAGES = ["typescript", "javascript"];
 
 export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
-		vscode.debug.registerDebugAdapterDescriptorFactory("ic10-test", {
+		vscode.debug.registerDebugAdapterDescriptorFactory("ic10-bench", {
 			createDebugAdapterDescriptor: (session) => {
 				const launcher = session.configuration.debugTypeScript === true ? jsDebugLauncher(session) : undefined;
 				return new vscode.DebugAdapterInlineImplementation(new Ic10TestSession(launcher) as unknown as vscode.DebugAdapter);
 			},
 		}),
-		vscode.debug.registerDebugConfigurationProvider("ic10-test", {
+		vscode.debug.registerDebugConfigurationProvider("ic10-bench", {
 			resolveDebugConfiguration,
 			resolveDebugConfigurationWithSubstitutedVariables,
 		}),
-		vscode.commands.registerCommand("ic10-test.debugTestAtCursor", debugTestAtCursor),
-		vscode.commands.registerCommand("ic10-test.debugTest", debugTest),
-		vscode.commands.registerCommand("ic10-test.debugScenario", debugScenario),
+		vscode.commands.registerCommand("ic10-bench.debugTestAtCursor", debugTestAtCursor),
+		vscode.commands.registerCommand("ic10-bench.debugTest", debugTest),
+		vscode.commands.registerCommand("ic10-bench.debugScenario", debugScenario),
 		trackScenarioEditor(),
-		vscode.commands.registerCommand("ic10-test.stepTick", stepTick),
-		vscode.commands.registerCommand("ic10-test.runTicks", runTicks),
-		vscode.commands.registerCommand("ic10-test.runUntilEvent", runUntilEvent),
+		vscode.commands.registerCommand("ic10-bench.stepTick", stepTick),
+		vscode.commands.registerCommand("ic10-bench.runTicks", runTicks),
+		vscode.commands.registerCommand("ic10-bench.runUntilEvent", runUntilEvent),
 		vscode.languages.registerInlineValuesProvider({ language: "ic10" }, { provideInlineValues }),
 		registerCodeLenses(),
 	);
@@ -52,7 +52,7 @@ async function hasIc10(): Promise<boolean> {
 	if ((await vscode.workspace.findFiles("**/*.ic10", "**/node_modules/**", 1)).length > 0) return true;
 	for (const folder of vscode.workspace.workspaceFolders ?? []) {
 		try {
-			await vscode.workspace.fs.stat(vscode.Uri.joinPath(folder.uri, "node_modules/@tasermonkey/ic10-test"));
+			await vscode.workspace.fs.stat(vscode.Uri.joinPath(folder.uri, "node_modules/@tasermonkey/ic10-bench"));
 			return true;
 		} catch {
 			// not installed in this folder
@@ -63,7 +63,7 @@ async function hasIc10(): Promise<boolean> {
 
 /**
  * "▶ Debug IC10" above every `it`, `test` and `describe`, in a workspace with IC10 in it (see
- * `hasIc10`), unless `ic10-test.codeLens` is off. Also sets the `ic10-test.inWorkspace` context key.
+ * `hasIc10`), unless `ic10-bench.codeLens` is off. Also sets the `ic10-bench.inWorkspace` context key.
  */
 function registerCodeLenses(): vscode.Disposable {
 	const changed = new vscode.EventEmitter<void>();
@@ -72,7 +72,7 @@ function registerCodeLenses(): vscode.Disposable {
 		const now = await hasIc10();
 		if (now === inWorkspace) return;
 		inWorkspace = now;
-		await vscode.commands.executeCommand("setContext", "ic10-test.inWorkspace", now);
+		await vscode.commands.executeCommand("setContext", "ic10-bench.inWorkspace", now);
 		changed.fire();
 	};
 	void recheck();
@@ -81,14 +81,14 @@ function registerCodeLenses(): vscode.Disposable {
 		onDidChangeCodeLenses: changed.event,
 		provideCodeLenses(document) {
 			if (!inWorkspace) return [];
-			if (!vscode.workspace.getConfiguration("ic10-test", document).get("codeLens", true)) return [];
+			if (!vscode.workspace.getConfiguration("ic10-bench", document).get("codeLens", true)) return [];
 			if (document.uri.scheme !== "file") return [];
 			return findTests(document.getText()).map(
 				(test) =>
 					new vscode.CodeLens(new vscode.Range(test.line, 0, test.line, 0), {
 						title: "▶ Debug IC10",
 						tooltip: `Run ${describeTest(test)} and step through its IC10 scripts`,
-						command: "ic10-test.debugTest",
+						command: "ic10-bench.debugTest",
 						arguments: [document.uri, test],
 					}),
 			);
@@ -104,14 +104,14 @@ function registerCodeLenses(): vscode.Disposable {
 			provider,
 		),
 		vscode.workspace.onDidChangeConfiguration((e) => {
-			if (e.affectsConfiguration("ic10-test.codeLens")) changed.fire();
+			if (e.affectsConfiguration("ic10-bench.codeLens")) changed.fire();
 		}),
 	);
 }
 
 /**
  * F5 with no launch.json: debug the test file in the editor. A configuration that doesn't say
- * whether to debug the TypeScript too goes by the `ic10-test.debugTypeScript` setting.
+ * whether to debug the TypeScript too goes by the `ic10-bench.debugTypeScript` setting.
  */
 function resolveDebugConfiguration(
 	folder: vscode.WorkspaceFolder | undefined,
@@ -130,11 +130,11 @@ function resolveDebugConfiguration(
 		}
 	}
 	if (!config.test && !config.scenario) {
-		void vscode.window.showErrorMessage('An ic10-test launch configuration needs a "test" file or a "scenario".');
+		void vscode.window.showErrorMessage('An ic10-bench launch configuration needs a "test" file or a "scenario".');
 		return undefined;
 	}
 	if (config.debugTypeScript === undefined) {
-		config.debugTypeScript = vscode.workspace.getConfiguration("ic10-test", folder).get("debugTypeScript", false);
+		config.debugTypeScript = vscode.workspace.getConfiguration("ic10-bench", folder).get("debugTypeScript", false);
 	}
 	return config;
 }
@@ -193,11 +193,11 @@ function scenarioOf(document: vscode.TextDocument): ScenarioLaunch | undefined {
 	return document.uri.scheme === "file" ? scenarioFor(document.uri.fsPath, document.getText()) : undefined;
 }
 
-/** Keeps `ic10-test.scenarioFile` true while the editor in front stands for a scenario. */
+/** Keeps `ic10-bench.scenarioFile` true while the editor in front stands for a scenario. */
 function trackScenarioEditor(): vscode.Disposable {
 	const update = (): void => {
 		const document = vscode.window.activeTextEditor?.document;
-		void vscode.commands.executeCommand("setContext", "ic10-test.scenarioFile", !!document && !!scenarioOf(document));
+		void vscode.commands.executeCommand("setContext", "ic10-bench.scenarioFile", !!document && !!scenarioOf(document));
 	};
 	update();
 	return vscode.Disposable.from(
@@ -210,7 +210,7 @@ function scenarioConfig(launch: ScenarioLaunch): vscode.DebugConfiguration & Ic1
 	const name = launch.program
 		? `${basename(launch.scenario)} running ${basename(launch.program)}`
 		: basename(launch.scenario);
-	return { type: "ic10-test", request: "launch", name: `Debug IC10 scenario: ${name}`, ...launch };
+	return { type: "ic10-bench", request: "launch", name: `Debug IC10 scenario: ${name}`, ...launch };
 }
 
 /**
@@ -224,7 +224,7 @@ async function provideInlineValues(
 	context: vscode.InlineValueContext,
 ): Promise<vscode.InlineValue[]> {
 	const session = vscode.debug.activeDebugSession;
-	if (session?.type !== "ic10-test") return [];
+	if (session?.type !== "ic10-bench") return [];
 	const items = findInlineValues(document.getText(), context.stoppedLocation.end.line).filter(
 		(v) => v.line >= viewPort.start.line && v.line <= viewPort.end.line,
 	);
@@ -304,7 +304,7 @@ interface Target {
 /** The IC10 debug session in focus, and its chip focused in the Call Stack. */
 function focused(): Target | undefined {
 	const session = vscode.debug.activeDebugSession;
-	if (session?.type !== "ic10-test") {
+	if (session?.type !== "ic10-bench") {
 		void vscode.window.showInformationMessage("The tick commands work in an IC10 debug session, while it's stopped.");
 		return undefined;
 	}
@@ -334,7 +334,7 @@ function messageOf(error: unknown): string {
 
 function launchConfig(uri: vscode.Uri, test: TestBlock | undefined): vscode.DebugConfiguration & Ic10LaunchArgs {
 	return {
-		type: "ic10-test",
+		type: "ic10-bench",
 		request: "launch",
 		name: test ? `Debug IC10: ${test.name || `line ${test.line + 1}`}` : "Debug IC10: whole file",
 		test: uri.fsPath,

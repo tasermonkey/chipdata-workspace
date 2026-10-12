@@ -12,9 +12,12 @@ In these scripts; VC just stand for our vulcan play through.  IC is IC chips
 
 - [`ic10/`](ic10/): the scripts, by what they control. Each folder's README says what its scripts do.
 - [`tests/`](tests/): automated tests for those scripts.
-- [`ic10-test/`](ic10-test/): the tool that runs those tests. Use it to test your own IC10 scripts
+- [`ic10-mods/`](ic10-mods/): the modded devices our scripts talk to (console parts and the like), so
+  the tests can use them. `npm run import-mods` refreshes this machine's file from the game's
+  Stationpedia export; see "Using modded devices" in the [ic10-bench README](ic10-test/README.md).
+- [`ic10-test/`](ic10-test/): ic10-bench, the tool that runs those tests. Use it to test your own IC10 scripts
   without loading the game.
-- [`ic10-test-vscode/`](ic10-test-vscode/): a VS Code debugger to step through a script line by line
+- [`ic10-test-vscode/`](ic10-test-vscode/): IC10 Bench, a VS Code debugger to step through a script line by line
   while its test runs.
 
 ## Testing your own scripts
@@ -28,4 +31,4 @@ npm install
 npm test
 ```
 
-Then add your script and a test for it; the [ic10-test README](ic10-test/README.md) walks through it.
+Then add your script and a test for it; the [ic10-bench README](ic10-test/README.md) walks through it.

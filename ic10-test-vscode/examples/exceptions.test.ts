@@ -1,5 +1,5 @@
 // Halts and automatic yields as exception stops: see halts.ic10 and auto-yields.ic10.
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { describe, expect, it } from "vitest";
 
 describe("exceptions", () => {

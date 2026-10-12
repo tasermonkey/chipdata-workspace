@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeVent, heatExchange, PIPE_VOLUME, sim } from "@tasermonkey/ic10-test";
+import { activeVent, heatExchange, PIPE_VOLUME, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const SCRIPT = "ic10/ClimateControl/VC-IC Cooling Air Management [498974].ic10";

@@ -4,7 +4,7 @@
  * 41,000 kPa; by day it expels the pipe's gas while the pipe is above 453 K.
  */
 import { describe, expect, it } from "vitest";
-import { activeVent, dayNight, heatExchange, PIPE_VOLUME, sim } from "@tasermonkey/ic10-test";
+import { activeVent, dayNight, heatExchange, PIPE_VOLUME, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const NIGHT_TEMP_MAX = 408;

@@ -1,0 +1,137 @@
+{
+	"gameVersion": "0.2.6428.27798",
+	"installedMods": [],
+	"prefabs": [
+		{
+			"prefab": "ModularDeviceDial",
+			"hash": 1465300791,
+			"title": "Logic Dial",
+			"logic": {
+				"Mode": "rw",
+				"Setting": "rw",
+				"Ratio": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceFlipCoverSwitch",
+			"hash": -236516384,
+			"title": "Flip Cover Switch",
+			"logic": {
+				"Open": "rw",
+				"Setting": "r",
+				"On": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceGauge3x3",
+			"hash": -1252835556,
+			"title": "Gauge 3x3",
+			"logic": {
+				"Power": "r",
+				"Setting": "rw",
+				"Maximum": "rw",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r",
+				"Minimum": "rw"
+			},
+			"slots": [],
+			"modes": ["Mode0", "Mode1"],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceLEDdisplay3",
+			"hash": -246585138,
+			"title": "LED Display 3",
+			"logic": {
+				"Power": "r",
+				"Mode": "rw",
+				"Error": "r",
+				"Setting": "rw",
+				"On": "rw",
+				"RequiredPower": "r",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": ["Default", "Percent", "Power", "Kelvin", "Celsius", "Meters", "Credits", "Seconds", "Minutes", "Days", "String", "Fahrenheit", "Litres", "Mol", "Pa", "Newtons", "Degrees"],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceRoundButton",
+			"hash": 489382030,
+			"title": "Logic Button Round",
+			"logic": {
+				"Power": "r",
+				"Activate": "rw",
+				"Setting": "r",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "ModularDeviceSquareButton",
+			"hash": 1462769197,
+			"title": "Logic Button Square",
+			"logic": {
+				"Power": "r",
+				"Activate": "rw",
+				"Setting": "r",
+				"On": "rw",
+				"Color": "rw",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": [],
+			"source": "mod"
+		},
+		{
+			"prefab": "StationBatteryNuclear",
+			"hash": 1558316074,
+			"title": "Nuclear Battery",
+			"logic": {
+				"Power": "r",
+				"Mode": "r",
+				"Error": "r",
+				"Lock": "rw",
+				"Charge": "r",
+				"Maximum": "r",
+				"Ratio": "r",
+				"PowerPotential": "r",
+				"PowerActual": "r",
+				"On": "rw",
+				"RequiredPower": "r",
+				"PrefabHash": "r",
+				"ReferenceId": "r",
+				"NameHash": "r"
+			},
+			"slots": [],
+			"modes": ["Empty", "Critical", "VeryLow", "Low", "Medium", "High", "Full"],
+			"source": "mod"
+		}
+	]
+}

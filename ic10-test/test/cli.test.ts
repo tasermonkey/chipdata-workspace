@@ -71,7 +71,7 @@ describe("describePrefab", () => {
 
 	it("puts a multi-line description on one line, and says when a device is a mod's", () => {
 		const text = describePrefab(CATALOG, CATALOG.prefabs.ModularDeviceRoundButton!);
-		expect(text).toContain("a mod's device (data/mods/)");
+		expect(text).toContain("a mod's device (ic10-mods/)");
 		expect(text).toContain("Color       RW   The colour. 0: Blue 1: Grey");
 	});
 

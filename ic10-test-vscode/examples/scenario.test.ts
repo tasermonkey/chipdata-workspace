@@ -1,7 +1,7 @@
 // Launching from a scenario: see scenario.ic10. This test only checks that both forms of the
 // scenario load and behave; the debugger runs them with no test at all.
 import { join } from "node:path";
-import { loadScenario } from "@tasermonkey/ic10-test/run-scenario";
+import { loadScenario } from "@tasermonkey/ic10-bench/run-scenario";
 import { describe, expect, it } from "vitest";
 
 const here = import.meta.dirname;

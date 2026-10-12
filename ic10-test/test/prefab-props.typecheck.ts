@@ -1,6 +1,8 @@
 /**
- * Type-level checks for `sim()` against generated/prefab-props.ts. Not run: `npm run typecheck`
- * fails if a line marked @ts-expect-error stops being an error, or an unmarked line becomes one.
+ * Type-level checks for `sim()` against the fixture project's ic10-bench-env.d.ts (written by
+ * `ic10-bench catalog --project test/fixtures/project`, before the typecheck). Not run:
+ * `npm run typecheck` fails if a line marked @ts-expect-error stops being an error, or an unmarked
+ * line becomes one.
  */
 import { type PropsOf, sim } from "../src/index.ts";
 
@@ -10,7 +12,7 @@ sim().device("vent", "StructureActiveVent", { Mdoe: 1 });
 // @ts-expect-error A misspelt prefab.
 sim().device("vent", "StructureActivVent", { Mode: 1 });
 
-// Mods' devices are typed from data/mods/.
+// Mods' devices are typed from the project's ic10-mods/.
 sim().device("button", "ModularDeviceRoundButton", { Activate: 1, Color: 2 });
 // @ts-expect-error A round button has no Ratio.
 sim().device("button", "ModularDeviceRoundButton", { Ratio: 2 });

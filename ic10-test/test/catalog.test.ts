@@ -1,8 +1,13 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildCatalog, parseEnglishXml, type SourceDevice } from "../src/catalog/build.ts";
 import { stationpediaDescriptions, stationpediaPrefab, logicDifferences } from "../src/catalog/stationpedia.ts";
-import { prefabPropsSource } from "../src/catalog/types.ts";
+import { prefabPropsSource, projectTypesSource } from "../src/catalog/types.ts";
 import { canAccess, type CatalogPrefab, loadCatalog, prefabInfo } from "../src/catalog/catalog.ts";
+import { defineIc10Config } from "../src/config.ts";
+import { projectPaths, ROOT_ENV } from "../src/project.ts";
 
 const VENT: SourceDevice = {
 	PrefabName: "StructureActiveVent",
@@ -152,9 +157,29 @@ describe("the built catalogue", () => {
 		expect(loadCatalog().logicTypes.On?.text).toMatch(/0 for off, 1 for on/);
 	});
 
-	it("has the console mod's devices, from data/mods/", () => {
+	it("has the project's mods' devices, from ic10-mods/", () => {
 		expect(prefabInfo("ModularDeviceRoundButton")).toMatchObject({ source: "mod", logic: { Activate: "rw", Setting: "r" } });
 		expect(prefabInfo("StationBatteryNuclear")?.logic).toMatchObject({ Ratio: "r", Charge: "r" });
+	});
+
+	it("is the packaged one plus the project's mods when `ic10-bench catalog` hasn't run", () => {
+		const root = mkdtempSync(join(tmpdir(), "ic10-bench-"));
+		const widget: CatalogPrefab = { prefab: "ModWidget", hash: 5, title: "Widget", logic: { Setting: "rw" }, slots: [], modes: [], source: "mod" };
+		mkdirSync(projectPaths(root).mods);
+		writeFileSync(join(projectPaths(root).mods, "a.json"), JSON.stringify({ prefabs: [widget] }));
+		const catalog = loadCatalog(root);
+		expect(catalog.prefabs.ModWidget).toEqual(widget);
+		expect(catalog.prefabs.StructureActiveVent?.source).toBe("game");
+		expect(catalog.logicTypes).toEqual({}); // the packaged catalogue has no descriptions
+	});
+});
+
+describe("defineIc10Config", () => {
+	it("adds the matchers and the project folder, and keeps the rest", () => {
+		const config = defineIc10Config({ test: { include: ["x.test.ts"], setupFiles: ["mine.ts"] } }, { project: "/projects/station" });
+		expect(config.test?.include).toEqual(["x.test.ts"]);
+		expect(config.test?.setupFiles).toEqual([expect.stringMatching(/vitest-setup\.(ts|js)$/), "mine.ts"]);
+		expect(config.test?.env?.[ROOT_ENV]).toMatch(/[\\/]projects[\\/]station$/);
 	});
 });
 
@@ -169,5 +194,14 @@ describe("prefab-props.ts", () => {
 		expect(source).toContain("\t\t/** Integer for mode state *\\/ oops (read, write) Modes: 0 Outward, 1 Inward. */\n\t\tMode?: number;");
 		expect(source).toContain("\t\t/** (read-only) */\n\t\tPressure?: number;");
 		expect(source).toContain(`"StructureTransformerMedium(Reversed)": {`); // quoted: not an identifier
+		expect(source).toContain("export interface GamePrefabProps {");
+	});
+
+	it("types a project's prefabs as an augmentation of ProjectPrefabs", () => {
+		const { catalog } = buildCatalog({ devices: [VENT] });
+		const source = projectTypesSource(catalog);
+		expect(source).toContain('declare module "@tasermonkey/ic10-bench/prefabs" {\n\tinterface ProjectPrefabs {');
+		expect(source).toContain(`\t\t/** Active Vent (hash -1129453144) */\n\t\t"StructureActiveVent": {`);
+		expect(source).toMatch(/^export \{\};$/m); // a module, so `declare module` augments rather than declares
 	});
 });

@@ -3,14 +3,14 @@
  * which are built from the same pieces. Each script's test runs the pieces it has.
  */
 import { describe, expect, it } from "vitest";
-import { type KnownPrefab, sim, type World } from "@tasermonkey/ic10-test";
+import { type KnownPrefab, sim, type World } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const GREEN = 2;
 const RED = 4;
 const YELLOW = 5;
 
-/** Console-mod parts (mods' devices, from data/mods/), by prefab and in-game name. */
+/** Console-mod parts (mods' devices, from ic10-mods/), by prefab and in-game name. */
 const CONSOLE: [prefab: KnownPrefab, name: string][] = [
 	["ModularDeviceLEDdisplay3", "Power Usage"],
 	["ModularDeviceLEDdisplay3", "Total Power Generation"],

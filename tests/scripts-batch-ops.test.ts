@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { checkBatchOps, findScripts, loadCatalog } from "@tasermonkey/ic10-test";
+import { checkBatchOps, findScripts, loadCatalog } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "./support/paths.ts";
 
 const scripts = findScripts(`${REPO_ROOT}/ic10`).map((file) => [relative(REPO_ROOT, file).replaceAll("\\", "/"), file]);

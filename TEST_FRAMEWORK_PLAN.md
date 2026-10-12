@@ -1,4 +1,4 @@
-# IC10 Test Framework: Plan
+# IC10 Bench: Plan
 
 The goal is a way to write automated tests for the scripts in [ic10/](ic10/). Each test should:
 
@@ -139,27 +139,33 @@ fork (`tools/codemod-esm.ts`), so it can be re-applied to a fresh upstream check
 ### 4.1 Layout
 ```
 chipdata-workspace/
-├── package.json              # npm workspaces: ["ic10-test", "vendor/ic10"]; "test": "vitest"
-├── vitest.config.ts          # includes tests/**/*.test.ts; loads ic10-test matchers
-├── vendor/ic10/              # git submodule → your fork
-├── ic10-test/                # THE HARNESS: self-contained package, movable later
-│   ├── package.json          # name e.g. "@tasermonkey/ic10-test"; depends on the fork
+├── package.json              # npm workspaces: ic10-test, ic10-test-vscode, vendor/ic10
+├── vitest.config.ts          # three Vitest projects: the harness, the scripts' tests, the extension
+├── vendor/ic10/              # git submodule → the fork, published as @tasermonkey/ic10
+├── ic10-mods/                # this workspace's mods' devices, one file per machine (§6)
+├── ic10-test/                # THE HARNESS: @tasermonkey/ic10-bench, self-contained
+│   ├── package.json          # depends on @tasermonkey/ic10; exports source (checkout) or dist (npm)
+│   ├── bin/ic10-bench.ts     # the CLI: catalog, import-mods, props, logic
 │   ├── src/
 │   │   ├── engine/           # adapter: the ONLY code touching emulator internals
 │   │   ├── world/            # World builder, devices, pipes/rooms, events, models
 │   │   ├── scheduler/        # ticks, auto-yield, sleep, budgets
-│   │   ├── matchers/         # Vitest expect.extend matchers
+│   │   ├── matchers/         # Vitest expect.extend matchers, and their types
 │   │   ├── catalog/          # device and property metadata (§6)
+│   │   ├── cli/              # the CLI's commands
 │   │   ├── debug/            # debug gate + the agent the adapter talks to (§6b)
-│   │   └── lint/             # static checks (later)
-│   └── test/                 # the harness's own tests
-├── ic10-test-vscode/         # VS Code extension: DAP adapter, CodeLens (§6b); its own package
+│   │   ├── lint/             # static checks
+│   │   ├── config.ts         # defineIc10Config, for a project's vitest.config.ts
+│   │   ├── prefabs.ts        # PrefabProps: the packaged GamePrefabProps, or the project's
+│   │   └── project.ts        # where a project's files are
+│   ├── generated/            # the packaged catalogue and GamePrefabProps (git-ignored, built)
+│   └── test/                 # the harness's own tests, with a fixture project
+├── ic10-test-vscode/         # VS Code extension "IC10 Bench": DAP adapter, CodeLens (§6b)
 │   └── examples/             # one test + .ic10 per debugger feature, to try it on
 └── tests/                    # tests for YOUR scripts, mirroring ic10/
     └── ClimateControl/VCCR-cooling.test.ts
 ```
-Moving `ic10-test/` to its own repo later only means changing its fork dependency from a workspace
-reference to a git URL.
+The harness and the extension move to their own repo; see "Publishing and the repo split" in §7.
 
 ### 4.2 Execution model: game ticks
 - **1 tick = 0.5 s of game time** (`tickSeconds`, configurable). In each tick, every chip runs until
@@ -242,7 +248,7 @@ Defaults come from `sim({ maxTicks: 10_000, maxLinesPerRun: 1_000_000 })`. Vites
 ### 4.4 World builder and accessors
 ```ts
 import { describe, it, expect } from "vitest";
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 
 describe("VCCR Cooling Air Management", () => {
   it("pulls in night air when it's cold outside", async () => {
@@ -508,20 +514,26 @@ This makes it easy to see what properties a device has, and to validate that scr
 |---|---|---|
 | Fork's game data (`assets.ic10.dev`, via `tools/download.ts`) | Per prefab: logic types with Read/Write, slots and their logic types, modes, connections. | Kept current by the fork's download tool. |
 | **Your game install:** `…/Stationeers/rocketstation_Data/StreamingAssets/Language/english.xml` | **Descriptions:** 287 `LogicType…` records, e.g. `LogicTypeRatioNitrogenInput` → "The ratio of nitrogen in device's input network". It also has slot types and device descriptions. | Always matches your game version (file dated 2026-08-22). It's game text owned by RocketWerkz, so **extract at build time and gitignore the output**; don't commit it. |
-| **Stationpedia export** ([Ryex/StationeersStationpediaExtractor](https://github.com/Ryex/StationeersStationpediaExtractor), a BepInEx plugin; `stationpedia_export` in the F3 console writes `Stationpedia/Enums.json` and `Stationpedia.json`) | A description for every logic type, and each loaded prefab's logic types and slots, possibly including mods' devices. | Your game version, whenever you run it. Game data: the descriptions stay local; mod devices' names and Read/Write go into committed `ic10-test/data/mods/`. |
+| **Stationpedia export** ([Ryex/StationeersStationpediaExtractor](https://github.com/Ryex/StationeersStationpediaExtractor), a BepInEx plugin; `stationpedia_export` in the F3 console writes `Stationpedia/Enums.json` and `Stationpedia.json`) | A description for every logic type, and each loaded prefab's logic types and slots, possibly including mods' devices. | Your game version, whenever you run it. Game data: the descriptions stay local; mod devices' names and Read/Write go into the project's committed `ic10-mods/`. |
 | [Stationeers wiki](https://stationeers-wiki.com/Filtration) device pages | **Per-device**, human-written descriptions with units and ranges, e.g. Filtration → `RatioNitrogenInput`: "Percentage of Nitrogen in input as ratio between 0 and 1". Richer than the game's generic one-liners. | Community-maintained: some entries are "Unknown", a few disagree with other pages or the game, and some may lag game updates. The site's Cloudflare bot check blocks scripted access. **Licensed CC BY-SA and GFDL** (from the site's disclaimer). |
 
-A `catalog:build` script merges these into `ic10-test/generated/catalog.json`. It finds the game
-through `STATIONEERS_DIR` or the default Steam path. Without the game or an export (e.g. in CI)
-there are no descriptions; types and Read/Write checks work the same.
+There are two catalogues (since the publishing work in §7). The package ships one built by `catalog:build`
+(`generated/catalog.json` and `GamePrefabProps`): the fork's prefabs, no descriptions, no mods.
+Each project builds its own with `ic10-bench catalog`: the same prefabs plus its `ic10-mods/`, with
+descriptions from its game install, into `.ic10-bench/catalog.json`, and its types into
+`ic10-bench-env.d.ts`, which fills in the harness's `ProjectPrefabs` by module augmentation. Both
+of those are git-ignored, as they hold the game's text. It finds the game through
+`STATIONEERS_DIR` or Steam. Without the game or an export (e.g. in CI) there are no descriptions;
+types and Read/Write checks work the same.
 
 ic10emu's descriptions were used as a fallback in step 1, then dropped: they're an older run of the
 same Stationpedia export (ic10emu's `xtask generate` reads `Enums.json` and `Stationpedia.json`).
 
 **Working from a clean clone** needs neither the mod nor an export: `npm install`, then `npm test`.
-The committed fork data and `data/mods/` give every type. **Refreshing** after a game update or a
-new mod: run the export in game, then `npm run catalog:import-stationpedia` to regenerate `data/mods/`,
-and commit it. Whoever has an export locally also gets its descriptions in their build.
+The committed fork data and `ic10-mods/` give every type. **Refreshing** after a game update or a
+new mod: run the export in game, then `ic10-bench import-mods` (`npm run import-mods` here) to
+regenerate this machine's file in `ic10-mods/`, and commit it. Whoever has an export locally also
+gets its descriptions in their build.
 
 **How descriptions combine.** The catalogue keeps every source's text with a source label instead of
 picking one winner:
@@ -588,7 +600,7 @@ We follow CC BY-SA, the simpler of the two:
    review item 1.4, but it can't: 1.4 read through a pin (`l`), whose device a static check can't
    know, and `PressureInternal` is a real, readable vent property; the bug was reading a setting
    where a measurement was meant, which the catalogue can't tell apart.
-4. **A CLI lookup:** `npx ic10-test props StructureFiltration` prints a table of name, R/W and
+4. **A CLI lookup:** `npx ic10-bench props StructureFiltration` prints a table of name, R/W and
    description.
 
 ---
@@ -623,26 +635,26 @@ debugging and testing behave identically.
 |---|---|
 | Where the adapter runs | In the extension, inline (`ic10-test-vscode/src/adapter.ts`, no `vscode` import, so `DebugClient` tests it without an editor). A small **agent** in the test process connects back over a socket. |
 | Who decides where to stop | The agent, in the test process. A run doesn't wait on the adapter for every line, and lets messages in every few milliseconds so Pause works. |
-| Where the extension lives | `ic10-test-vscode/`, a sibling of `ic10-test/` with its own package and LICENSE. It shares only the protocol's types and version (`@tasermonkey/ic10-test/debug-protocol`), so either can move to its own repo. |
+| Where the extension lives | `ic10-test-vscode/`, a sibling of `ic10-test/` with its own package and LICENSE. It shares only the protocol's types and version (`@tasermonkey/ic10-bench/debug-protocol`), so either can move to its own repo. |
 | Grammar | None: your IC10 extension (florpydorp) provides the `ic10` language. Ours declares the language and its breakpoints only. |
 | Code from vscode-ic10 | None. Only its scope layout. |
 | Distribution | A local `.vsix` (`npm run vscode:package -w ic10-test-vscode`), publisher `tasermonkey`, the repo as homepage. |
 | Sessions | Each launch is its own session; a new one doesn't stop the last. |
 | Call Stack | A frame per `jal` or branch-and-link call: the stack is the call stack, as in assembly. Step Over and Step Out go by that depth. |
-| CodeLens | Above `it`, `test` and `describe` in TypeScript and JavaScript, only in a workspace with IC10 in it; the setting `ic10-test.codeLens` turns it off. |
-| Debugging the TypeScript too | A launch attribute `debugTypeScript` and a setting `ic10-test.debugTypeScript` (off by default), not a second CodeLens. The JavaScript debugger runs as a child session; stopping either ends both. |
+| CodeLens | Above `it`, `test` and `describe` in TypeScript and JavaScript, only in a workspace with IC10 in it; the setting `ic10-bench.codeLens` turns it off. |
+| Debugging the TypeScript too | A launch attribute `debugTypeScript` and a setting `ic10-bench.debugTypeScript` (off by default), not a second CodeLens. The JavaScript debugger runs as a child session; stopping either ends both. |
 | Scenarios | A world module (`x.world.ts`) or env JSON plus a `program`. Run under plain Node, as fast as it can, ending once every chip has stopped and nothing is due. Started by a launch configuration, F5, or an editor-title button; an `.ic10` stands for the scenario beside it. |
 | Step back | Not in Phase 7 (see Controls). |
 
 ### How it hooks into tests
 ```
-VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness inside a Vitest test process
+VS Code ──DAP──▶ ic10-bench debug adapter ─socket──▶ harness inside a Vitest test process
                  (in the VS Code extension             or a scenario run under Node
                   ic10-test-vscode/)                   (the agent is the scheduler's "debug
                                                          gate" when IC10_DEBUG is set)
 ```
 - **Launch from a test.** A CodeLens "▶ Debug IC10" appears above each `it(...)`, and there's a
-  launch config of `{ "type": "ic10-test", "test": "tests/…/x.test.ts", "line": 27 }`.
+  launch config of `{ "type": "ic10-bench", "test": "tests/…/x.test.ts", "line": 27 }`.
   The adapter starts Vitest for that one test with `IC10_DEBUG=<port>` and no timeout. The
   harness connects back, and execution pauses at breakpoints set in the `.ic10` file.
 - **Debug both together.** With `"debugTypeScript": true` (or the setting), the extension starts the
@@ -695,13 +707,13 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
 | **5 Catalogue** | §6 sources (game, fork data, Stationpedia export, wiki `Special:Export` import), generated `.d.ts`, CLI lookup, runtime surfacing, static batch-op checks. | Mistyped properties in tests fail to compile, and every script's batch instructions are checked against the catalogue. (Originally "1.4-style misuse is flagged", which a catalogue check can't do; see §6.) |
 | **6 World behaviour** | §5 model library, pipe and room atmospheres, and the Logic Mirror proxy device (§5.4). | An Alaska Cooler test cools a pipe over N ticks through the vent model. |
 | **7 VS Code debugger** | §6b. Build the adapter and a small extension in `ic10-test-vscode/` (first planned as `ic10-test/vscode/`, reusing vscode-ic10's grammar and adapter pieces; see §6b's decisions). Add the CodeLens on tests and the scopes from the table. | Breakpoint in an `.ic10` file, "Debug IC10" on a test, step line by line, and watch registers and `vent.On` change. |
-| **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, the debugger's step back (a full save and restore of a world; §6b), phase changes in the gas core (condensing and boiling from the game's per-gas curves, with latent heat; e.g. an Alaska coolant pipe left full in the cold), and extracting `ic10-test/` to its own repo. | — |
+| **8 Later** | Lint rules (unused defines, relative branches landing on labels, double aliasing), the preemption sweep, the debugger's step back (a full save and restore of a world; §6b), phase changes in the gas core (condensing and boiling from the game's per-gas curves, with latent heat; e.g. an Alaska coolant pipe left full in the cold). Extracting the harness to its own repo is its own piece of work: "Publishing and the repo split", below. | — |
 
 **Status (2026-10-08):**
 - **Phase 0 is done.** The fork has been converted (CI passes). The root npm workspace uses
   `vitest.config.ts` and resolves the fork's TypeScript sources through a `source` export
   condition, so there's no build step. The first VCCR test and the script sweep are in `tests/`.
-  The `ic10-test/` workspace package (`@tasermonkey/ic10-test`) exists, with `createEnv`,
+  The `ic10-test/` workspace package (`@tasermonkey/ic10-bench`) exists, with `createEnv`,
   `readScript` and `findScripts` and its own tests. Phase 2's `sim()` builder builds on
   `createEnv`. Paths specific to this repo are in `tests/support/paths.ts`.
 - **Phase 1 is done:** G6, G10, the suspend signal (G1/G2, fork side), G11, and i18n defaulting
@@ -834,8 +846,8 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     which runs it over every script. It checks 263 of the 286 batch instructions (the other 23 take
     their device type from a register) and finds nothing, in the current scripts and in the
     originals before Phase 4. It guards new code; it couldn't have caught review 1.4 (see §6).
-  - Step 4 is done: `npx ic10-test props <prefab | words | hash>` and `npx ic10-test logic <name>`
-    (`ic10-test/bin/ic10-test.ts`, building the catalogue if it's missing). The catalogue now strips
+  - Step 4 is done: `npx ic10-bench props <prefab | words | hash>` and `npx ic10-bench logic <name>`
+    (`ic10-test/bin/ic10-bench.ts`, building the catalogue if it's missing). The catalogue now strips
     the game's rich-text tags (`<link=…><color=…>`) from descriptions, for hovers too.
   - Step 5 is done: the emulator's property errors ("Device -236516384 property 38 not found") are
     rewritten as they're recorded, naming the device by test key, prefab and reference ID, and
@@ -1053,13 +1065,13 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
       stop on entry, and a bad launch.
   - Step 6 is done, and with it Phase 7's "done when" (checked by you in VS Code, 2026-10-11).
     - The extension (`ic10-test-vscode/src/extension.ts`) runs the adapter inside VS Code. It
-      contributes the `ic10` language (no grammar), breakpoints in `.ic10` files, the `ic10-test`
-      debugger with launch snippets, and **IC10 Test: Debug IC10 in the Test at the Cursor**,
+      contributes the `ic10` language (no grammar), breakpoints in `.ic10` files, the `ic10-bench`
+      debugger with launch snippets, and **IC10 Bench: Debug IC10 in the Test at the Cursor**,
       which runs the `it` or `describe` the cursor is in. F5 with no launch.json debugs the test
       file in the editor. A file counts as a test file by having an `it(`, `test(` or `describe(`
       in it, not by its name.
     - It's bundled with esbuild and packaged with `vsce` (`npm run vscode:package -w
-      ic10-test-vscode` writes `dist/ic10-test-vscode.vsix`, 30 KB), with publisher `tasermonkey`,
+      ic10-test-vscode` writes `dist/ic10-bench.vsix`, 30 KB), with publisher `tasermonkey`,
       the repo as homepage, and `.vscode/launch.json` for running it from source.
     - Both packages are now `AGPL-3.0-or-later`, each with a LICENSE file (§8).
     - Found while you tried it:
@@ -1080,8 +1092,8 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
   - Step 7 is done: a **▶ Debug IC10** CodeLens above each `it`, `test` and `describe` in a
     TypeScript or JavaScript file on disk, found the same way as the command's test (by content).
     It runs that one test or group, as the cursor command does; its tooltip names it. The setting
-    `ic10-test.codeLens` turns the lenses off. The lenses and the cursor command show only in a
-    workspace with IC10 in it (an `.ic10` file, or `@tasermonkey/ic10-test` in `node_modules`), and
+    `ic10-bench.codeLens` turns the lenses off. The lenses and the cursor command show only in a
+    workspace with IC10 in it (an `.ic10` file, or `@tasermonkey/ic10-bench` in `node_modules`), and
     the extension starts in such a workspace, so other TypeScript projects don't see it.
   - Step 8 is done: the tick commands, on the debug toolbar and in the command palette while an
     IC10 session is stopped. Each goes by the chip focused in the Call Stack, or the one that last
@@ -1132,7 +1144,7 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     (`ic10-test-vscode/src/inline-values.ts`) with their own tests. VS Code's `debug.inlineValues`
     setting turns them off.
   - Step 11 is done: **debugging the TypeScript too.** With `"debugTypeScript": true` in a launch
-    configuration, or the setting `ic10-test.debugTypeScript` (your choice; off by default, used by
+    configuration, or the setting `ic10-bench.debugTypeScript` (your choice; off by default, used by
     the CodeLens, the cursor command, F5 and any configuration that doesn't set it), the extension
     gives the session a launcher (`src/js-debug.ts`) that starts Vitest through VS Code's own
     JavaScript debugger (`vscode.debug.startDebugging`, `autoAttachChildProcesses` for the worker).
@@ -1154,7 +1166,7 @@ VS Code ──DAP──▶ ic10-test debug adapter ──socket──▶ harness
     world, with any events and models) or **env JSON** plus a `program` `.ic10` for one of its
     chips; it runs **as fast as it can**; the session **ends** once every chip has stopped and no
     events are due; and it starts **four ways** (below).
-    - `ic10-test/src/debug/run-scenario.ts` (exported as `@tasermonkey/ic10-test/run-scenario`) runs
+    - `ic10-test/src/debug/run-scenario.ts` (exported as `@tasermonkey/ic10-bench/run-scenario`) runs
       it under plain Node (`node --conditions=source`, no Vitest, so it starts in about half a
       second). It attaches through `IC10_DEBUG` like a test, runs ticks until `world.idle()` (now
       public), says why it stopped, and exits when the debugger goes away. `loadScenario` builds the
@@ -1200,10 +1212,60 @@ Suggested first regression tests (Phase 4):
 | 1.10 Trader Vert | After the first tick, the HC display is unchanged. |
 | FabControl pair | Setup writes IDs into Control's stack, Control drives the right fabricator by `ld`/`sd`, and a power switch set to off turns the light red and skips that fabricator. |
 
+### Publishing and the repo split (2026-10-12)
+
+Other players should be able to `npm install` the harness and test their own scripts, and install the
+debugger from the Marketplace. The target is three repos:
+
+| Repo | Holds | Publishes |
+|---|---|---|
+| `tasermonkey/ic10` (the fork) | the emulator; `main` is the fork's line, `upstream` mirrors Stationeers-ic/ic10 | npm `@tasermonkey/ic10` |
+| `tasermonkey/ic10-bench` (new) | `packages/ic10-bench` (from `ic10-test/`), `packages/vscode` (from `ic10-test-vscode/`), this plan | npm `@tasermonkey/ic10-bench`; the extension `tasermonkey.ic10-bench` on the VS Code Marketplace and Open VSX |
+| `tasermonkey/chipdata-workspace` | `ic10/`, `tests/`, `ic10-mods/` | nothing; it installs the harness |
+
+The harness and the extension share a repo because they share the debug protocol; they're released
+separately, and the adapter already refuses an agent with another `PROTOCOL_VERSION`.
+
+- Step 1 is done: the fork. It's `@tasermonkey/ic10` 1.0.0, with the attribution at the top of its
+  README and a NOTICE (AGPL §5a). Its ESM build is now a bundle that inlines
+  `@stationeers-ic/exact-ic10-math` (whose published ESM Node rejects); its `postinstall` patch
+  became `prepare`, so it never runs in a user's install. The library build had been failing since
+  G19 (a private method on the exported mixin classes broke declaration emit); fixed. `node-esm`
+  is merged into the fork's `main`, which the submodule now tracks.
+- Step 2 is done: the harness, ready to publish.
+  - Renamed to **IC10 Bench**: the package `@tasermonkey/ic10-bench`, the CLI `ic10-bench`, the
+    extension `ic10-bench` ("IC10 Bench"), its debug type, commands and settings. Directories keep
+    their names until the split.
+  - It builds to `dist/` (`tsconfig.build.json`); each export has `source`, `types` and `default`.
+  - The catalogue is split into the packaged one and the project's (§6). A project's files: committed
+    `ic10-mods/`, git-ignored `.ic10-bench/` and `ic10-bench-env.d.ts`. `ic10-bench catalog` and
+    `ic10-bench import-mods` replace `catalog:build` and `catalog:import-stationpedia` for projects.
+    The workspace's mods moved from `ic10-test/data/mods/` to `ic10-mods/`; the harness's own tests
+    use a fixture project with seven mods' devices.
+  - `defineIc10Config()` (`@tasermonkey/ic10-bench/config`) wraps Vitest's config: it adds the
+    matchers and sets `IC10_BENCH_ROOT`. The matchers' types moved to `src/matchers/types.ts`, which
+    the package's entry exports, so a project gets them by importing the package.
+  - The workspace's Vitest config has three projects (harness, scripts, extension), so each runs with
+    its own project folder.
+  - The extension finds the harness's `run-scenario` from its `exports`: the build from an install,
+    the source from a linked checkout.
+  - Checked by installing packed tarballs of both packages into an empty folder: a test passes with
+    no game installed, a mod's device works at run time from `ic10-mods/`, and after
+    `ic10-bench catalog` it type-checks (and a misspelt property doesn't).
+  - The other IC10 extensions (the emulator authors', shaneyu's, AshleyWilliamson's, FlorpyDorp's)
+    all declare the language id `ic10`, the same as ours, so they work side by side.
+- Step 3: the new repo. `git filter-repo` in a fresh clone keeps the history of `ic10-test/`,
+  `ic10-test-vscode/`, this plan and `CODE_REVIEW.md`, renamed into `packages/`. Then point
+  `repository`, `homepage` and `bugs` at it, drop `"private"`, and publish.
+- Step 4: this workspace installs `@tasermonkey/ic10-bench` from npm and drops the submodule and the
+  two packages.
+
 ---
 
 ## 8. Licensing notes
 - The fork stays **AGPL-3.0**. Keep its LICENSE, and mark modified files with change notices (§5a).
+  Published as `@tasermonkey/ic10`: its README opens with the attribution to Stationeers-ic/ic10,
+  and its NOTICE says who changed it, when, and from which upstream commit.
 - `ic10-test/` imports the fork, so if it's distributed it should be AGPL-3.0 too. It's
   `AGPL-3.0-or-later`, with its own LICENSE file.
 - `ic10-test-vscode/` (the debugger extension) is `AGPL-3.0-or-later` too, with its own LICENSE. It

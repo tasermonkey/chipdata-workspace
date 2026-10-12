@@ -1,13 +1,13 @@
 /**
  * The debug adapter: VS Code speaks the Debug Adapter Protocol to it, and it runs one test under
  * Vitest with IC10_DEBUG set, so the test's debug agent connects back (see
- * `@tasermonkey/ic10-test/debug-protocol`). It holds no IC10 state of its own: breakpoints are
+ * `@tasermonkey/ic10-bench/debug-protocol`). It holds no IC10 state of its own: breakpoints are
  * forwarded, and stops, threads and variables come from the agent.
  *
  * Nothing here imports `vscode`, so tests can drive it with a DAP client and no editor.
  */
 import { spawn } from "node:child_process";
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { createServer, type Server, type Socket } from "node:net";
 import { basename, dirname, join, resolve } from "node:path";
@@ -21,7 +21,7 @@ import {
 	PROTOCOL_VERSION,
 	type Requests,
 	type StopReason,
-} from "@tasermonkey/ic10-test/debug-protocol";
+} from "@tasermonkey/ic10-bench/debug-protocol";
 import {
 	ContinuedEvent,
 	DebugSession,
@@ -40,7 +40,7 @@ import {
 } from "@vscode/debugadapter";
 import type { DebugProtocol } from "@vscode/debugprotocol";
 
-/** What a launch configuration of type `ic10-test` gives. */
+/** What a launch configuration of type `ic10-bench` gives. */
 export interface Ic10LaunchArgs extends DebugProtocol.LaunchRequestArguments {
 	/** The test file. Give this or `scenario`. */
 	test?: string;
@@ -210,9 +210,9 @@ export class Ic10TestSession extends DebugSession {
 			this.stopOnEntry = args.stopOnEntry ?? false;
 
 			// Vitest takes a few seconds to start: say so, so the wait doesn't look like nothing happening.
-			this.sendEvent(new OutputEvent(`ic10-test: starting ${run.title} for ${run.what} (in ${run.cwd})\n`, "console"));
+			this.sendEvent(new OutputEvent(`ic10-bench: starting ${run.title} for ${run.what} (in ${run.cwd})\n`, "console"));
 			if (this.progress) {
-				this.starting = `ic10-test-start-${process.pid}-${Date.now()}`;
+				this.starting = `ic10-bench-start-${process.pid}-${Date.now()}`;
 				this.sendEvent(new ProgressStartEvent(this.starting, `Starting ${run.title}`, run.what));
 			}
 
@@ -458,7 +458,7 @@ export class Ic10TestSession extends DebugSession {
 	private accept(socket: Socket): void {
 		if (this.connected) {
 			// Vitest runs each test file in its own context; this session follows the first.
-			this.sendEvent(new OutputEvent("ic10-test: another test file connected; it runs without stopping\n", "console"));
+			this.sendEvent(new OutputEvent("ic10-bench: another test file connected; it runs without stopping\n", "console"));
 			socket.destroy();
 			return;
 		}
@@ -472,7 +472,7 @@ export class Ic10TestSession extends DebugSession {
 				if (event.version !== PROTOCOL_VERSION) {
 					this.sendEvent(
 						new OutputEvent(
-							`ic10-test: the test's debug agent speaks protocol ${event.version}, this extension ${PROTOCOL_VERSION}; update one of them\n`,
+							`ic10-bench: the test's debug agent speaks protocol ${event.version}, this extension ${PROTOCOL_VERSION}; update one of them\n`,
 							"stderr",
 						),
 					);
@@ -480,7 +480,7 @@ export class Ic10TestSession extends DebugSession {
 					return;
 				}
 				this.endProgress();
-				this.sendEvent(new OutputEvent(`ic10-test: the test is connected (process ${event.pid})\n`, "console"));
+				this.sendEvent(new OutputEvent(`ic10-bench: the test is connected (process ${event.pid})\n`, "console"));
 				// From here on requests go straight to the agent; first it gets what was set so far.
 				this.agent = link;
 				this.sync(link);
@@ -647,11 +647,12 @@ function scenarioRun(args: Ic10LaunchArgs): RunPlan {
 	const scenario = existingPath(args.scenario!, "scenario");
 	const cwd = args.cwd ? realPath(args.cwd) : findVitestRoot(dirname(scenario));
 	const program = args.program !== undefined ? existingPath(args.program, "program") : undefined;
+	const harness = findHarnessFile(cwd, "run-scenario");
 	return {
 		title: "the scenario",
 		what: basename(scenario) + (program ? ` with ${basename(program)}` : ""),
-		nodeArgs: ["--conditions=source"],
-		program: findHarnessFile(cwd, "run-scenario"),
+		nodeArgs: harness.nodeArgs,
+		program: harness.path,
 		args: [
 			scenario,
 			...(program !== undefined ? ["--program", program] : []),
@@ -666,13 +667,32 @@ function existingPath(path: string, what: string): string {
 	return realPath(path);
 }
 
-/** One of the harness's exported files, as installed for `cwd`. */
-export function findHarnessFile(cwd: string, entry: string): string {
+export interface HarnessFile {
+	path: string;
+	/** What Node needs to run it: `--conditions=source` for a checkout's TypeScript. */
+	nodeArgs: string[];
+}
+
+/**
+ * One of the harness's exported files, as installed for `cwd`: the compiled file from an install,
+ * or the TypeScript source from a linked checkout (outside node_modules), which also loads the
+ * emulator's source.
+ */
+export function findHarnessFile(cwd: string, entry: string): HarnessFile {
+	let packageJson: string;
 	try {
-		return createRequire(join(cwd, "noop.js")).resolve(`@tasermonkey/ic10-test/${entry}`);
+		packageJson = createRequire(join(cwd, "noop.js")).resolve("@tasermonkey/ic10-bench/package.json");
 	} catch {
-		throw new Error(`@tasermonkey/ic10-test isn't installed for ${cwd}, or is too old to run scenarios`);
+		throw new Error(`@tasermonkey/ic10-bench isn't installed for ${cwd}, or is too old to run scenarios`);
 	}
+	const root = dirname(packageJson);
+	const target = (JSON.parse(readFileSync(packageJson, "utf8")) as { exports?: Record<string, unknown> }).exports?.[`./${entry}`];
+	if (typeof target === "string") return { path: join(root, target), nodeArgs: ["--conditions=source"] };
+	const { source, default: built } = (target ?? {}) as { source?: string; default?: string };
+	const checkout = !realPath(root).split(/[\\/]/).includes("node_modules");
+	if (source && checkout && existsSync(join(root, source))) return { path: join(root, source), nodeArgs: ["--conditions=source"] };
+	if (built && existsSync(join(root, built))) return { path: join(root, built), nodeArgs: [] };
+	throw new Error(`@tasermonkey/ic10-bench in ${root} has no ${entry}: it's too old to run scenarios, or isn't built`);
 }
 
 /** The nearest folder at or above `start` with a Vitest config (or failing that, a package.json). */

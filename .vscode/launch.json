@@ -3,25 +3,25 @@
 	"configurations": [
 		{
 			// Work on the extension: opens a second VS Code window running it from source.
-			"name": "Run the IC10 Test extension",
+			"name": "Run the IC10 Bench extension",
 			"type": "extensionHost",
 			"request": "launch",
 			"args": ["--extensionDevelopmentPath=${workspaceFolder}/ic10-test-vscode"],
 			"outFiles": ["${workspaceFolder}/ic10-test-vscode/dist/**/*.cjs"],
-			"preLaunchTask": "build the IC10 Test extension"
+			"preLaunchTask": "build the IC10 Bench extension"
 		},
 		{
 			// Needs the extension installed (or the window opened by the configuration above).
 			"name": "Debug IC10 in the current test file",
-			"type": "ic10-test",
+			"type": "ic10-bench",
 			"request": "launch",
 			"test": "${file}"
 		},
 		{
-			// As above, with breakpoints in the test's TypeScript too (the setting ic10-test.debugTypeScript
+			// As above, with breakpoints in the test's TypeScript too (the setting ic10-bench.debugTypeScript
 			// does the same for the CodeLens).
 			"name": "Debug IC10 and TypeScript in the current test file",
-			"type": "ic10-test",
+			"type": "ic10-bench",
 			"request": "launch",
 			"test": "${file}",
 			"debugTypeScript": true
@@ -29,14 +29,14 @@
 		{
 			// No test: the open world module (x.world.ts) or env JSON, or the one beside the open .ic10.
 			"name": "Debug the IC10 scenario in the current file",
-			"type": "ic10-test",
+			"type": "ic10-bench",
 			"request": "launch",
 			"scenario": "${file}"
 		},
 		{
 			// The examples' scenario as env JSON, running scenario.ic10 on its one chip.
 			"name": "Debug the IC10 scenario example as env JSON",
-			"type": "ic10-test",
+			"type": "ic10-bench",
 			"request": "launch",
 			"scenario": "${workspaceFolder}/ic10-test-vscode/examples/scenario.env.json",
 			"program": "${workspaceFolder}/ic10-test-vscode/examples/scenario.ic10"

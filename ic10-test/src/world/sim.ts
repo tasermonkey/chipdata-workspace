@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { PrefabProps } from "../../generated/prefab-props.ts";
+import type { PrefabProps } from "../prefabs.ts";
 import { modPrefabs } from "../catalog/mods.ts";
 import { type DebugGate, getDefaultDebugGate } from "../debug/gate.ts";
 import { buildEngine, type Engine, type EngineDeviceSpec, type EngineHousingSpec } from "../engine/build.ts";
@@ -24,8 +24,8 @@ import { EventQueue } from "./events.ts";
 import { type DeviceEntry, World } from "./world.ts";
 
 /**
- * A prefab the device catalogue knows: the emulator's game data, or a mod's device in data/mods/.
- * From generated/prefab-props.ts, which `npm run catalog:build` writes.
+ * A prefab the device catalogue knows: the emulator's game data, or a mod's device in the project's
+ * ic10-mods/ once `ic10-bench catalog` has written ic10-bench-env.d.ts (see prefabs.ts).
  */
 export type KnownPrefab = keyof PrefabProps;
 
@@ -72,9 +72,9 @@ export interface DeviceOptions extends AttachOptions {
 	/** Data network id. May be left out when the world has one network. */
 	network?: string;
 	/**
-	 * The device is in neither the emulator's catalogue nor `data/mods/` (a mod nobody has exported
-	 * yet, say). Its PrefabHash is HASH(prefab), and it accepts every logic property, readable and
-	 * writable. Devices only. Mods' devices in `data/mods/` don't need it.
+	 * The device is in neither the emulator's catalogue nor the project's `ic10-mods/` (a mod nobody
+	 * has exported yet, say). Its PrefabHash is HASH(prefab), and it accepts every logic property,
+	 * readable and writable. Devices only. Mods' devices in `ic10-mods/` don't need it.
 	 */
 	custom?: boolean;
 }
@@ -152,7 +152,7 @@ export class SimBuilder {
 	 * readings); `options` give its reference ID, in-game name and network.
 	 */
 	device<P extends KnownPrefab>(key: string, prefab: P, props?: PropsOf<P>, options?: DeviceOptions & { custom?: false }): this;
-	/** A device in neither the emulator nor data/mods/: `custom`, with any property names. */
+	/** A device in neither the emulator nor the project's ic10-mods/: `custom`, with any property names. */
 	device(key: string, prefab: string, props: Record<string, number> | undefined, options: DeviceOptions & { custom: true }): this;
 	device(key: string, prefab: string, props: Record<string, number> = {}, options: DeviceOptions = {}): this {
 		this.decls.push({ key, prefab, props, options });
@@ -232,7 +232,7 @@ export class SimBuilder {
 			}
 			if (!decl.options.custom && !known) {
 				throw new Error(
-					`sim: "${decl.key}": no device ${decl.prefab} in the emulator or data/mods/; for one neither knows, pass { custom: true }`,
+					`sim: "${decl.key}": no device ${decl.prefab} in the emulator or the project's ic10-mods/; for one neither knows, pass { custom: true }`,
 				);
 			}
 		}

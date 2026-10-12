@@ -77,7 +77,7 @@ describe("World.fromEnv", () => {
 		const fromText = await World.fromEnv(JSON.stringify(ENV), { debug: false });
 		expect(fromText.chip("Controller")).toHaveRegister("r5", 42);
 
-		const root = mkdtempSync(join(tmpdir(), "ic10-test-"));
+		const root = mkdtempSync(join(tmpdir(), "ic10-bench-"));
 		writeFileSync(join(root, "world.ic.json"), JSON.stringify(ENV));
 		const fromFile = await World.fromEnv("world.ic.json", { root, debug: false });
 		await fromFile.runTicks(1);

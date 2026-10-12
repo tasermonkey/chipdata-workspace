@@ -1,5 +1,5 @@
 // The Variables panel, editing values, hovers, Watch and the Debug Console: see variables.ic10.
-import { PIPE_VOLUME, sim } from "@tasermonkey/ic10-test";
+import { PIPE_VOLUME, sim } from "@tasermonkey/ic10-bench";
 import { describe, expect, it } from "vitest";
 
 describe("variables", () => {

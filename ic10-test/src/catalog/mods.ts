@@ -1,22 +1,15 @@
 /**
  * Mods' devices: prefabs the emulator's game data doesn't have, from the Stationpedia exports
- * (`npm run catalog:import-stationpedia`). Each export is its own committed file, data/mods/<id>.json,
- * named for the machine that made it, so two machines never edit the same file. Each file also lists
- * the workshop mods installed when it was made, so differences between files can be traced to a mod.
+ * (`ic10-bench import-mods`). Each export is its own committed file in the project,
+ * ic10-mods/<id>.json, named for the machine that made it, so two machines never edit the same file.
+ * Each file also lists the workshop mods installed when it was made, so differences between files
+ * can be traced to a mod.
  */
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { projectPaths } from "../project.ts";
 import type { CatalogPrefab } from "./catalog.ts";
-
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-
-/** Mods' data: one committed file per export, data/mods/<machine id>.json. */
-export const MODS_DIR = join(ROOT, "data", "mods");
-
-/** This machine's id, in .local/ (git-ignored), so it never reaches a commit. */
-export const MACHINE_PATH = join(ROOT, ".local", "machine.json");
 
 /** A workshop mod, from its About/About.xml. */
 export interface InstalledMod {
@@ -33,26 +26,28 @@ export interface ModsFile {
 }
 
 /** This machine's id, or undefined if it hasn't been made yet. Reading never creates one. */
-export function readMachineId(): string | undefined {
-	return existsSync(MACHINE_PATH) ? (JSON.parse(readFileSync(MACHINE_PATH, "utf8")) as { id: string }).id : undefined;
+export function readMachineId(root?: string): string | undefined {
+	const path = projectPaths(root).machine;
+	return existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as { id: string }).id : undefined;
 }
 
 /**
  * This machine's id, made on first use: a random 8-hex string, so the file it names can't say who
  * or where it is. Only the import calls this.
  */
-export function machineId(): string {
-	const existing = readMachineId();
+export function machineId(root?: string): string {
+	const existing = readMachineId(root);
 	if (existing) return existing;
 	const id = randomBytes(4).toString("hex");
-	mkdirSync(dirname(MACHINE_PATH), { recursive: true });
-	writeFileSync(MACHINE_PATH, `${JSON.stringify({ id }, null, "\t")}\n`);
+	const path = projectPaths(root).machine;
+	mkdirSync(dirname(path), { recursive: true });
+	writeFileSync(path, `${JSON.stringify({ id }, null, "\t")}\n`);
 	return id;
 }
 
-/** The export file this machine writes: data/mods/<machine id>.json. */
-export function ownModsFile(): string {
-	return join(MODS_DIR, `${machineId()}.json`);
+/** The export file this machine writes: ic10-mods/<machine id>.json. */
+export function ownModsFile(root?: string): string {
+	return join(projectPaths(root).mods, `${machineId(root)}.json`);
 }
 
 /** The name and version from a workshop mod's About/About.xml. */
@@ -114,24 +109,30 @@ export function mergeModPrefabs(files: ModsFile[], localName?: string): ModsMerg
 	return { prefabs, disagreements: [...disagreements.values()] };
 }
 
-let cached: Map<string, CatalogPrefab> | undefined;
+const cached = new Map<string, Map<string, CatalogPrefab>>();
 
-/** Mods' prefabs by name, from every file in data/mods/ (empty if there are none). Warns about disagreements. */
-export function modPrefabs(): Map<string, CatalogPrefab> {
-	if (!cached) {
-		const files: ModsFile[] = existsSync(MODS_DIR)
-			? readdirSync(MODS_DIR)
+/**
+ * Mods' prefabs by name, from every file in the project's ic10-mods/ (empty if there are none).
+ * Warns about disagreements.
+ */
+export function modPrefabs(root?: string): Map<string, CatalogPrefab> {
+	const paths = projectPaths(root);
+	let prefabs = cached.get(paths.root);
+	if (!prefabs) {
+		const files: ModsFile[] = existsSync(paths.mods)
+			? readdirSync(paths.mods)
 					.filter((name) => name.endsWith(".json"))
-					.map((name) => ({ name: basename(name), ...(JSON.parse(readFileSync(join(MODS_DIR, name), "utf8")) as Omit<ModsFile, "name">) }))
+					.map((name) => ({ name: basename(name), ...(JSON.parse(readFileSync(join(paths.mods, name), "utf8")) as Omit<ModsFile, "name">) }))
 			: [];
-		const id = readMachineId();
+		const id = readMachineId(paths.root);
 		const localName = id && `${id}.json`;
-		const { prefabs, disagreements } = mergeModPrefabs(files, localName);
-		for (const { file, prefabs: names } of disagreements) {
+		const merged = mergeModPrefabs(files, localName);
+		for (const { file, prefabs: names } of merged.disagreements) {
 			const winner = localName ? "the local export, which wins" : "the first export by name, which wins";
 			console.warn(`mods: ${names.length} prefab(s) in ${file} have different logic from ${winner} (e.g. ${names.slice(0, 3).join(", ")})`);
 		}
-		cached = prefabs;
+		prefabs = merged.prefabs;
+		cached.set(paths.root, prefabs);
 	}
-	return cached;
+	return prefabs;
 }

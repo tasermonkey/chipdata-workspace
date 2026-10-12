@@ -33,6 +33,10 @@ export {
 } from "./catalog/catalog.ts";
 export { type BatchOpCatalog, type BatchOpFinding, type BatchOpProblem, checkBatchOps } from "./lint/batch-ops.ts";
 export * from "./matchers/checks.ts";
+// Also adds the matchers to Vitest's `expect` types (see matchers/types.ts).
+export type { Ic10Matchers } from "./matchers/types.ts";
+export { type GamePrefabProps, type PrefabProps, type ProjectPrefabs } from "./prefabs.ts";
+export { projectPaths, type ProjectPaths, projectRoot } from "./project.ts";
 export { chipReport, deviceReport, formatValue, worldReport } from "./matchers/report.ts";
 export { type DebugGate, type DebugLineInfo, getDefaultDebugGate, setDefaultDebugGate } from "./debug/gate.ts";
 export { DebugAgent, type Transport } from "./debug/agent.ts";

@@ -1,6 +1,6 @@
 // Step Tick, Run N Ticks and Run Until Event: see ticks.ic10. The labelled events are what
 // Run Until Event offers.
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { describe, expect, it } from "vitest";
 
 describe("ticks", () => {

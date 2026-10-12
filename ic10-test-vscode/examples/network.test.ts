@@ -1,5 +1,5 @@
 // Several chips working together through each other's stacks: see controller.ic10 and worker.ic10.
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { describe, expect, it } from "vitest";
 
 async function network() {

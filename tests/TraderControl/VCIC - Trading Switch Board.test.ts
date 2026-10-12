@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sim, type World } from "@tasermonkey/ic10-test";
+import { sim, type World } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 /** The dock switches the script lists by reference ID, in dock order (1 = Orange … 5 = Black). */

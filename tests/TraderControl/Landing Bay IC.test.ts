@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sim, type World } from "@tasermonkey/ic10-test";
+import { sim, type World } from "@tasermonkey/ic10-bench";
 import { readRepoScript, REPO_ROOT } from "../support/paths.ts";
 
 const SCRIPT = "ic10/TraderControl/Landing Bay IC.ic10";

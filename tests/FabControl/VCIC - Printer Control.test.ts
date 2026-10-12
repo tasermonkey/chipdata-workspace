@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type KnownPrefab, parseId, type ReferenceId, sim, type World } from "@tasermonkey/ic10-test";
+import { type KnownPrefab, parseId, type ReferenceId, sim, type World } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const SETUP = "ic10/FabControl/VCIC - Printer Setup.ic10";
@@ -33,7 +33,7 @@ const FABS = {
 type Fab = keyof typeof FABS;
 type Part = keyof (typeof FABS)[Fab]["ids"];
 
-/** Console-mod parts (from data/mods/). Control finds them by ID, so only their properties matter. */
+/** Console-mod parts (from ic10-mods/). Control finds them by ID, so only their properties matter. */
 const CONSOLE: Record<Exclude<Part, "printer" | "stacker">, KnownPrefab> = {
 	progress: "ModularDeviceGauge3x3",
 	amount: "ModularDeviceLEDdisplay3",

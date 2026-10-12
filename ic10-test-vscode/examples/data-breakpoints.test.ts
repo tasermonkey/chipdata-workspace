@@ -1,5 +1,5 @@
 // Data breakpoints ("Break on Value Change"): see data-breakpoints.ic10.
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { describe, expect, it } from "vitest";
 
 describe("data breakpoints", () => {

@@ -1,29 +1,70 @@
 {
-	"name": "@tasermonkey/ic10-test",
+	"name": "@tasermonkey/ic10-bench",
 	"private": true,
-	"version": "0.0.0",
+	"version": "1.0.0",
 	"type": "module",
 	"description": "Test harness for Stationeers IC10 scripts, built on the @tasermonkey/ic10 emulator (a fork of @stationeers-ic/ic10)",
 	"license": "AGPL-3.0-or-later",
+	"keywords": [
+		"stationeers",
+		"ic10",
+		"vitest",
+		"testing"
+	],
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/tasermonkey/chipdata-workspace.git",
 		"directory": "ic10-test"
 	},
 	"bin": {
-		"ic10-test": "./bin/ic10-test.ts"
+		"ic10-bench": "./dist/bin/ic10-bench.js"
 	},
 	"exports": {
-		".": "./src/index.ts",
-		"./vitest": "./src/matchers/vitest-setup.ts",
-		"./debug-protocol": "./src/debug/protocol.ts",
-		"./run-scenario": "./src/debug/run-scenario.ts"
+		".": {
+			"source": "./src/index.ts",
+			"types": "./dist/src/index.d.ts",
+			"default": "./dist/src/index.js"
+		},
+		"./config": {
+			"source": "./src/config.ts",
+			"types": "./dist/src/config.d.ts",
+			"default": "./dist/src/config.js"
+		},
+		"./prefabs": {
+			"source": "./src/prefabs.ts",
+			"types": "./dist/src/prefabs.d.ts",
+			"default": "./dist/src/prefabs.js"
+		},
+		"./vitest": {
+			"source": "./src/matchers/vitest-setup.ts",
+			"types": "./dist/src/matchers/vitest-setup.d.ts",
+			"default": "./dist/src/matchers/vitest-setup.js"
+		},
+		"./debug-protocol": {
+			"source": "./src/debug/protocol.ts",
+			"types": "./dist/src/debug/protocol.d.ts",
+			"default": "./dist/src/debug/protocol.js"
+		},
+		"./run-scenario": {
+			"source": "./src/debug/run-scenario.ts",
+			"types": "./dist/src/debug/run-scenario.d.ts",
+			"default": "./dist/src/debug/run-scenario.js"
+		},
+		"./package.json": "./package.json"
 	},
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"catalog:build": "node --conditions=source tools/catalog-build.ts",
-		"pretest": "npm run catalog:build",
+		"catalog:fixture": "node --conditions=source bin/ic10-bench.ts catalog --project test/fixtures/project",
+		"pretest": "npm run catalog:build && npm run catalog:fixture",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"pretypecheck": "npm run catalog:build && npm run catalog:fixture",
+		"typecheck": "tsc -p tsconfig.json",
+		"build": "npm run catalog:build && tsc -p tsconfig.build.json && node tools/copy-generated.ts",
+		"prepack": "npm run build"
 	},
 	"dependencies": {
 		"@tasermonkey/ic10": "^1.0.0"

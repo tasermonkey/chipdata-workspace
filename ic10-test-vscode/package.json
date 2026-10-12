@@ -1,7 +1,7 @@
 {
-	"name": "ic10-test-vscode",
-	"displayName": "IC10 Test Debugger",
-	"description": "Step through Stationeers IC10 scripts while their @tasermonkey/ic10-test tests run",
+	"name": "ic10-bench",
+	"displayName": "IC10 Bench",
+	"description": "Step through Stationeers IC10 scripts while their @tasermonkey/ic10-bench tests run",
 	"version": "0.0.1",
 	"private": true,
 	"type": "module",
@@ -31,10 +31,10 @@
 	},
 	"main": "./dist/extension.cjs",
 	"activationEvents": [
-		"onDebugResolve:ic10-test",
-		"onDebugDynamicConfigurations:ic10-test",
+		"onDebugResolve:ic10-bench",
+		"onDebugDynamicConfigurations:ic10-bench",
 		"workspaceContains:**/*.ic10",
-		"workspaceContains:node_modules/@tasermonkey/ic10-test/package.json"
+		"workspaceContains:node_modules/@tasermonkey/ic10-bench/package.json"
 	],
 	"contributes": {
 		"languages": [
@@ -55,104 +55,104 @@
 		],
 		"commands": [
 			{
-				"command": "ic10-test.debugTestAtCursor",
+				"command": "ic10-bench.debugTestAtCursor",
 				"title": "Debug IC10 in the Test at the Cursor",
-				"category": "IC10 Test"
+				"category": "IC10 Bench"
 			},
 			{
-				"command": "ic10-test.debugTest",
+				"command": "ic10-bench.debugTest",
 				"title": "Debug IC10 in a Test",
-				"category": "IC10 Test"
+				"category": "IC10 Bench"
 			},
 			{
-				"command": "ic10-test.debugScenario",
+				"command": "ic10-bench.debugScenario",
 				"title": "Debug IC10 Scenario",
-				"category": "IC10 Test",
+				"category": "IC10 Bench",
 				"icon": "$(debug-alt)"
 			},
 			{
-				"command": "ic10-test.stepTick",
+				"command": "ic10-bench.stepTick",
 				"title": "Step Tick",
-				"category": "IC10 Test",
+				"category": "IC10 Bench",
 				"icon": "$(watch)",
-				"enablement": "debugType == 'ic10-test' && debugState == 'stopped'"
+				"enablement": "debugType == 'ic10-bench' && debugState == 'stopped'"
 			},
 			{
-				"command": "ic10-test.runTicks",
+				"command": "ic10-bench.runTicks",
 				"title": "Run N Ticks…",
-				"category": "IC10 Test",
+				"category": "IC10 Bench",
 				"icon": "$(run-all)",
-				"enablement": "debugType == 'ic10-test' && debugState == 'stopped'"
+				"enablement": "debugType == 'ic10-bench' && debugState == 'stopped'"
 			},
 			{
-				"command": "ic10-test.runUntilEvent",
+				"command": "ic10-bench.runUntilEvent",
 				"title": "Run Until Event…",
-				"category": "IC10 Test",
+				"category": "IC10 Bench",
 				"icon": "$(bell)",
-				"enablement": "debugType == 'ic10-test' && debugState == 'stopped'"
+				"enablement": "debugType == 'ic10-bench' && debugState == 'stopped'"
 			}
 		],
 		"menus": {
 			"editor/title": [
 				{
-					"command": "ic10-test.debugScenario",
-					"when": "ic10-test.scenarioFile && !inDebugMode",
+					"command": "ic10-bench.debugScenario",
+					"when": "ic10-bench.scenarioFile && !inDebugMode",
 					"group": "navigation"
 				}
 			],
 			"debug/toolBar": [
 				{
-					"command": "ic10-test.stepTick",
-					"when": "debugType == 'ic10-test'",
+					"command": "ic10-bench.stepTick",
+					"when": "debugType == 'ic10-bench'",
 					"group": "navigation@10"
 				},
 				{
-					"command": "ic10-test.runTicks",
-					"when": "debugType == 'ic10-test'",
+					"command": "ic10-bench.runTicks",
+					"when": "debugType == 'ic10-bench'",
 					"group": "navigation@11"
 				},
 				{
-					"command": "ic10-test.runUntilEvent",
-					"when": "debugType == 'ic10-test'",
+					"command": "ic10-bench.runUntilEvent",
+					"when": "debugType == 'ic10-bench'",
 					"group": "navigation@12"
 				}
 			],
 			"commandPalette": [
 				{
-					"command": "ic10-test.stepTick",
-					"when": "debugType == 'ic10-test'"
+					"command": "ic10-bench.stepTick",
+					"when": "debugType == 'ic10-bench'"
 				},
 				{
-					"command": "ic10-test.runTicks",
-					"when": "debugType == 'ic10-test'"
+					"command": "ic10-bench.runTicks",
+					"when": "debugType == 'ic10-bench'"
 				},
 				{
-					"command": "ic10-test.runUntilEvent",
-					"when": "debugType == 'ic10-test'"
+					"command": "ic10-bench.runUntilEvent",
+					"when": "debugType == 'ic10-bench'"
 				},
 				{
-					"command": "ic10-test.debugTestAtCursor",
-					"when": "ic10-test.inWorkspace && editorLangId =~ /^(typescript|javascript)$/"
+					"command": "ic10-bench.debugTestAtCursor",
+					"when": "ic10-bench.inWorkspace && editorLangId =~ /^(typescript|javascript)$/"
 				},
 				{
-					"command": "ic10-test.debugTest",
+					"command": "ic10-bench.debugTest",
 					"when": "false"
 				},
 				{
-					"command": "ic10-test.debugScenario",
-					"when": "ic10-test.scenarioFile"
+					"command": "ic10-bench.debugScenario",
+					"when": "ic10-bench.scenarioFile"
 				}
 			]
 		},
 		"configuration": {
-			"title": "IC10 Test",
+			"title": "IC10 Bench",
 			"properties": {
-				"ic10-test.codeLens": {
+				"ic10-bench.codeLens": {
 					"type": "boolean",
 					"default": true,
-					"description": "Show \"▶ Debug IC10\" above each it, test and describe in test files, in a workspace with .ic10 files or @tasermonkey/ic10-test installed."
+					"description": "Show \"▶ Debug IC10\" above each it, test and describe in test files, in a workspace with .ic10 files or @tasermonkey/ic10-bench installed."
 				},
-				"ic10-test.debugTypeScript": {
+				"ic10-bench.debugTypeScript": {
 					"type": "boolean",
 					"default": false,
 					"scope": "resource",
@@ -162,8 +162,8 @@
 		},
 		"debuggers": [
 			{
-				"type": "ic10-test",
-				"label": "IC10 Test",
+				"type": "ic10-bench",
+				"label": "IC10 Bench",
 				"languages": [
 					"ic10"
 				],
@@ -198,7 +198,7 @@
 							},
 							"debugTypeScript": {
 								"type": "boolean",
-								"description": "Run Vitest under VS Code's JavaScript debugger too, so breakpoints in the test's TypeScript stop as well. Default: the ic10-test.debugTypeScript setting.",
+								"description": "Run Vitest under VS Code's JavaScript debugger too, so breakpoints in the test's TypeScript stop as well. Default: the ic10-bench.debugTypeScript setting.",
 								"default": true
 							},
 							"cwd": {
@@ -229,7 +229,7 @@
 				},
 				"initialConfigurations": [
 					{
-						"type": "ic10-test",
+						"type": "ic10-bench",
 						"request": "launch",
 						"name": "Debug IC10 in the current test file",
 						"test": "${file}"
@@ -237,10 +237,10 @@
 				],
 				"configurationSnippets": [
 					{
-						"label": "IC10 Test: Debug a test",
+						"label": "IC10 Bench: Debug a test",
 						"description": "Run one Vitest test and step through its IC10 scripts",
 						"body": {
-							"type": "ic10-test",
+							"type": "ic10-bench",
 							"request": "launch",
 							"name": "Debug IC10 in ${1:a test}",
 							"test": "^\"\\${workspaceFolder}/${2:tests/x.test.ts}\"",
@@ -248,10 +248,10 @@
 						}
 					},
 					{
-						"label": "IC10 Test: Debug a scenario",
+						"label": "IC10 Bench: Debug a scenario",
 						"description": "Run a world module (or env JSON) with no test and step through its IC10 scripts",
 						"body": {
-							"type": "ic10-test",
+							"type": "ic10-bench",
 							"request": "launch",
 							"name": "Debug IC10 scenario ${1:x}",
 							"scenario": "^\"\\${workspaceFolder}/${2:x.world.ts}\""
@@ -263,14 +263,14 @@
 	},
 	"scripts": {
 		"build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --sourcemap --outfile=dist/extension.cjs",
-		"vscode:package": "npm run build && vsce package --no-dependencies --out dist/ic10-test-vscode.vsix"
+		"vscode:package": "npm run build && vsce package --no-dependencies --out dist/ic10-bench.vsix"
 	},
 	"dependencies": {
 		"@vscode/debugadapter": "^1.68.0",
 		"@vscode/debugprotocol": "^1.68.0"
 	},
 	"devDependencies": {
-		"@tasermonkey/ic10-test": "*",
+		"@tasermonkey/ic10-bench": "*",
 		"@types/vscode": "~1.100.0",
 		"@vscode/debugadapter-testsupport": "^1.68.0",
 		"@vscode/vsce": "^4.0.0",

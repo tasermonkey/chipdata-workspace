@@ -1,13 +1,13 @@
-# @tasermonkey/ic10-test
+# @tasermonkey/ic10-bench
 
 Automated tests for your Stationeers IC10 scripts. You describe the devices a chip is wired to,
-run the script for some game ticks, and check what it did: which devices it were cahnged, what's in its
-registers, whether it halted. Scripts run on an IC10 emulator under an emulator for the game (128 lines a
-tick, errors halt the chip, and so on), utilizing the [Vitest](https://vitest.dev/) framework.
+run the script for some game ticks, and check what it did: which devices it changed, what's in its
+registers, whether it halted. Scripts run on an IC10 emulator that follows the game's rules (128 lines
+a tick, errors halt the chip, and so on), in the [Vitest](https://vitest.dev/) test framework.
 
 ```ts
 import { expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 
 it("opens the vent when it gets hot outside", async () => {
 	const world = await sim({ root: import.meta.dirname })
@@ -30,28 +30,39 @@ runs.
 
 ## Getting started
 
-The harness isn't published to npm yet. The easiest way to use it is from this workspace:
-
 1. Install [Node.js](https://nodejs.org/) 24 or later.
-2. Clone the workspace with its submodule (the emulator) and install:
+2. In the folder with your scripts (run `npm init -y` first if it has no `package.json`):
    ```
-   git clone --recurse-submodules https://github.com/tasermonkey/chipdata-workspace.git
-   cd chipdata-workspace
-   npm install
+   npm install --save-dev @tasermonkey/ic10-bench vitest
    ```
-3. Run the tests that are already there: `npm test`.
+3. Add a `vitest.config.ts`:
+   ```ts
+   import { defineIc10Config } from "@tasermonkey/ic10-bench/config";
 
-Then add your own:
-
-1. Put your script anywhere, say `ic10/MyBase/airlock.ic10`.
-2. Write a test next to the others, say `tests/MyBase/airlock.test.ts`. Any `*.test.ts` under
-   `tests/` is also picked up.
-3. `npm test` runs everything; `npx vitest run tests/MyBase` runs just yours, and `npm run test:watch`
-   reruns as you edit.
+   export default defineIc10Config();
+   ```
+   That's Vitest's own config with the IC10 matchers added. Pass your usual Vitest options in it,
+   e.g. `defineIc10Config({ test: { include: ["tests/**/*.test.ts"] } })`.
+4. Add the scripts to your `package.json`, and two lines to your `.gitignore`:
+   ```json
+   "scripts": {
+     "pretest": "ic10-bench catalog",
+     "test": "vitest run",
+     "test:watch": "vitest"
+   }
+   ```
+   ```
+   .ic10-bench/
+   ic10-bench-env.d.ts
+   ```
+   `ic10-bench catalog` reads your Stationeers install for the descriptions of each device and
+   property, and writes the types your editor uses (see [The device catalogue](#the-device-catalogue)).
+   Those files hold the game's text, so they stay out of git.
+5. Write a test, say `tests/airlock.test.ts` for `ic10/airlock.ic10`, and run `npm test`.
+   `npx vitest run tests/airlock` runs just that one; `npm run test:watch` reruns as you edit.
 
 Script paths are relative to `root`. `sim({ root: import.meta.dirname })` means "next to this test
-file"; the workspace's own tests use `REPO_ROOT` from `tests/support/paths.ts` to give paths from the
-top of the repo.
+file"; leave it out and they're relative to the folder you run the tests from.
 
 ## Building a world
 
@@ -70,7 +81,7 @@ const world = await sim({ root: import.meta.dirname })
   `{ name }` for that.
 - The **prefab** is the game's prefab name. A typo, or a property the prefab doesn't have, is a
   compile error. Hovering a property shows what it is and whether
-  it's read-only. `npx ic10-test props <prefab>` lists them (see [Looking things up](#looking-things-up)).
+  it's read-only. `npx ic10-bench props <prefab>` lists them (see [Looking things up](#looking-things-up)).
 - **Pins** map `d0`…`d5` to device keys. `db` is the housing itself; pass `props` to give it starting
   values.
 - **Data networks.** If you don't declare any, every device shares one network, and batch
@@ -240,24 +251,77 @@ asset files are guesses you can pass in.
 Or write your own: `world.model("lamp", (lamp, dt, w) => { … })` runs every tick with the device,
 the tick's length in seconds and the world.
 
+## The device catalogue
+
+The harness knows every device the emulator has: its logic types, whether each is readable or
+writable, its slots and modes. `sim().device()` is type-checked against it, so a misspelt prefab or
+property is an error in your editor, before the test even runs.
+
+`npx ic10-bench catalog` (your `pretest` script) adds two things for your project:
+
+- **Descriptions** of every logic type, from your Stationeers install: it finds the game through
+  Steam, or set `STATIONEERS_DIR` to its folder. They show when you hover a property, and in
+  `ic10-bench props`. Without the game everything still works, just without descriptions.
+- **Your mods' devices**, if you've added any (next section).
+
+It writes `.ic10-bench/catalog.json` and `ic10-bench-env.d.ts`. TypeScript picks up the
+`.d.ts` as long as your `tsconfig.json` includes the project folder (the default does). Run it
+again after a game update.
+
+## Using modded devices
+
+Devices from workshop mods aren't in the emulator, but you can add them, so a test can use them like
+any other device:
+
+1. Export the game's device list. Install the
+   [StationeersStationpediaExtractor](https://github.com/Ryex/StationeersStationpediaExtractor)
+   BepInEx plugin (`StationpediaExtractor.dll` into `BepInEx/plugins/`), start the game with your
+   mods, load a save, and run `stationpedia_export` in the F3 console. It writes
+   `<Stationeers>/Stationpedia/Stationpedia.json` and `Enums.json` (which `catalog` also reads
+   descriptions from).
+2. In your project, run:
+   ```
+   npx ic10-bench import-mods
+   npx ic10-bench catalog
+   ```
+   `import-mods` reads the export and writes every device the emulator doesn't have to
+   `ic10-mods/<machine id>.json`: its name, hash, logic types with read/write, slots and modes (no
+   game text). Pass the export's folder if the game isn't where Steam says:
+   `npx ic10-bench import-mods "D:/Games/Stationeers/Stationpedia"`. `catalog` then adds them to
+   the types.
+3. Commit `ic10-mods/`. Each machine writes its own file (the id is random, and kept in
+   `.ic10-bench/machine.json`), so two people with different mods never edit the same file; the
+   harness reads them all, and yours wins where they disagree.
+
+Then use them by prefab name:
+
+```ts
+const world = await sim()
+	.device("button", "ModularDeviceRoundButton", { Activate: 1 })
+	.housing("ic", { file: "button.ic10", pins: { d0: "button" } })
+	.build();
+```
+
+Run both commands again after adding or updating a mod. Tests run with the devices in `ic10-mods/`
+even before `catalog`; only the types need it.
+
+For a device in no export at all, pass `{ custom: true }`: it gets every logic property, readable
+and writable.
+
 ## Looking things up
 
-`npx ic10-test` answers "what does this device have?" without opening the game:
+`npx ic10-bench` answers "what does this device have?" without opening the game:
 
 ```
-npx ic10-test props StructureActiveVent    # logic types with R/W and descriptions, modes, slots
-npx ic10-test props round button           # search by words of the name
-npx ic10-test props 489382030              # by hash
-npx ic10-test logic PressureInternal       # what it is, and every prefab that has it
+npx ic10-bench props StructureActiveVent    # logic types with R/W and descriptions, modes, slots
+npx ic10-bench props round button           # search by words of the name
+npx ic10-bench props 489382030              # by hash
+npx ic10-bench logic PressureInternal       # what it is, and every prefab that has it
 ```
-
-Descriptions come from your Stationeers install if it's in the default Steam folder (or set
-`STATIONEERS_DIR`). Without it everything works, just without descriptions.
 
 `checkBatchOps(source, loadCatalog())` checks a script's `lb`/`sb`-style instructions against the
 devices they name, without running it: a logic type the prefab lacks, a write to a read-only one, a
-`HASH()` of a prefab that doesn't exist. `tests/scripts-batch-ops.test.ts` runs it over every script
-in `ic10/`.
+`HASH()` of a prefab that doesn't exist. Run it over every script in a test to catch those early.
 
 ## Debugging
 

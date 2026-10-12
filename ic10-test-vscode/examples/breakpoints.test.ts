@@ -1,5 +1,5 @@
 // Breakpoints, conditional breakpoints and logpoints: see breakpoints.ic10 for what to try.
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { describe, expect, it } from "vitest";
 
 describe("breakpoints", () => {

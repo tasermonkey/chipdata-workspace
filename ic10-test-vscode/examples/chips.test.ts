@@ -1,5 +1,5 @@
 // Several chips as threads, and an inline program's source: see chips.ic10.
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { describe, expect, it } from "vitest";
 
 /** Puts 5, 6, 7, ... on the control chip's stack, one a tick. */

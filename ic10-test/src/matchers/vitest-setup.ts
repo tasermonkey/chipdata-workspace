@@ -1,9 +1,12 @@
 /**
- * Vitest matchers for IC10 worlds. Importing this module installs them; add it to `setupFiles`:
+ * Vitest matchers for IC10 worlds. Importing this module installs them; `defineIc10Config` adds it
+ * to `setupFiles`, or add it yourself:
  *
  * ```ts
- * test: { setupFiles: ["@tasermonkey/ic10-test/vitest"] }
+ * test: { setupFiles: ["@tasermonkey/ic10-bench/vitest"] }
  * ```
+ *
+ * Their types are in types.ts.
  */
 import { afterAll, expect, type MatcherState } from "vitest";
 import {
@@ -26,34 +29,7 @@ import {
 	type OnlyChangeOptions,
 } from "./checks.ts";
 
-declare module "vitest" {
-	interface Matchers<R extends void | Promise<void> = void | Promise<void>, T = unknown> {
-		/** A device (or a chip's housing) has these property values; others aren't checked. */
-		toHaveProps(expected: Record<string, unknown>): R;
-		/** A chip register, by `r15` / `sp` / `ra` or an alias the script defined, has this value. */
-		toHaveRegister(name: string, expected: unknown): R;
-		/** A chip register is within `10^-digits / 2` of `expected` (default 2 digits). */
-		toHaveRegisterCloseTo(name: string, expected: number, digits?: number): R;
-		/** A chip's stack below `sp` is exactly this. */
-		toHaveStack(expected: unknown[]): R;
-		/** One of a chip's stack entries (what `get` / `put` address) has this value. */
-		toHaveStackAt(index: number, expected: unknown): R;
-		/** A chip runs this line next, or halted on it: a 0-based index or a label. */
-		toBeAtLine(target: number | string): R;
-		/** A chip hasn't halted and has no errors at or above `severity` (default "warning"). */
-		toHaveNoErrors(options?: NoErrorsOptions): R;
-		/** A chip halted on an error, optionally on this line and with a matching message or code. */
-		toHaveHalted(expected?: HaltExpectation): R;
-		/** Nothing but these paths changed: a world with `{ since: snapshot }`, or `world.diff(...)`. */
-		toOnlyChange(paths: readonly string[], options?: OnlyChangeOptions): R;
-		/** A recording (`world.record(...)`) changed value at most `n` times. */
-		toToggleAtMost(n: number): R;
-		/** A chip never ran out of lines in a tick: every loop path reaches a `yield` or `sleep`. */
-		toNeverAutoYield(): R;
-		/** A chip auto-yielded at most `n` times, in total or in any window of `perTicks` ticks. */
-		toAutoYieldAtMost(n: number, options?: AutoYieldOptions): R;
-	}
-}
+export type { Ic10Matchers } from "./types.ts";
 
 function context(state: MatcherState): MatchContext {
 	return { isNot: state.isNot, equals: (a, b) => state.equals(a, b, state.customTesters) };

@@ -70,7 +70,7 @@ async function main(): Promise<void> {
 	void attached?.closed.then(() => process.exit());
 	try {
 		const world = await loadScenario(positionals[0]!, values);
-		console.log(`ic10-test: ${await runScenario(world)}`);
+		console.log(`ic10-bench: ${await runScenario(world)}`);
 	} catch (error) {
 		console.error(error instanceof Error ? (error.stack ?? error.message) : error);
 		process.exitCode = 1;

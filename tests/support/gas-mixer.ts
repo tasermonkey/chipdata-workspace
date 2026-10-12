@@ -3,7 +3,7 @@
  * which are copies of one workshop script with different devices and ratios.
  */
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "./paths.ts";
 
 export interface MixerSpec {

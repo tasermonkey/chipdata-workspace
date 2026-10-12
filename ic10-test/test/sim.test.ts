@@ -61,7 +61,7 @@ describe("sim() builder", () => {
 	});
 
 	it("loads a program from a file relative to root, normalising CRLF", async () => {
-		const root = mkdtempSync(join(tmpdir(), "ic10-test-"));
+		const root = mkdtempSync(join(tmpdir(), "ic10-bench-"));
 		writeFileSync(join(root, "x.ic10"), "move r0 7\r\nyield\r\n");
 		const world = await sim({ root }).housing("ic", { file: "x.ic10" }).build();
 		await world.runTicks(1);

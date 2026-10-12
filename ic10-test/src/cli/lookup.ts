@@ -1,5 +1,5 @@
 /**
- * The catalogue lookups behind the `ic10-test` command (plan §6, use 4). Pure functions from the
+ * The catalogue lookups behind the `ic10-bench` command (plan §6, use 4). Pure functions from the
  * catalogue to text, so they can be tested without a terminal.
  */
 import type { Access, Catalog, CatalogPrefab } from "../catalog/catalog.ts";
@@ -31,7 +31,7 @@ function table(rows: string[][]): string[] {
 
 /** One prefab: title, hash, source, then its logic types, modes and slots. */
 export function describePrefab(catalog: Catalog, prefab: CatalogPrefab): string {
-	const from = prefab.source === "mod" ? "a mod's device (data/mods/)" : "game";
+	const from = prefab.source === "mod" ? "a mod's device (ic10-mods/)" : "game";
 	const lines = [`${prefab.prefab}  ${prefab.title}`, `hash ${prefab.hash}, ${from}`, ""];
 	const logic = Object.entries(prefab.logic).sort(([a], [b]) => a.localeCompare(b));
 	lines.push(...table([["Logic type", "R/W", "Description"], ...logic.map(([name, a]) => [name, ACCESS[a], oneLine(catalog.logicTypes[name]?.text)])]));

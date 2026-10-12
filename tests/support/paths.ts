@@ -1,6 +1,6 @@
-/** Paths specific to this repo. Generic helpers live in @tasermonkey/ic10-test. */
+/** Paths specific to this repo. Generic helpers live in @tasermonkey/ic10-bench. */
 import { join, relative, resolve } from "node:path";
-import { findScripts, readScript } from "@tasermonkey/ic10-test";
+import { findScripts, readScript } from "@tasermonkey/ic10-bench";
 
 export const REPO_ROOT = resolve(import.meta.dirname, "..", "..");
 export const SCRIPTS_ROOT = join(REPO_ROOT, "ic10");

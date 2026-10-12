@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type LarreDockOptions, type LarrePlant, larreDock, sim } from "@tasermonkey/ic10-test";
+import { type LarreDockOptions, type LarrePlant, larreDock, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const DROP_OFF = 15; // the script's drop-off station (the import chute)

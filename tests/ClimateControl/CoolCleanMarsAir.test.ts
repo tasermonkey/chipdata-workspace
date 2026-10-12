@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeVent, airConditioner, PIPE_VOLUME, sim } from "@tasermonkey/ic10-test";
+import { activeVent, airConditioner, PIPE_VOLUME, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const SCRIPT = "ic10/ClimateControl/CoolCleanMarsAir [7335].ic10";

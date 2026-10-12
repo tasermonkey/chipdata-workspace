@@ -1,5 +1,5 @@
 # Tick commands: the watch, run-all and bell buttons on the debug toolbar
-# (also "IC10 Test: ..." in the command palette) while stopped.
+# (also "IC10 Bench: ..." in the command palette) while stopped.
 # Set a breakpoint on "move Phase 1" (it runs once, at the start), then:
 # - Step Tick: on to this chip's next turn. The first one waits out the sleep
 #   (4 ticks). After that, one tick each.

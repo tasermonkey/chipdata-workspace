@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type KnownPrefab, sim } from "@tasermonkey/ic10-test";
+import { type KnownPrefab, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 /** Console parts, by in-game name. */

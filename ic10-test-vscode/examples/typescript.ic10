@@ -1,5 +1,5 @@
 # Debugging the TypeScript too: breakpoints in typescript.test.ts stop as well.
-# Turn on the setting "IC10 Test: Debug TypeScript" and use the CodeLens, or
+# Turn on the setting "IC10 Bench: Debug TypeScript" and use the CodeLens, or
 # pick the launch configuration "Debug IC10 and TypeScript in the current test
 # file" with typescript.test.ts open. Then:
 # - Set a breakpoint on "s Heater On 1" here, and one in roomModel in the test.

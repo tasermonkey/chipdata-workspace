@@ -59,11 +59,11 @@ export function jsDebugLauncher(parent: vscode.DebugSession): Launcher {
 		vscode.debug.startDebugging(parent.workspaceFolder, config, options).then(
 			(started) => {
 				if (started) return;
-				output("stderr", "ic10-test: VS Code's JavaScript debugger didn't start the test process\n");
+				output("stderr", "ic10-bench: VS Code's JavaScript debugger didn't start the test process\n");
 				finish(1);
 			},
 			(error: unknown) => {
-				output("stderr", `ic10-test: can't start the test process under the JavaScript debugger: ${String(error)}\n`);
+				output("stderr", `ic10-bench: can't start the test process under the JavaScript debugger: ${String(error)}\n`);
 				finish(1);
 			},
 		);

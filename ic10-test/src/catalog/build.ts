@@ -19,7 +19,7 @@ export interface Descriptions {
 
 export interface CatalogSources {
 	devices: SourceDevice[];
-	/** Mods' devices (data/mods/), added after the game's; a name clash is an error. */
+	/** Mods' devices (the project's ic10-mods/), added after the game's; a name clash is an error. */
 	modPrefabs?: CatalogPrefab[];
 	/**
 	 * Description sources, most preferred first: the Stationpedia export, then the game's

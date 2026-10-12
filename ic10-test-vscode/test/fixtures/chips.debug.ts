@@ -1,5 +1,5 @@
 // Tests the adapter tests debug. They know nothing about the debugger.
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { describe, expect, it } from "vitest";
 
 describe("chips", () => {

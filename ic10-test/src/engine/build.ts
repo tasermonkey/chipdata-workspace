@@ -21,7 +21,7 @@ export interface EngineDeviceSpec {
 	name?: string;
 	network: string;
 	props: Record<string, number>;
-	/** A mod's device (data/mods/), registered with the emulator before it's built. */
+	/** A mod's device (the project's ic10-mods/), registered with the emulator before it's built. */
 	mod?: CatalogPrefab;
 	/** A Logic Mirror: the reference ID of its target (none: no target yet), and whether it's powered. */
 	mirror?: { target?: number; powered: boolean };

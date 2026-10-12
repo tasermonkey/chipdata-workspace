@@ -1,6 +1,6 @@
 /** Tests shared by the room EControl scripts, which switch every light on the network by occupancy. */
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 /** Every light type the scripts switch. */

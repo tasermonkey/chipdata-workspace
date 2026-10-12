@@ -63,7 +63,7 @@ describe("debug adapter", () => {
 			session.start(socket, socket);
 		});
 		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-		dc = new DebugClient("node", "unused", "ic10-test");
+		dc = new DebugClient("node", "unused", "ic10-bench");
 		dc.defaultTimeout = 30_000;
 		await dc.start((server.address() as { port: number }).port);
 	});
@@ -256,8 +256,8 @@ describe("debug adapter", () => {
 	it("says it's starting Vitest straight away, and which process connected", async () => {
 		const output = collectOutput(dc);
 		await dc.hitBreakpoint(launchArgs("counts once a tick"), { path: COUNTER, line: 3 });
-		expect(output()).toMatch(/^ic10-test: starting Vitest for chips\.debug\.ts, line \d+ \(in .+\)\n/);
-		expect(output()).toMatch(/ic10-test: the test is connected \(process \d+\)/);
+		expect(output()).toMatch(/^ic10-bench: starting Vitest for chips\.debug\.ts, line \d+ \(in .+\)\n/);
+		expect(output()).toMatch(/ic10-bench: the test is connected \(process \d+\)/);
 		await dc.setBreakpointsRequest({ source: { path: COUNTER }, breakpoints: [] });
 		const terminated = dc.waitForEvent("terminated");
 		await dc.continueRequest({ threadId: 1 });
@@ -301,7 +301,7 @@ describe("debug adapter", () => {
 		const output = collectOutput(dc);
 		const COUNTDOWN = join(FIXTURES, "countdown.ic10");
 		await dc.hitBreakpoint({ scenario: join(FIXTURES, "countdown.world.ts") } as Ic10LaunchArgs, { path: COUNTDOWN, line: 4 });
-		expect(output()).toMatch(/^ic10-test: starting the scenario for countdown\.world\.ts/);
+		expect(output()).toMatch(/^ic10-bench: starting the scenario for countdown\.world\.ts/);
 		const left = await dc.evaluateRequest({ expression: "Left", context: "watch" });
 		expect(left.body.result).toBe("3");
 

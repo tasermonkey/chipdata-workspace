@@ -2,14 +2,17 @@
  * The device and property catalogue (plan §6): which logic types and slots each prefab has, with
  * Read/Write, and a description of every logic type.
  *
- * `npm run catalog:build` writes it to ic10-test/generated/ (gitignored: the descriptions are the
- * game's text). Prefabs come from the emulator's game data plus mods' devices (data/mods/, from the
- * Stationpedia export); descriptions from a local Stationpedia export, then the installed game's
- * english.xml (none without either).
+ * Two copies. The package ships generated/catalog.json: the emulator's prefabs, with no
+ * descriptions (those are the game's text). `ic10-bench catalog` builds the project's own in
+ * .ic10-bench/catalog.json: the same prefabs plus the project's mods (ic10-mods/), with descriptions
+ * from a local Stationpedia export, then the installed game's english.xml (none without either).
+ * The project's copy wins; without it, the packaged one is used with the project's mods added.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { projectPaths } from "../project.ts";
+import { modPrefabs } from "./mods.ts";
 
 export type Access = "r" | "w" | "rw";
 
@@ -29,7 +32,7 @@ export interface CatalogPrefab {
 	slots: CatalogSlot[];
 	/** Mode names; the index is the value. */
 	modes: string[];
-	/** "game": the emulator's game data. "mod": a device it doesn't have, from data/mods/ (the export). */
+	/** "game": the emulator's game data. "mod": a device it doesn't have, from the project's ic10-mods/ (the export). */
 	source: "game" | "mod";
 }
 
@@ -48,22 +51,38 @@ export interface Catalog {
 	prefabs: Record<string, CatalogPrefab>;
 }
 
+/** The package's generated files (dist/generated/ once built, as the paths are relative to this file). */
 export const GENERATED_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "generated");
-export const CATALOG_PATH = join(GENERATED_DIR, "catalog.json");
+export const PACKAGED_CATALOG_PATH = join(GENERATED_DIR, "catalog.json");
 
-let cached: Catalog | undefined;
+const cached = new Map<string, Catalog>();
 
-/** The built catalogue. Throws, saying how to build it, if `npm run catalog:build` hasn't run. */
-export function loadCatalog(): Catalog {
-	if (cached) return cached;
-	let text: string;
+/** The packaged catalogue: the emulator's prefabs, no descriptions. */
+export function loadPackagedCatalog(): Catalog {
 	try {
-		text = readFileSync(CATALOG_PATH, "utf8");
+		return JSON.parse(readFileSync(PACKAGED_CATALOG_PATH, "utf8")) as Catalog;
 	} catch {
-		throw new Error(`No device catalogue at ${CATALOG_PATH}. Run \`npm run catalog:build\`.`);
+		throw new Error(`No device catalogue at ${PACKAGED_CATALOG_PATH}. Run \`npm run catalog:build\` in the ic10-bench package.`);
 	}
-	cached = JSON.parse(text) as Catalog;
-	return cached;
+}
+
+/**
+ * The project's catalogue (`ic10-bench catalog`), or else the packaged one with the project's
+ * mods added. `root` defaults to the project ({@link projectPaths}).
+ */
+export function loadCatalog(root?: string): Catalog {
+	const paths = projectPaths(root);
+	let catalog = cached.get(paths.root);
+	if (catalog) return catalog;
+	if (existsSync(paths.catalog)) {
+		catalog = JSON.parse(readFileSync(paths.catalog, "utf8")) as Catalog;
+	} else {
+		const packaged = loadPackagedCatalog();
+		const mods = Object.fromEntries([...modPrefabs(paths.root)].map(([name, prefab]) => [name, { ...prefab, source: "mod" as const }]));
+		catalog = { ...packaged, prefabs: { ...mods, ...packaged.prefabs } };
+	}
+	cached.set(paths.root, catalog);
+	return catalog;
 }
 
 /** A prefab's entry, or undefined if the catalogue doesn't know it. */

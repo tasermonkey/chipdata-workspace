@@ -1,7 +1,7 @@
-# IC10 Test Debugger for VS Code
+# IC10 Bench for VS Code
 
 Step through your Stationeers IC10 scripts line by line while the
-[`@tasermonkey/ic10-test`](../ic10-test/) tests run. Set a breakpoint in a `.ic10` file, start the
+[`@tasermonkey/ic10-bench`](../ic10-test/) tests run. Set a breakpoint in a `.ic10` file, start the
 test, and you can see every register, the stack and every device, change values, and step a line or
 a game tick at a time.
 
@@ -12,7 +12,7 @@ it:
 
 ```
 npm run vscode:package -w ic10-test-vscode
-code --install-extension ic10-test-vscode/dist/ic10-test-vscode.vsix --force
+code --install-extension ic10-test-vscode/dist/ic10-bench.vsix --force
 ```
 
 Then run **Developer: Reload Window**. You'll need:
@@ -32,7 +32,7 @@ Then run **Developer: Reload Window**. You'll need:
    - hover over a register or `d0.On` to see its value, or add it to **Watch**;
    - each chip is a thread in **Call Stack**, so you can switch between them.
 
-Other ways to start: **F5** with the test file open, or **IC10 Test: Debug IC10 in the Test at the
+Other ways to start: **F5** with the test file open, or **IC10 Bench: Debug IC10 in the Test at the
 Cursor** from the command palette.
 
 The debugger also stops when a chip halts on an error, showing why. Under **Breakpoints**, tick
@@ -69,7 +69,7 @@ Sometimes you just want to watch a script run in a setup. Write a **scenario**: 
 
 ```ts
 // greenhouse.world.ts
-import { sim } from "@tasermonkey/ic10-test";
+import { sim } from "@tasermonkey/ic10-bench";
 
 export default async () => {
 	const world = await sim({ root: import.meta.dirname })
@@ -90,7 +90,7 @@ stops on its own once every chip has stopped and no events are left.
 ## Debugging the TypeScript too
 
 If you also want to stop in the test's own code (a model, an event, an expectation), turn on the
-setting **IC10 Test: Debug TypeScript**. Breakpoints in `.ts` files then stop as well, in a second
+setting **IC10 Bench: Debug TypeScript**. Breakpoints in `.ts` files then stop as well, in a second
 session under the IC10 one in Call Stack. While the TypeScript is stopped, the IC10 side shows as
 running. Stopping either session ends both.
 
@@ -105,7 +105,7 @@ You don't need a `launch.json`, but you can add one to save a setup:
 
 ```jsonc
 {
-	"type": "ic10-test",
+	"type": "ic10-bench",
 	"request": "launch",
 	"name": "Debug a test",
 	"test": "${workspaceFolder}/tests/MyBase/airlock.test.ts",
@@ -117,7 +117,7 @@ You don't need a `launch.json`, but you can add one to save a setup:
 
 ```jsonc
 {
-	"type": "ic10-test",
+	"type": "ic10-bench",
 	"request": "launch",
 	"name": "Debug the scenario in the current file",
 	"scenario": "${file}",       // a world module, env JSON, or an .ic10 with one beside it
@@ -133,8 +133,8 @@ Also available: `cwd` (where Vitest's config is; found from the test if left out
 
 | Setting | Default | |
 |---|---|---|
-| `ic10-test.codeLens` | `true` | Show **▶ Debug IC10** above tests. |
-| `ic10-test.debugTypeScript` | `false` | Debug the test's TypeScript as well. |
+| `ic10-bench.codeLens` | `true` | Show **▶ Debug IC10** above tests. |
+| `ic10-bench.debugTypeScript` | `false` | Debug the test's TypeScript as well. |
 
 ## Licence
 
