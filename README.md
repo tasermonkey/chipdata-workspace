@@ -14,21 +14,26 @@ In these scripts; VC just stand for our vulcan play through.  IC is IC chips
 - [`tests/`](tests/): automated tests for those scripts.
 - [`ic10-mods/`](ic10-mods/): the modded devices our scripts talk to (console parts and the like), so
   the tests can use them. `npm run import-mods` refreshes this machine's file from the game's
-  Stationpedia export; see "Using modded devices" in the [ic10-bench README](ic10-test/README.md).
-- [`ic10-test/`](ic10-test/): ic10-bench, the tool that runs those tests. Use it to test your own IC10 scripts
-  without loading the game.
-- [`ic10-test-vscode/`](ic10-test-vscode/): IC10 Bench, a VS Code debugger to step through a script line by line
-  while its test runs.
+  Stationpedia export; see "Using modded devices" in the
+  [`@tasermonkey/ic10-bench` README](https://github.com/tasermonkey/ic10-bench/tree/main/packages/ic10-bench#using-modded-devices).
+- [`CODE_REVIEW.md`](CODE_REVIEW.md): a review of these scripts, and what was fixed.
 
-## Testing your own scripts
+The tests use [IC10 Bench](https://github.com/tasermonkey/ic10-bench), which I built alongside these
+scripts: [`@tasermonkey/ic10-bench`](https://www.npmjs.com/package/@tasermonkey/ic10-bench) runs IC10
+scripts in an emulator without loading the game, and the
+[IC10 Bench extension](https://marketplace.visualstudio.com/items?itemName=tasermonkey.ic10-bench)
+lets you step through a script in VS Code while its test runs.
+
+## Running the tests
 
 You'll need [Node.js](https://nodejs.org/) 24 or later.
 
 ```
-git clone --recurse-submodules https://github.com/tasermonkey/chipdata-workspace.git
+git clone https://github.com/tasermonkey/chipdata-workspace.git
 cd chipdata-workspace
 npm install
 npm test
 ```
 
-Then add your script and a test for it; the [ic10-bench README](ic10-test/README.md) walks through it.
+To test your own scripts, see the
+[`@tasermonkey/ic10-bench` README](https://github.com/tasermonkey/ic10-bench/tree/main/packages/ic10-bench#getting-started).

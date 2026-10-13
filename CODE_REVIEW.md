@@ -13,7 +13,7 @@ Line numbers refer to the files as committed at `f71665a`.
 > modes, sorter instruction format, which values are settings and which are readings) is marked
 > *verify in game*. Since then, some of it was settled from the game's own text and code (the
 > Stationpedia export and `Assembly-CSharp.dll`) rather than in game, as each item says: 1.3's vent
-> modes, and the device behaviour the test models follow (see TEST_FRAMEWORK_PLAN.md §5).
+> modes, and the device behaviour the test models follow (see §5 of the [IC10 Bench plan](https://github.com/tasermonkey/ic10-bench/blob/main/TEST_FRAMEWORK_PLAN.md)).
 
 ---
 

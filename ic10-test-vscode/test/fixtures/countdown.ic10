@@ -1,6 +1,0 @@
-alias Left r0
-move Left 3
-loop:
-sub Left Left 1
-yield
-bgtz Left loop

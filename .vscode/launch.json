@@ -2,16 +2,7 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			// Work on the extension: opens a second VS Code window running it from source.
-			"name": "Run the IC10 Bench extension",
-			"type": "extensionHost",
-			"request": "launch",
-			"args": ["--extensionDevelopmentPath=${workspaceFolder}/ic10-test-vscode"],
-			"outFiles": ["${workspaceFolder}/ic10-test-vscode/dist/**/*.cjs"],
-			"preLaunchTask": "build the IC10 Bench extension"
-		},
-		{
-			// Needs the extension installed (or the window opened by the configuration above).
+			// Needs the IC10 Bench extension (tasermonkey.ic10-bench).
 			"name": "Debug IC10 in the current test file",
 			"type": "ic10-bench",
 			"request": "launch",
@@ -32,14 +23,6 @@
 			"type": "ic10-bench",
 			"request": "launch",
 			"scenario": "${file}"
-		},
-		{
-			// The examples' scenario as env JSON, running scenario.ic10 on its one chip.
-			"name": "Debug the IC10 scenario example as env JSON",
-			"type": "ic10-bench",
-			"request": "launch",
-			"scenario": "${workspaceFolder}/ic10-test-vscode/examples/scenario.env.json",
-			"program": "${workspaceFolder}/ic10-test-vscode/examples/scenario.ic10"
 		}
 	]
 }

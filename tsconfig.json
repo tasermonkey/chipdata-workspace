@@ -3,7 +3,6 @@
 		"target": "esnext",
 		"module": "nodenext",
 		"moduleResolution": "nodenext",
-		"customConditions": ["source"],
 		"allowImportingTsExtensions": true,
 		"erasableSyntaxOnly": true,
 		"verbatimModuleSyntax": true,
@@ -13,5 +12,5 @@
 		"noEmit": true,
 		"types": ["node"]
 	},
-	"include": ["tests", "ic10-bench-env.d.ts", "ic10-test-vscode/src", "ic10-test-vscode/test", "ic10-test-vscode/examples", "vitest.config.ts", "vendor/ic10/src/types.d.ts"]
+	"include": ["tests", "ic10-bench-env.d.ts", "vitest.config.ts"]
 }

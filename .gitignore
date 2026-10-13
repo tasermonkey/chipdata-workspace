@@ -3,12 +3,6 @@ node_modules/
 coverage/
 reports/
 local/
-# The extension's bundle and .vsix (`npm run vscode:package -w ic10-test-vscode`)
-ic10-test-vscode/dist/
-# Built by `npm run catalog:build` in ic10-test (the packaged catalogue and GamePrefabProps)
-ic10-test/generated/
-# The package's build (`npm run build -w ic10-test`)
-ic10-test/dist/
 # Built by `ic10-bench catalog` (`npm run catalog`); they hold the game's own text, so they aren't committed
 .ic10-bench/
 ic10-bench-env.d.ts

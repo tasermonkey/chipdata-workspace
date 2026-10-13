@@ -3,22 +3,18 @@
 	"private": true,
 	"type": "module",
 	"description": "Stationeers IC10 scripts and their tests",
-	"workspaces": [
-		"ic10-test",
-		"ic10-test-vscode",
-		"vendor/ic10"
-	],
 	"scripts": {
-		"ic10-bench": "node --conditions=source ic10-test/bin/ic10-bench.ts",
-		"catalog": "npm run pretest -w ic10-test && npm run ic10-bench -- catalog",
-		"import-mods": "npm run ic10-bench -- import-mods",
+		"catalog": "ic10-bench catalog",
+		"import-mods": "ic10-bench import-mods",
 		"pretest": "npm run catalog",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"pretypecheck": "npm run catalog",
-		"typecheck": "tsc -p tsconfig.json && tsc -p ic10-test/tsconfig.json"
+		"typecheck": "tsc -p tsconfig.json"
 	},
 	"devDependencies": {
+		"@tasermonkey/ic10": "^1.0.0",
+		"@tasermonkey/ic10-bench": "^1.0.2",
 		"@types/node": "^26.2.0",
 		"typescript": "^7.0.2",
 		"vitest": "^5.0.3"
