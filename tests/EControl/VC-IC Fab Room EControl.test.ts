@@ -53,5 +53,17 @@ describe("VC-IC Fab Room EControl", () => {
 		world.device("pipeBender2").set("Activate", 0); // the job finished
 		await world.runSeconds(2);
 		expect(world.device("pipeBender2")).toHaveProps({ On: 0 });
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
+
+	it("leaves the Hall Light, a light of the same type with another name, alone either way", async () => {
+		for (const [occupied, hall] of [[0, 1], [1, 0], [1, 1], [0, 0]] as const) {
+			const world = await build();
+			world.device("hallLight").set("On", hall);
+			world.device("sensor").set("Activate", occupied);
+			await world.runSeconds(2);
+			expect(world.device("StructureLightLong")).toHaveProps({ On: occupied }); // its own, same type
+			expect(world.device("hallLight"), `occupied ${occupied}, hall ${hall}`).toHaveProps({ On: hall });
+		}
 	});
 });

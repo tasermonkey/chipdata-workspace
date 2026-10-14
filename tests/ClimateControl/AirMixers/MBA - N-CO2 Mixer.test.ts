@@ -12,5 +12,6 @@ describe("MBA - N-CO2 Mixer", () => {
 		output: "PA N-CO2",
 		ratio: 0.6666666,
 		minPressure: 15000,
+		minMoles: 10,
 	});
 });

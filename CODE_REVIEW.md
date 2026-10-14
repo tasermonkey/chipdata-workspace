@@ -13,7 +13,7 @@ Line numbers refer to the files as committed at `f71665a`.
 > modes, sorter instruction format, which values are settings and which are readings) is marked
 > *verify in game*. Since then, some of it was settled from the game's own text and code (the
 > Stationpedia export and `Assembly-CSharp.dll`) rather than in game, as each item says: 1.3's vent
-> modes, and the device behaviour the test models follow (see §5 of the [IC10 Bench plan](https://github.com/tasermonkey/ic10-bench/blob/main/TEST_FRAMEWORK_PLAN.md)).
+> modes, and the device behaviour the test models follow.
 
 ---
 
@@ -535,9 +535,17 @@ lines would help, for example "what this does / d0 = … / required names = …"
   numbering and labels make it hard to tell which block is live. Typo: "Faboricator."
 - README error table (line 37 / 64) no longer matches the current line numbers. Point to the
   `getDeviceAt` offsets instead.
+- Setup writes the IDs without checking that the devices exist, and Control doesn't check either:
+  if a fabricator in the table is torn down (or rebuilt with a new ID), Control halts at
+  `checkOff`'s `ld Tmp Param1 On` and stops handling the others too. A `bdns`-style check isn't
+  possible for IDs, but Control could skip a block whose power light reads NaN. Pinned in
+  [VCIC - Printer Setup.test.ts](tests/FabControl/VCIC%20-%20Printer%20Setup.test.ts).
 
 ### FoodControl
 - **Grow Lights**: `sleep 1` followed by `yield` is redundant. Move the aliases above `start:`.
+- **Larree Controller Debug**: like the Food Selector (2.8), it sends any dial reading to the Larre,
+  past the drop-off or below 0, and it retargets the arm while it's still moving. Fine for a debug
+  chip; pinned in its test.
 
 ### TraderControl
 - **Weather**: `seq StatusColor Status 1` (line 22) is overwritten on the next line, so it's dead code.

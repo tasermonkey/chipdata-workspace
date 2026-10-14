@@ -11,7 +11,7 @@ interface Outside {
 const SAFE: Outside = { pressure: 100, temperature: 293 };
 
 /** The chip sits in the suit (db), with the helmet on d0. */
-function build(script: string, helmetOpen: 0 | 1, outside: Outside) {
+function build(script: string, helmetOpen: 0 | 1, outside: Outside, suit: { On?: number; AirRelease?: number; Filtration?: number } = {}) {
 	return sim({ root: REPO_ROOT })
 		.device("helmet", "ItemHardsuitHelmet", { Open: helmetOpen, Pressure: 100, RatioOxygen: 0.5, Temperature: 293 })
 		.housing("suit", {
@@ -23,13 +23,34 @@ function build(script: string, helmetOpen: 0 | 1, outside: Outside) {
 				TemperatureExternal: outside.temperature,
 				PressureSetting: 100,
 				TemperatureSetting: 293,
+				...suit,
 			},
 		})
 		.build();
 }
 
-export function describeHelmet(script: string): void {
+/** `managesSuit`: whether the script runs the suit's climate and air (MKII), or only the helmet (MKI). */
+export function describeHelmet(script: string, { managesSuit }: { managesSuit: boolean }): void {
 	describe("helmet", () => {
+		const running = { On: 1, AirRelease: 1, Filtration: 1 };
+		if (managesSuit) {
+			it("turns the suit's climate, air release and filtration off while the helmet is open", async () => {
+				const world = await build(script, 1, SAFE, running);
+				await world.runTicks(2);
+				expect(world.db("suit")).toHaveProps({ On: 0, AirRelease: 0, Filtration: 0 });
+				expect(world.chip("suit")).toHaveNoErrors();
+			});
+		} else {
+			it("leaves the suit's climate, air release and filtration alone, helmet open or closed", async () => {
+				for (const open of [0, 1] as const) {
+					const world = await build(script, open, { ...SAFE, pressure: 0 }, running);
+					await world.runSeconds(3);
+					expect(world.db("suit"), `helmet open ${open}`).toHaveProps(running);
+					expect(world.chip("suit")).toHaveNoErrors();
+				}
+			});
+		}
+
 		it("opens after 5 s in a safe atmosphere", async () => {
 			const world = await build(script, 0, SAFE);
 			await world.runSeconds(3);

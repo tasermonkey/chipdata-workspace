@@ -35,6 +35,18 @@ export async function press(world: World, button: Button) {
 	world.device(button).set("Activate", 0);
 }
 
+/** Type a number on the numpad, a digit a tick, and press Confirm. */
+export async function typeValue(world: World, value: number) {
+	for (const key of String(value)) {
+		world.device("numpad").set("Mode", 0); // a key is down
+		world.device("numpad").set("Setting", Number(key));
+		await world.runTicks(1);
+	}
+	world.device("confirm").set("Activate", 1);
+	await world.runTicks(1);
+	world.device("confirm").set("Activate", 0);
+}
+
 /** Build the console and run the chip's startup. */
 export async function startConsole(spec: TraderInputSpec, values?: { own?: number; other?: number }) {
 	const world = await build(spec, values);

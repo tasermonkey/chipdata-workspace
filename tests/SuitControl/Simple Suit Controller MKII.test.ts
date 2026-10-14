@@ -97,5 +97,5 @@ describe("Simple Suit Controller MKII temperature", () => {
 });
 
 describe("Simple Suit Controller MKII", () => {
-	describeHelmet(SCRIPT);
+	describeHelmet(SCRIPT, { managesSuit: true });
 });

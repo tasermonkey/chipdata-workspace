@@ -10,5 +10,6 @@ describe("VC IC - Fuel Mixing Script", () => {
 		output: "Fuel Output PA",
 		ratio: 0.3333333,
 		minPressure: 100,
+		minMoles: 5,
 	});
 });

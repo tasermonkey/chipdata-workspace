@@ -43,4 +43,33 @@ describe("VCIC-DockOccupied", () => {
 		expect(world.device("Green Dock.light")).toHaveProps({ On: 0 });
 		expect(world.chip("ic")).toNeverAutoYield();
 	});
+
+	it("lights a dock only for Landed, and shows every pad mode as it is", async () => {
+		const modes = { None: 0, NoContact: 1, Moving: 2, Holding: 3, Landed: 4 };
+		const docks = ["Green Dock", "Orange Dock", "Khaki Dock", "Black Dock", "Blue Dock"];
+		const world = await build(Object.fromEntries(docks.map((dock, i) => [dock, i])));
+		await world.runTicks(2);
+
+		Object.entries(modes).forEach(([name, mode], i) => {
+			const on = mode === OCCUPIED ? 1 : 0;
+			expect(world.device(`${docks[i]}.light`), name).toHaveProps({ On: on });
+			expect(world.device(`${docks[i]}.large`), name).toHaveProps({ On: on });
+			expect(world.device(`${docks[i]}.display`), name).toHaveProps({ Setting: mode });
+		});
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
+
+	it("follows a ship coming in to land, and leaving again", async () => {
+		const world = await build({ "Orange Dock": 1 });
+		await world.runTicks(2);
+		for (const mode of [2, 3, OCCUPIED, 3, 2, 1]) {
+			world.device("Orange Dock.pad").set("Mode", mode);
+			await world.runTicks(1);
+			const on = mode === OCCUPIED ? 1 : 0;
+			expect(world.device("Orange Dock.light"), `mode ${mode}`).toHaveProps({ On: on });
+			expect(world.device("Orange Dock.large"), `mode ${mode}`).toHaveProps({ On: on });
+			expect(world.device("Orange Dock.display"), `mode ${mode}`).toHaveProps({ Setting: mode });
+		}
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
 });

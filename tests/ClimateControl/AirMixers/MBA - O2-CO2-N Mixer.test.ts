@@ -11,5 +11,6 @@ describe("MBA - O2-CO2-N Mixer", () => {
 		output: "PA Breathable Air",
 		ratio: 0.75,
 		minPressure: 15000,
+		minMoles: 10,
 	});
 });

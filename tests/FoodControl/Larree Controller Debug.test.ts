@@ -38,6 +38,34 @@ describe("Larree Controller Debug", () => {
 
 			expect(world.device("larre")).toHaveProps({ Setting: station });
 			expect(world.device("mature")).toHaveProps({ Setting: 0 });
+			expect(world.chip("ic")).toHaveNoErrors();
 		}
+	});
+
+	// It passes the dial straight through: no range check (as CODE_REVIEW.md 2.8 notes for the Food Selector).
+	it("sends a dial reading past the drop-off, or below 0, to the Larre unchanged", async () => {
+		for (const station of [16, 40, -1]) {
+			const world = await build(station);
+			world.device("larre").slot(TARGET_SLOT).put("ItemWheat", { Mature: 1, Seeding: 0, Quantity: 3 });
+			await world.runTicks(1);
+
+			expect(world.device("larre"), `station ${station}`).toHaveProps({ Setting: station });
+			expect(world.device("quantity"), `station ${station}`).toHaveProps({ Setting: 3 });
+			expect(world.chip("ic")).toHaveNoErrors();
+		}
+	});
+
+	it("retargets the Larre while it's still moving, and shows whatever plant is at the arm", async () => {
+		const world = await build(3);
+		world.device("larre").set("Idle", 0); // on its way to station 3
+		world.device("larre").slot(TARGET_SLOT).put("ItemWheat", { Mature: 0, Seeding: -1, Quantity: 1 });
+		await world.runTicks(1);
+		expect(world.device("larre")).toHaveProps({ Setting: 3 });
+
+		world.device("dial").set("Setting", 7);
+		await world.runTicks(1);
+		expect(world.device("larre")).toHaveProps({ Setting: 7 });
+		expect(world.device("seeding")).toHaveProps({ Setting: -1 });
+		expect(world.chip("ic")).toHaveNoErrors();
 	});
 });

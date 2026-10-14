@@ -88,5 +88,31 @@ describe("VCIC-Sat Control", () => {
 		world.device("medium").set("Idle", 0);
 		await world.runTicks(1);
 		expect(world.device("light")).toHaveProps({ On: 1 });
+
+		world.device("medium").set("Idle", 1); // there
+		await world.runTicks(1);
+		expect(world.device("light")).toHaveProps({ On: 0 });
+	});
+
+	// CODE_REVIEW.md 4 (TraderControl): the light only follows the medium dish.
+	it("doesn't light SatState while only the large dish is moving", async () => {
+		const world = await build();
+		world.device("large").set("Idle", 0);
+		await world.runTicks(2);
+		expect(world.device("light")).toHaveProps({ Color: 5, On: 0 });
+		expect(world.chip("ic")).toHaveNoErrors();
+	});
+
+	it("moves both dishes in one pass, and lights SatState, when both switches are on", async () => {
+		const world = await build({ target: { vertical: 60, horizontal: 300 }, manual: { medium: 1, large: 1 } });
+		world.device("medium").set("Idle", 0);
+		world.device("large").set("Idle", 0);
+		await world.runTicks(2);
+
+		expect(world.device("medium")).toHaveProps({ Vertical: 60, Horizontal: 300 });
+		expect(world.device("large")).toHaveProps({ Vertical: 60, Horizontal: 300 });
+		expect(world.device("light")).toHaveProps({ On: 1 });
+		expect(world.chip("ic")).toHaveNoErrors();
+		expect(world.chip("ic")).toNeverAutoYield();
 	});
 });

@@ -36,6 +36,8 @@ export interface Plant {
 	coalOn?: 0 | 1;
 	/** Each wind turbine's output, W. */
 	wind?: number[];
+	/** Each upright wind turbine's output, W. */
+	upright?: number[];
 	usage?: number;
 	/** Readings of other cable analyzers on the network (not "Base CA"), W. */
 	otherAnalyzers?: number[];
@@ -44,13 +46,17 @@ export interface Plant {
 
 /** A power plant with every device any of the scripts uses; console parts are keyed by name. */
 export function buildPlant(script: string, plant: Plant = {}) {
-	const { ratio = 0.5, charge = 1000, coal = [1000], coalOn = 1, wind = [], usage = 500, otherAnalyzers = [], throttle = 0.5 } = plant;
+	const { ratio = 0.5, charge = 1000, coal = [1000], coalOn = 1, wind = [], upright = [], usage = 500, otherAnalyzers = [], throttle = 0.5 } =
+		plant;
 	let builder = sim({ root: REPO_ROOT }).device("battery", "StationBatteryNuclear", { Ratio: ratio, Charge: charge });
 	coal.forEach((w, i) => {
 		builder = builder.device(`coal${i}`, "StructureSolidFuelGenerator", { PowerGeneration: w, On: coalOn });
 	});
 	wind.forEach((w, i) => {
 		builder = builder.device(`wind${i}`, "StructureWindTurbine", { PowerGeneration: w });
+	});
+	upright.forEach((w, i) => {
+		builder = builder.device(`upright${i}`, "StructureUprightWindTurbine", { PowerGeneration: w });
 	});
 	otherAnalyzers.forEach((w, i) => {
 		builder = builder.device(`analyzer${i + 1}`, "StructureCableAnalysizer", { PowerRequired: w }, { name: `Other CA ${i + 1}` });
@@ -66,7 +72,7 @@ export function buildPlant(script: string, plant: Plant = {}) {
 		.build();
 }
 
-const passes = (world: World, n: number) => world.runTicks(2 * n + 1); // a pass is at most 2 ticks
+export const passes = (world: World, n: number) => world.runTicks(2 * n + 1); // a pass is at most 2 ticks
 
 export function describeCoalGenerator(script: string): void {
 	describe("coal generator", () => {

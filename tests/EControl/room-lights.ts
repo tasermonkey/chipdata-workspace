@@ -28,7 +28,8 @@ function build(script: string, sensors: 1 | 2) {
 	return builder.housing("ic", { file: script, pins }).build();
 }
 
-export function describeRoomLights(script: string, { sensors }: { sensors: 1 | 2 }): void {
+/** `sleeps`: whether the script sleeps 1 s between passes (Kitchen Bedroom doesn't). */
+export function describeRoomLights(script: string, { sensors, sleeps }: { sensors: 1 | 2; sleeps: boolean }): void {
 	describe("room lights", () => {
 		it("turns every light on while someone is in the room, and off when they leave", async () => {
 			const world = await build(script, sensors);
@@ -61,6 +62,25 @@ export function describeRoomLights(script: string, { sensors }: { sensors: 1 | 2
 				world.device("sensor2").set("Activate", 1);
 				await world.runSeconds(2);
 				for (const light of LIGHTS) expect(world.device(light)).toHaveProps({ On: 0 });
+			});
+		}
+
+		if (sleeps) {
+			it("sleeps between passes", async () => {
+				const world = await build(script, sensors);
+				await world.runUntil((w) => w.chip("ic").sleeping, { maxTicks: 5 });
+			});
+		} else {
+			it("never sleeps: it checks the sensor every tick", async () => {
+				const world = await build(script, sensors);
+				await world.runTicks(2);
+				world.device("sensor1").set("Activate", 1);
+				await world.runTicks(1);
+				for (const light of LIGHTS) expect(world.device(light)).toHaveProps({ On: 1 });
+
+				const sleeping = world.record((w) => (w.chip("ic").sleeping ? 1 : 0));
+				await world.runTicks(10);
+				expect(sleeping.values.every((s) => s === 0)).toBe(true);
 			});
 		}
 	});

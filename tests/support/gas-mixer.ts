@@ -20,6 +20,8 @@ export interface MixerSpec {
 	ratio: number;
 	/** The script's MinPressure: inputs at or below it don't count. */
 	minPressure: number;
+	/** The script's MinMoles: inputs holding this many moles or fewer don't count. */
+	minMoles: number;
 }
 
 const OUTPUT_LIMIT = 40000; // kPa, the same in every copy
@@ -27,6 +29,7 @@ const OUTPUT_LIMIT = 40000; // kPa, the same in every copy
 interface Gas {
 	pressure: number;
 	temperature: number;
+	moles?: number;
 }
 
 function build(spec: MixerSpec, gases: { input1?: Gas; input2?: Gas; output: Gas }) {
@@ -34,7 +37,7 @@ function build(spec: MixerSpec, gases: { input1?: Gas; input2?: Gas; output: Gas
 	for (const port of ["input1", "input2", "output"] as const) {
 		const gas = gases[port];
 		if (!gas) continue; // not built
-		const props = { On: 1, Pressure: gas.pressure, TotalMoles: 100, Temperature: gas.temperature };
+		const props = { On: 1, Pressure: gas.pressure, TotalMoles: gas.moles ?? 100, Temperature: gas.temperature };
 		builder = builder.device(port, "StructurePipeAnalysizer", props, { name: spec[port] });
 	}
 	return builder.housing("ic", { file: spec.script }).build();
@@ -82,6 +85,17 @@ export function describeGasMixer(spec: MixerSpec): void {
 
 			expect(world.device("mixer")).toHaveProps({ On: 0 });
 			expect(world.db("ic")).toHaveProps({ Setting: 0 });
+		});
+
+		it(`counts an input holding more than ${spec.minMoles} mol, and not one holding ${spec.minMoles}`, async () => {
+			const world = await build(spec, { input1, input2: { ...input2, moles: spec.minMoles + 1 }, output });
+			await world.runTicks(3);
+			expect(world.device("mixer")).toHaveProps({ On: 1 });
+
+			world.device("input2").set("TotalMoles", spec.minMoles);
+			await world.runTicks(2);
+			expect(world.device("mixer")).toHaveProps({ On: 0 });
+			expect(world.chip("ic")).toHaveNoErrors();
 		});
 
 		// CODE_REVIEW.md 1.11: the housing showed the mixer's On, so a missing device looked like "off".
