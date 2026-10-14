@@ -28,27 +28,30 @@ describe("VCIC - Weather", () => {
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
-	it("counts down to a storm in red, blinking the light every tick", async () => {
+	it("counts down to a storm in yellow once it's detected, blinking the light every tick", async () => {
 		const world = await build({ Mode: INCOMING, NextWeatherEventTime: 300.4 });
 		const blink = world.record("light.On");
 		await world.runTicks(10);
 
-		expect(world.device("counter")).toHaveProps({ On: 1, Setting: 300, Color: Color.Red });
-		expect(world.device("light")).toHaveProps({ Color: Color.Red });
+		expect(world.device("counter")).toHaveProps({ On: 1, Setting: 300, Color: Color.Yellow });
+		expect(world.device("light")).toHaveProps({ Color: Color.Yellow });
 		expect(world.db("ic")).toHaveProps({ Setting: 1 });
 		// Tick 0 only sets up and yields; from then on the light changes every tick.
 		expect(blink.values).toEqual([0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]);
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
-	it("turns yellow in the last two minutes", async () => {
+	it("turns red when the storm is imminent: the last two minutes", async () => {
 		const world = await build({ Mode: INCOMING, NextWeatherEventTime: 300 });
 		await world.runTicks(2);
+		world.device("station").set("NextWeatherEventTime", 120);
+		await world.runTicks(2);
+		expect(world.device("counter")).toHaveProps({ Setting: 120, Color: Color.Yellow }); // not yet
+
 		world.device("station").set("NextWeatherEventTime", 119.6);
 		await world.runTicks(2);
-
-		expect(world.device("counter")).toHaveProps({ Setting: 120, Color: Color.Yellow });
-		expect(world.device("light")).toHaveProps({ Color: Color.Yellow });
+		expect(world.device("counter")).toHaveProps({ Setting: 120, Color: Color.Red });
+		expect(world.device("light")).toHaveProps({ Color: Color.Red });
 	});
 
 	it("goes back to white once the storm has passed", async () => {

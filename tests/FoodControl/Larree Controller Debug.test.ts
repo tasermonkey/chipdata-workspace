@@ -42,7 +42,7 @@ describe("Larree Controller Debug", () => {
 		}
 	});
 
-	// It passes the dial straight through: no range check (as CODE_REVIEW.md 2.8 notes for the Food Selector).
+	// It passes the dial straight through, with no range check. Fine for a debug chip.
 	it("sends a dial reading past the drop-off, or below 0, to the Larre unchanged", async () => {
 		for (const station of [16, 40, -1]) {
 			const world = await build(station);

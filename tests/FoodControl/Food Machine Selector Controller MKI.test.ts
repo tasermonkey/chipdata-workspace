@@ -71,7 +71,7 @@ describe("Food Machine Selector Controller MKI", () => {
 		}
 	});
 
-	// CODE_REVIEW.md 2.8: a dial past the end of the table read item hash 0.
+	// A dial past the end of the table once read item hash 0.
 	it("treats a dial set past the end of the table as the last item", async () => {
 		const world = await build({ dial: 5, lever: 1 });
 		await world.runTicks(2);

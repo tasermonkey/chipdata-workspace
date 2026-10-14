@@ -1,3 +1,7 @@
+# Room Lights: the room's lights on while someone is in it, off once they leave.
+# d0: occupancy sensor. d1: a second one, optional (two rooms run as one).
+# Name the room's lights as in ROOM_LIGHT, one name per room. db Setting: 1 if occupied.
+define ROOM_LIGHT HASH("Room Light")
 alias Sensor d0
 alias Sensor2 d1
 alias deviceHash r14
@@ -14,28 +18,24 @@ push HASH("StructureLightRoundAngled")
 push HASH("StructureWallLight")
 push HASH("StructureWallLightBattery")
 push HASH("StructureLightLongAngled")
-poke 0 sp #Save TOS
+poke 0 sp # the list's top
 
 start:
 yield
 l personDetected Sensor Activate
-l personDetected2 Sensor2 Activate
 snez personDetected personDetected
+bdns Sensor2 switchLights
+l personDetected2 Sensor2 Activate
 snez personDetected2 personDetected2
 max personDetected personDetected personDetected2
-get sp db 0 #Reload SP from saved value at bottom
-loop:
-    beq sp 1 restart
-    jal performForDevice
-j loop
-
-restart:
-    s db Setting -6969
-    sleep 1
+switchLights:
+s db Setting personDetected
+get sp db 0
+nextType:
+beq sp 1 done
+pop deviceHash
+sbn deviceHash ROOM_LIGHT On personDetected
+j nextType
+done:
+sleep 1
 j start
-
-performForDevice:
-    pop deviceHash
-    s db Setting sp
-    sb deviceHash On personDetected
-j ra

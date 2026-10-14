@@ -1,3 +1,6 @@
+# Food Machine Selector: the dial picks an item; on a press, the sorter sends it one way
+# (the lever decides for soybeans) and the flip-flop splitter follows.
+# d0 sorter, d1 button, d2 dial, d3 memory (shows the item's hash), d4 lever, d5 splitter.
 alias Sorter d0
 alias Button d1
 alias SelectorDial d2
@@ -10,6 +13,9 @@ define LED_COUNT HASH("LED Count")
 
 alias ItemHash r1
 alias ItemDir r2
+alias Pressed r4
+alias Lever r5
+alias LeverItem r6
 alias CommandOp r14
 alias Command r15
 
@@ -36,13 +42,13 @@ start:
     min r0 r0 r3 # a dial past the end picks the last item
     get ItemHash db r0
     s HashMemory Setting ItemHash
-    l r15 Button Activate
-    beqz r15 waitForButton
+    l Pressed Button Activate
+    beqz Pressed waitForButton
   sub r0 r0 1
   get ItemDir db r0
-  l r15 SelectorSwitch Setting
-  seq r14 ItemDir 2
-  select ItemDir r14 r15 ItemDir 
+  l Lever SelectorSwitch Setting
+  seq LeverItem ItemDir 2 # 2: the lever decides
+  select ItemDir LeverItem Lever ItemDir
   sbn LED_T LED_COUNT Setting ItemDir
 
   s FlipFlop Setting 0

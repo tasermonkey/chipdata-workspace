@@ -1,9 +1,9 @@
+# Larre Controller: walks a hydroponics Larre along its stations, harvests each mature
+# plant, takes the crop to DropOff and replants the seeds. d0: the Larre dock.
+# db Setting: the station it's checking.
 alias larre d0
 alias counter r10
 define DropOff 15 # Change this number to the station where you have the input chute
-#define DEBUG_1 $4D655
-#define DEBUG_2 $4D61F
-#define DEBUG_3 $4D775
 define PlantClass 11
 define HARVEST_TRIES 5 # Activates before giving up on a plant
 
@@ -34,10 +34,8 @@ checkplant:
   ls r0 larre 255 Class
   bne r0 PlantClass start
   ls r0 larre 255 Mature
-  #sd DEBUG_1 Setting r0
   beqz r0 start
   ls r0 larre 255 Seeding
-  #sd DEBUG_2 Setting r0
   beq r0 -1 start
   jal held
   move r3 r0 # items in the arm before this visit
@@ -47,7 +45,6 @@ harvest:
   s larre Activate 1
   jal waitlarre
   ls r0 larre 255 Occupied
-  #sd DEBUG_3 Setting r0
   seqz r0 r0
   ls r1 larre 255 Seeding
   seq r1 r1 -1

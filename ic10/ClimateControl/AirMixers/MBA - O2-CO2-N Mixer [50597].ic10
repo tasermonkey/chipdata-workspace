@@ -16,7 +16,7 @@ push HASH("PA Breathable Air") #Gas Output name
 push 0.75 #Mix Ratio: Fraction of Gas1 (back input), from 0 to 1
 push 40000 #Output Pressure shutoff, kPa.
 # More groups would go here, BUT this highly commented version is too long for that!
-
+# The mixer copies are the same from here on: only the settings above differ.
 poke 0 sp #Save TOS
 alias Run r15
 alias Status r14
@@ -49,7 +49,7 @@ move Gas1Temp r1
 pop Name #Get mixer's name for use below
 mul r1 Gas1Temp MixRatio #Gas formula: Y = (T1*X) / (T1*X + T2*(1-X))
 sub r2 1 MixRatio #MixRatio = X, 0...1
-mul r2 Gas2Temp r2 #Gas1Temp = T1, Gas2Temp = T2, in Kelvins
+mul r2 Gas2Temp r2 #Gas1Temp = T1, Gas2Temp = T2, in Kelvin
 select Run r1 Run 0 #A zero means garbage input!
 select Run r2 Run 0
 add r2 r2 r1

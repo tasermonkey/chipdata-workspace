@@ -2,8 +2,7 @@ define AutoEnableAnalyzers 1 # 0 to keep script from turning on pipe analyzers.
 define MinMoles 10 #Minimum content of input;
 define MinPressure 15000 #and minimum kPa. Don't set both to zero. Increase values if
 # you read data from tanks and pipe network volume is small!
-push 0
-# move sp 1 #Enter tank or pipe analyzer names and prefabs below.
+push 0 #Enter tank or pipe analyzer names and prefabs below.
 #If you want to control the mixing of additional gases, you'll need the low-comment
 # version of this script from the workshop. Not enough free bytes in this version.
 #To make ONE gas mix FASTER, just build additional mixers connected to the same pipes!
@@ -17,7 +16,7 @@ push HASH("PA N-CO2") #Gas Output name
 push 0.6666666 #Mix Ratio: Fraction of Gas1 (back input), from 0 to 1
 push 40000 #Output Pressure shutoff, kPa.
 # More groups would go here, BUT this highly commented version is too long for that!
-
+# The mixer copies are the same from here on: only the settings above differ.
 poke 0 sp #Save TOS
 alias Run r15
 alias Status r14

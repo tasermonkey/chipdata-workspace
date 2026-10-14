@@ -15,19 +15,6 @@
 		"idle": "error"
 	},
 	"overrides": {
-		"ic10/EControl/VCIC - Battery Controller 1.ic10": {
-			"reason": "over the game's limits as saved; not to be trimmed unasked. It may shrink but not grow",
-			"limits": {
-				"lines": 162,
-				"bytes": 5135
-			}
-		},
-		"ic10/FabControl/VCIC - Printer Control.ic10": {
-			"reason": "loops with no yield while it has no fabricators, before Printer Setup has run; see CODE_REVIEW.md (FabControl)",
-			"rules": {
-				"idle": "warn"
-			}
-		},
 		"ic10/SuitControl/Simple SUit Controller MKII.ic10": {
 			"reason": "over the game's limits as saved; not to be trimmed unasked. It may shrink but not grow",
 			"limits": {

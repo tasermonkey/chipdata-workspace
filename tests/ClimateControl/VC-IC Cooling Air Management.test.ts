@@ -22,7 +22,7 @@ function build(pipe: { temp: number; pressure: number }) {
 const HOT = 450; // above MAX_PIPE_TEMP, 419.15 K
 const COOL = 400;
 
-// CODE_REVIEW.md 1.4: it read the vent's PressureInternal setting, and expelled only below 500 kPa.
+// It once read the vent's PressureInternal setting, and expelled only below 500 kPa.
 describe("VC-IC Cooling Air Management", () => {
 	it("expels a hot pipe that is well above the 500 kPa floor", async () => {
 		const world = await build({ temp: HOT, pressure: 5000 });

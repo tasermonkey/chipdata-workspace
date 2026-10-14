@@ -1,3 +1,4 @@
+# Mars CO2 Extraction: sets the two named vents' pressure limits once, then ends.
 define VENT_T HASH("StructureActiveVent")
 define VENT_N HASH("Vent KeepCO2Cool")
 define VENT_O HASH("Vent EjectCooledAir")

@@ -1,3 +1,6 @@
+# Power Controller Battery: the coal generators charge the batteries from 20% to 80%;
+# the Low Coal light blinks while the chute marker is empty; the charge shows in colour.
+# Battery Control runs the rest of the console. Devices are found by name.
 define BATTERY_T HASH("StationBatteryNuclear")
 define CHARGE_LEVEL_T HASH("ModularDeviceSliderDiode2")
 define GEN_T HASH("StructureSolidFuelGenerator")
@@ -20,9 +23,11 @@ alias batteryRatio r14
 alias State r15
 define MIN_CHARGE 0.20
 define MAX_CHARGE 0.80
+define CHARGE_GOOD 0.75 # green above
+define CHARGE_LOW 0.33 # red below, yellow in between
 
 move State 0
-sbn WarningDioid LowCoalWarning Color 5
+sbn WarningDioid LowCoalWarning Color Color.Yellow
 sbn OUTPUT_T StoredPowerDisplay Mode 2 # Power
 start:
 yield
@@ -57,11 +62,11 @@ batteryPowerOutput:
   lb batteryRatio BATTERY_T Ratio Average
   sbn CHARGE_LEVEL_T BatteryPer_NAME Setting batteryRatio
   sbn PowerDeltaGauge_T BatteryStorageGuage Setting batteryRatio
-  move r3 5
-  sgt r2 batteryRatio 0.75
-  select r3 r2 2 r3
-  slt r2 batteryRatio 0.33
-  select r3 r2 4 r3
+  move r3 Color.Yellow
+  sgt r2 batteryRatio CHARGE_GOOD
+  select r3 r2 Color.Green r3
+  slt r2 batteryRatio CHARGE_LOW
+  select r3 r2 Color.Red r3
   sbn CHARGE_LEVEL_T BatteryPer_NAME Color r3
   lb r1 BATTERY_T Charge Sum
   sbn OUTPUT_T StoredPowerDisplay Setting r1

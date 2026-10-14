@@ -1,12 +1,12 @@
+# Grow Lights: every grow light on while the sun's vertical angle is 100 or less.
+# d0: daylight sensor.
 alias LightSensor d0
-start:
 alias lightSensorValue r1
 alias activateLights r2
 
+start:
 l lightSensorValue LightSensor Vertical
 sle activateLights lightSensorValue 100
-
 sb HASH("StructureGrowLight") On activateLights
 sleep 1
-yield
 j start

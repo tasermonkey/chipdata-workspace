@@ -1,14 +1,15 @@
+# Fab Room: the room's lights on while someone is there, and each machine on while someone
+# is there or it's mid-job. d0: occupancy sensor. Lights named as in LightName.
 define LightName HASH("Manufacturing Room - Light")
 define LightType1 HASH("StructureLightLongWide")
 define LightType2 HASH("StructureLightLong")
 define LightType3 HASH("StructureDiode")
 alias Sensor d0
+alias machineActive r0
 alias machineHash r14
 alias personDetected r15
 
-#move sp 1 #Enter tank or pipe analyzer names and prefabs below.
-push 0
-
+push 0 # the machines' IDs, between here and the poke (see the README)
 push $1486 # authlathe1
 push $1488 # authlathe2
 push $2217 # pipe bender 1
@@ -18,7 +19,6 @@ push $6E4F # Recycle
 push $2736 # Electronics printer 1
 push $279C # Electronics printer 2
 poke 0 sp #Save TOS
-
 
 start:
 yield
@@ -34,15 +34,12 @@ jal setMachineState
 j loop
 
 restart:
-s db Setting -6969
 sleep 1
 j start
 
 setMachineState:
 pop machineHash
-alias machineActive r0
-s db Setting sp
-l machineActive machineHash Activate # if the machine is producing something
+ld machineActive machineHash Activate # if the machine is producing something
 max machineActive machineActive personDetected
 sd machineHash On machineActive
 j ra

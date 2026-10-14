@@ -61,7 +61,7 @@ describe("Larre Controller", () => {
 		expect(larre.delivered[0]).toMatchObject({ item: "ItemWheat", quantity: 4 });
 	});
 
-	// CODE_REVIEW.md 2.7: Mature was read and overwritten, so only Seeding gated the harvest.
+	// Mature was once read and overwritten, so only Seeding gated the harvest.
 	it("leaves a seeding plant that isn't mature yet", async () => {
 		const unripe: LarrePlant = { seeding: true, seeds: 1, harvest: 2 };
 		const { world, larre } = await build({ 3: unripe });
@@ -72,7 +72,7 @@ describe("Larre Controller", () => {
 		expect(larre.visited).not.toContain(DROP_OFF);
 	});
 
-	// CODE_REVIEW.md 2.7: the harvest loop retried forever if Activate did nothing. In game that
+	// The harvest loop once retried forever if Activate did nothing. In game that
 	// happens when the arm holds one thing and its other slot another: there's nowhere to put fruit.
 	it("gives up after five tries, empties the arm, and goes back for the rest", async () => {
 		const stuck: LarrePlant = { mature: true, seeding: true, seeds: 1, harvest: 3 };
@@ -92,7 +92,7 @@ describe("Larre Controller", () => {
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
-	// CODE_REVIEW.md 2.11: the arm takes one item per Activate, so HARVEST_TRIES caps a visit at 5
+	// The arm takes one item per Activate, so HARVEST_TRIES caps a visit at 5
 	// items. With more, the script dropped the seeds at the chute and couldn't replant.
 	it("goes back for the rest of a plant with more than five items, and replants it", async () => {
 		const big: LarrePlant = { mature: true, seeding: true, seeds: 2, harvest: 5 };

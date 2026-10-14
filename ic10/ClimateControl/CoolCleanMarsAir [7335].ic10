@@ -1,14 +1,16 @@
 # Ok, I don't remember when I first wrote this.
-# This IC code is for a chip that would go into an AC Unit to maintain the waste gas coolant temp
-# Sucks in ambient air to act as the coolant, then switches the vent to blow out the air when it gets to hot.
-# It will disable the AC unit when the waste gas pressure is too low to operate well.
+# This chip goes into an AC Unit to keep the waste gas coolant cool.
+# It sucks in ambient air as the coolant, then switches the vent to blow the air
+# out when it gets too hot. It disables the AC unit when the waste gas pressure is
+# too low to operate well.
 # Required Hardware:
 #  - 1x Active Vent (CoolantVent) - to bring in ambient air
 #  - 1x AC Unit - The device this chip is installed in
 define AV_CoolantVent HASH("CoolantVent")
 
 define MAX_COOLANT_TEMP_K 288 # 15c
-define MAX_COOLANT_PRESSURE 2500 # low enough where CO2 won't liquidify; the fill can overshoot, so back the coolant with a tank
+# Low enough that CO2 won't liquefy. The fill can overshoot: back the coolant with a tank.
+define MAX_COOLANT_PRESSURE 2500
 define MIN_OPERATING_COOLANT_PRESSURE 200
 define MAX_OPERATING_COOLANT_TEMP_K 293 # 20c 
 define EMPTY_KPA 1 # draining stops at or below this
@@ -31,7 +33,7 @@ checkcoolantLevel:
 lbn r1 AV_HASH AV_CoolantVent PressureOutput Maximum
 lbn r2 AV_HASH AV_CoolantVent TemperatureOutput Maximum
 beqz CoolantStage pressurizeCoolant
-beq CoolantStage 1 maintaintCoolant
+beq CoolantStage 1 maintainCoolant
 beq CoolantStage 2 drainCoolant
 move CoolantStage 0
 j ra
@@ -41,7 +43,7 @@ sbn AV_HASH AV_CoolantVent On 1
 blt r1 MAX_COOLANT_PRESSURE ra
 move CoolantStage 1
 j ra
-maintaintCoolant:
+maintainCoolant:
 sbn AV_HASH AV_CoolantVent On 0
 blt r2 MAX_COOLANT_TEMP_K ra
 move CoolantStage 2

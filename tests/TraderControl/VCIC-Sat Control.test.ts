@@ -56,7 +56,6 @@ describe("VCIC-Sat Control", () => {
 		expect(world.device("MedSatPowerDisplay")).toHaveProps({ Setting: 4000, Mode: LedMode.Power });
 		expect(world.device("large")).toHaveProps({ Setting: 14000 });
 		expect(world.device("LargeSatPowerDisplay")).toHaveProps({ Setting: 14000, Mode: LedMode.Power });
-		expect(world.db("ic")).toHaveProps({ Setting: 0.25 }); // the large throttle, for debugging
 	});
 
 	it("leaves a dish where it is while its manual switch is off", async () => {
@@ -91,7 +90,7 @@ describe("VCIC-Sat Control", () => {
 		expect(world.device("light")).toHaveProps({ On: 0 });
 	});
 
-	// CODE_REVIEW.md 4 (TraderControl): the light only follows the medium dish.
+	// SatState follows the medium dish only.
 	it("doesn't light SatState while only the large dish is moving", async () => {
 		const world = await build();
 		world.device("large").set("Idle", 0);

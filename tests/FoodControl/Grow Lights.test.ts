@@ -30,7 +30,7 @@ describe("Grow Lights", () => {
 		expect(world.device("light1")).toHaveProps({ On: 0 });
 
 		world.device("sensor").set("Vertical", 60);
-		await world.runSeconds(2); // it checks about once every 1.5 s
+		await world.runSeconds(2); // it checks once a second
 		expect(world.device("light1")).toHaveProps({ On: 1 });
 		expect(world.device("light2")).toHaveProps({ On: 1 });
 		expect(world.chip("ic")).toHaveNoErrors();
@@ -68,7 +68,7 @@ describe("Grow Lights", () => {
 	it("halts on its first line without a sensor on d0, leaving the lights alone", async () => {
 		const world = await build(50, { sensor: false });
 		await world.runTicks(1);
-		expect(world.chip("ic")).toHaveHalted({ line: 5 }); // l lightSensorValue LightSensor Vertical
+		expect(world.chip("ic")).toHaveHalted({ line: 7 }); // l lightSensorValue LightSensor Vertical
 		expect(world.device("light1")).toHaveProps({ On: 0 });
 	});
 });

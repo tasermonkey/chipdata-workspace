@@ -1,3 +1,5 @@
+# Simple Suit Controller MKI: sits in the suit. Closes the helmet when the air outside
+# isn't safe, and opens it once it has been safe for 5 s. d0: the helmet.
 define MIN_TEMP 280 # 7C
 define MAX_TEMP 313 # 40C
 define MIN_PRESSURE 40

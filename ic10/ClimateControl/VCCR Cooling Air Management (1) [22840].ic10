@@ -1,4 +1,6 @@
-alias Vent d0 
+# Night air: at night fill a pipe with cold outside air, by day expel it once it's hot.
+# d0: active vent on the pipe. d1: gas sensor outside. db Setting: the pipe's temperature.
+alias Vent d0
 alias Sensor d1
 
 alias OutsideTemp r0
@@ -11,17 +13,20 @@ define PIPE_MAX_PRESSURE 41000
 
 start:
 yield
-l OutsideTemp Sensor Temperature
 l PipeTemp Vent TemperatureOutput
 l PipePressure Vent PressureOutput
 s db Setting PipeTemp
+bdns Sensor ventOff
+l OutsideTemp Sensor Temperature
 jal ventControl
 j start
 
-
 ventControl:
   ble OutsideTemp NIGHT_TEMP_MAX nightTempMode
-  bgt OutsideTemp NIGHT_TEMP_MAX dayTempMode 
+  bgt OutsideTemp NIGHT_TEMP_MAX dayTempMode
+  ventOff: # no reading (NaN, or no sensor): leave the pipe alone
+    s Vent On 0
+    j start
   nightTempMode:
     s Vent Mode 1
     yield

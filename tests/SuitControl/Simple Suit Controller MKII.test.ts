@@ -23,7 +23,7 @@ function build(helmet: { pressure: number; ratioOxygen: number }) {
 		.build();
 }
 
-// CODE_REVIEW.md 1.6: filtration came on for low O2 but went off on total pressure, so it chattered.
+// Filtration once came on for low O2 but went off on total pressure, so it chattered.
 describe("Simple Suit Controller MKII filtration", () => {
 	it("stays on while O2 is low, even though the helmet pressure is normal", async () => {
 		const world = await build({ pressure: 100, ratioOxygen: 0.2 }); // 20 kPa of O2
@@ -55,7 +55,7 @@ describe("Simple Suit Controller MKII filtration", () => {
 	});
 });
 
-// CODE_REVIEW.md 2.10: cooling ran on to 5 K below the setting, and heating to 5 K above it.
+// Cooling once ran on to 5 K below the setting, and heating to 5 K above it.
 describe("Simple Suit Controller MKII temperature", () => {
 	const SETTING = 293;
 

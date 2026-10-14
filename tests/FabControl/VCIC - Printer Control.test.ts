@@ -112,7 +112,7 @@ describe("VCIC - Printer Setup and Printer Control", () => {
 		expect(world.chip("control")).toHaveNoErrors();
 	});
 
-	// CODE_REVIEW.md 2.9: a press is a one-tick pulse (wiki, Kit (Switch)), and Control read one
+	// A press is a one-tick pulse (wiki, Kit (Switch)), and Control once read one
 	// fabricator's buttons per tick, so with three fabricators it missed two presses in three.
 	it("counts a one-tick press whenever it comes, for every fabricator", async () => {
 		for (const fab of Object.keys(FABS) as Fab[]) {
@@ -134,6 +134,13 @@ describe("VCIC - Printer Setup and Printer Control", () => {
 		await world.runTicks(7);
 		expect(world.chip("control")).toNeverAutoYield();
 		expect(world.device(key("pipes", "dial"))).toHaveProps({ Setting: 10 });
+	});
+
+	it("waits a tick at a time, without running out of lines, until Setup has filled its stack", async () => {
+		const world = await sim({ root: REPO_ROOT }).housing("control", { file: CONTROL }).build();
+		await world.runTicks(10);
+		expect(world.chip("control")).toNeverAutoYield();
+		expect(world.chip("control")).toHaveNoErrors();
 	});
 
 	it("turns a switched-off fabricator's light red and leaves it alone", async () => {

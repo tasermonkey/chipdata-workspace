@@ -4,7 +4,13 @@
  */
 import { describe, expect, it } from "vitest";
 import { sim } from "@tasermonkey/ic10-bench";
-import { REPO_ROOT } from "./paths.ts";
+import { readRepoScript, REPO_ROOT } from "./paths.ts";
+
+/** The copy every mixer's shared code is compared with. */
+const REFERENCE = "ic10/ClimateControl/AirMixers/MBA - O2-CO2-N Mixer [50597].ic10";
+
+/** A mixer's code after its settings: the part every copy shares. */
+const shared = (path: string) => readRepoScript(path).split("# The mixer copies are the same from here on")[1];
 
 export interface MixerSpec {
 	script: string;
@@ -58,6 +64,11 @@ export function describeGasMixer(spec: MixerSpec): void {
 	const output = { pressure: 1000, temperature: 290 };
 
 	describe("gas mixer", () => {
+		it("is the same code as the other mixers, apart from its settings", () => {
+			expect(shared(spec.script)).toBeDefined();
+			expect(shared(spec.script)).toEqual(shared(REFERENCE));
+		});
+
 		it("mixes at the ratio, corrected for the inputs' temperatures", async () => {
 			const world = await build(spec, { input1, input2, output });
 			await world.runTicks(3);
@@ -101,7 +112,7 @@ export function describeGasMixer(spec: MixerSpec): void {
 			expect(world.chip("ic")).toHaveNoErrors();
 		});
 
-		// CODE_REVIEW.md 1.11: the housing showed the mixer's On, so a missing device looked like "off".
+		// The housing once showed the mixer's On, so a missing device looked like "off".
 		it("shows NaN on the housing when the inputs are missing", async () => {
 			const world = await build(spec, { output });
 			await world.runTicks(3);

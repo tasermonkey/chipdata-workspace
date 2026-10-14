@@ -1,3 +1,5 @@
+# Larre Controller Debug: sends the Larre to the station on the dial, and shows the plant
+# there (Mature, Seeding, Quantity) on three displays found by ID. d0 Larre, d1 dial.
 alias larre d0
 alias positionDial d1
 define DropOff 15

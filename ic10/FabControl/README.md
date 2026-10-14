@@ -53,10 +53,17 @@ put Memory 12 0     # Reserve for productionMode (1)
 ### and start where you left off in the index (some multiple of 12) + 1
 ```
 
-- This could change as the code changes ... but when you get errors on the controller chip if it errors on these line numbers it means the follow device wasn't configured properly in the setup.  You can fix the setup, rerun the setup, and then maybe have to take out the controller chip and it back in.
+- If the controller chip stops with an error, a device in the setup is wrong (or was rebuilt with a new ID). The line it stopped on says which: each `jal getDeviceAt` looks one up, after `move Param1 N`, and N is the device's place counted back from the end of its block of 12. Fix the setup, rerun it, and then maybe take the controller chip out and put it back in.
 
-| Line Number    |   Device        |
-|----------------|-----------------|
-| Line 37        | Power Input     |
-| Line 64        | DisplayAmount   |
+| N  | Device             | Setup slot |
+|----|--------------------|------------|
+| 12 | Printer            | 1          |
+| 11 | Stacker            | 2          |
+| 10 | Progress display   | 3          |
+| 9  | Amount display     | 4          |
+| 8  | Power input        | 5          |
+| 6  | Input stack toggle | 7          |
+| 3  | Input amount       | 10         |
+
+The plus and minus buttons (slots 8 and 9) are read in `scanButtons`.
 

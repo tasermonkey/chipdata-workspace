@@ -1,6 +1,7 @@
 /**
- * Tests shared by the power scripts (Power Controller Battery, Battery Control, Battery Controller 1),
- * which are built from the same pieces. Each script's test runs the pieces it has.
+ * Tests for the power plant, which runs on two chips: Power Controller Battery (generators, low coal,
+ * battery displays) and Battery Control (generation, usage, power delta, transformer). Each script's
+ * test runs its pieces.
  */
 import { describe, expect, it } from "vitest";
 import { Color, type DeviceSpec, type KnownPrefab, LedMode, sim, type World } from "@tasermonkey/ic10-bench";
@@ -89,7 +90,7 @@ export function describeCoalGenerator(script: string): void {
 			expect(world.chip("ic")).toHaveNoErrors();
 		});
 
-		// CODE_REVIEW.md 2.4: starting in the charging state, the script only ever switched the
+		// Starting in the charging state, the script once only ever switched the
 		// generators off, so if they started off they stayed off, however low the battery got.
 		it("switches the generators on when it starts with them off and the battery low", async () => {
 			const world = await buildPlant(script, { ratio: 0.01, coal: [1000, 1000], coalOn: 0 });
@@ -171,7 +172,7 @@ export function describeGenerationDisplays(script: string): void {
 			expect(world.chip("ic")).toHaveNoErrors();
 		});
 
-		// CODE_REVIEW.md 2.5: usage was the sum of every cable analyzer on the network.
+		// Usage was once the sum of every cable analyzer on the network.
 		it("reads the usage from the analyzer named Base CA only", async () => {
 			const world = await buildPlant(script, { coal: [1000], usage: 500, otherAnalyzers: [500, 2000] });
 			await passes(world, 2);
@@ -194,7 +195,7 @@ export function describePowerDelta(script: string): void {
 			expect(world.device("Power Delta")).toHaveProps({ Setting: 0.25, Color: Color.Red });
 		});
 
-		// CODE_REVIEW.md 1.9 (Battery Controller 1): the guard tested the battery ratio.
+		// The guard once tested the battery ratio.
 		it("still updates when the battery is empty", async () => {
 			const world = await buildPlant(script, { ratio: 0, coal: [1000], usage: 500 });
 			await passes(world, 2);

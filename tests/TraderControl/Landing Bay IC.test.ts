@@ -136,7 +136,7 @@ describe("Landing Bay IC", () => {
 		expect(world).toOnlyChange([], { since: before });
 	});
 
-	// CODE_REVIEW.md 2.2: stages 2 and 6 waited for exactly 0 kPa, which a real hangar may never read.
+	// Stages 2 and 6 once waited for exactly 0 kPa, which a real hangar may never read.
 	it("counts anything up to EMPTY_KPA (1 kPa) as empty, opening and closing", async () => {
 		const world = await build({ doorOpen: 0, pressure: 100 });
 		await world.runTicks(3);

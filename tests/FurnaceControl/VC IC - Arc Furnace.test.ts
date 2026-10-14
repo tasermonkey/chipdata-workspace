@@ -39,7 +39,7 @@ describe("VC IC - Arc Furnace", () => {
 		expect(world.device("furnace1")).toHaveProps({ On: 1, Activate: 0 });
 	});
 
-	// CODE_REVIEW.md 2.6: switching a furnace off stops its smelt, and the script did that as soon as
+	// Switching a furnace off stops its smelt, and the script once did that as soon as
 	// the furnace had taken the last ore from its import slot.
 	it("leaves a furnace that's still smelting on once its import slot empties", async () => {
 		const world = await build();

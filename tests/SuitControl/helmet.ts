@@ -76,7 +76,7 @@ export function describeHelmet(script: string, { managesSuit }: { managesSuit: b
 			expect(world.device("helmet")).toHaveProps({ Open: 0 });
 		});
 
-		// CODE_REVIEW.md 1.8: it opened whenever the pressure was at least 40 kPa.
+		// It once opened whenever the pressure was at least 40 kPa.
 		const hostile: [string, Outside][] = [
 			["over-pressure", { ...SAFE, pressure: 200 }],
 			["hot", { ...SAFE, temperature: 350 }],

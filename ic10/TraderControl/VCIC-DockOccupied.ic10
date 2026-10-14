@@ -1,3 +1,5 @@
+# Dock Occupied: for each dock, its pad's mode on a display, and its lights on while a
+# ship has landed. The pad, lights and display are all named for the dock.
 define LP_TYPE HASH("Landingpad_DataConnectionPiece")
 define LIGHT_TYPE1 HASH("ModularDeviceLight")
 define LIGHT_TYPE2 HASH("ModularDeviceLightLarge")
@@ -13,11 +15,11 @@ push HASH("Black Dock")
 push HASH("Blue Dock")
 poke 0 sp #Save TOS
 
-sbn LIGHT_TYPE2 HASH("Green Dock") Color 2
-sbn LIGHT_TYPE2 HASH("Orange Dock") Color 3
-sbn LIGHT_TYPE2 HASH("Khaki Dock") Color 9
-sbn LIGHT_TYPE2 HASH("Black Dock") Color 7
-sbn LIGHT_TYPE2 HASH("Blue Dock") Color 0
+sbn LIGHT_TYPE2 HASH("Green Dock") Color Color.Green
+sbn LIGHT_TYPE2 HASH("Orange Dock") Color Color.Orange
+sbn LIGHT_TYPE2 HASH("Khaki Dock") Color Color.Khaki
+sbn LIGHT_TYPE2 HASH("Black Dock") Color Color.Black
+sbn LIGHT_TYPE2 HASH("Blue Dock") Color Color.Blue
 
 start:
   yield
@@ -34,7 +36,7 @@ checkPad:
   pop name
   lbn r0 LP_TYPE name Mode Minimum
   sbn LED_DISPLAY_2 name Setting r0
-  seq r0 r0 4
+  seq r0 r0 4 # Landed
   sbn LIGHT_TYPE1 name On r0
   sbn LIGHT_TYPE2 name On r0
   j ra

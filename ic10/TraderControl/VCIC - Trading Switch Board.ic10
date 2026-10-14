@@ -1,4 +1,6 @@
-# Trading gas/liquid control board pt 1
+# Trading board: dock switches (one at a time) and gas/liquid direction switches, by ID.
+# Its stack, for the sister chips: 0 active dock (1 orange .. 5 black, 0 none),
+# 1 gas and 2 liquid direction (0 off, 1 input, 2 output).
 
 # local vars
 alias tdDockSlot r0
@@ -6,10 +8,10 @@ alias lastDockedSlot r1
 alias isActive r2
 alias newActiveSlot r3
 alias idx r4
-alias currentMode r0
-alias inputSw r1
-alias outputSw r2
-alias tmp r3
+alias currentMode r5
+alias inputSw r6
+alias outputSw r7
+alias tmp r8
 
 # persistent vars
 alias spSwitches r15
@@ -57,18 +59,24 @@ activetdDockSlot:
     move newActiveSlot sp
   adLoopEnd:
   get sp db spSwitches
-  beqz newActiveSlot ra
-  ad2LoopStart:   
+  beqz newActiveSlot checkCleared
+  ad2LoopStart:
     pop tdDockSlot
     beq spSwitches sp ad2LoopEnd
     beq sp newActiveSlot ad2LoopStart
-    s db Setting tdDockSlot
     sd tdDockSlot On 0
     j ad2LoopStart
   ad2LoopEnd:
   sub idx newActiveSlot spSwitches
   poke 0 idx
   j ra
+  checkCleared: # no dock newly on: clear the active one if its switch went off
+    get idx db 0
+    beqz idx ra
+    ld isActive lastDockedSlot On
+    bnez isActive ra
+    poke 0 0
+    j ra
 
 activeGasDirection:
   get currentMode db gasSwitchIdx 

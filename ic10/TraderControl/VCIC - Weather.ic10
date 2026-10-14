@@ -1,3 +1,7 @@
+# Weather: counts down to the next storm and blinks a light: yellow once it's detected,
+# red in the last two minutes, off and white when none is coming.
+# db Setting: 1 while a storm is coming.
+# d0: weather station. d1: a light with Color logic (Diode, console LED). d3: LED.
 alias WeatherStation d0
 alias Flash d1
 alias LEDcounter d3
@@ -9,7 +13,7 @@ alias Status r3
 alias StatusColor r4
 define StormSoon 120
 
-s LEDcounter Mode 7
+s LEDcounter Mode 7 # seconds
 
 programLoop:
   yield
@@ -19,7 +23,7 @@ programLoop:
   beqz Storm switchoff
   s db Setting 1
   slt Storm CountDown StormSoon
-  select StatusColor Storm 5 4
+  select StatusColor Storm Color.Red Color.Yellow
   s Flash Color StatusColor
   s LEDcounter Color StatusColor
   l CurrentState Flash On
@@ -34,7 +38,7 @@ switchoff:
   s Flash On 0
   s LEDcounter Setting 0
   s LEDcounter On 0
-  s Flash Color 6 # white
-  s LEDcounter Color 6 # white
+  s Flash Color Color.White
+  s LEDcounter Color Color.White
   s db Setting 0
   j programLoop

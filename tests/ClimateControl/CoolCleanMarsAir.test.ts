@@ -33,7 +33,7 @@ describe("CoolCleanMarsAir", () => {
 		expect(world.chip("ac")).toHaveNoErrors();
 	});
 
-	// CODE_REVIEW.md 1.5: it cooled while the input was anything but exactly the setpoint.
+	// It once cooled while the input was anything but exactly the setpoint.
 	it("stops once the input is below the setpoint, and starts again when it warms", async () => {
 		const world = await build(300);
 		await world.runTicks(3);
@@ -49,7 +49,7 @@ describe("CoolCleanMarsAir", () => {
 		expect(world.chip("ac")).toHaveNoErrors();
 	});
 
-	// CODE_REVIEW.md 2.2: draining waited for the coolant pipe to read exactly 0 kPa.
+	// Draining once waited for the coolant pipe to read exactly 0 kPa.
 	it("cycles the coolant: fill to 2500 kPa, hold until 288 K, then drain until near-empty", async () => {
 		const world = await build(285);
 		const vent = world.device("coolant");

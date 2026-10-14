@@ -1,3 +1,6 @@
+# Landing Bay: the hangar's airlock. The switch opens or closes the door, pumping the air
+# out and back through two large vents first. db Setting: the stage (4 closed, 8 open).
+# Also aims the large dish from the Dial-Tilt and Dial-Rotate dials.
 define DISH HASH("Large Satillite Dish")
 define LPV_EXT HASH("EjectVent")
 define LPV_HANG HASH("GoodVent")

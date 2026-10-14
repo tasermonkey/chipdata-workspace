@@ -1,24 +1,24 @@
-
+# Printer Control: each fabricator's amount, stack mode, +/- buttons and power light.
+# Its devices' IDs are in its stack, written there by VCIC - Printer Setup.
 alias fabSpTop r1
 alias stackSize r2
 alias productionMode r3
+alias Fabricator r4
 alias amountProduced r5
 alias DialAmount r6
-alias Fabricator r6
 alias Stacker r7
 
 alias SRa r12
 alias TmpDevice r13
 alias Tmp r14
 alias Param1 r15
-define Debug1 $C3611
 define FabVarCount 12
 define BUTTON_T HASH("ModularDeviceRoundButton")
 programLoop:
   get Tmp db 0 # FabricatorCount
+  beqz Tmp noFabricators
   mul Tmp FabVarCount Tmp
   add Tmp Tmp 1
-  # sd $B0D98 Setting Tmp
   move sp Tmp
   fabLoopStart:
     ble sp 1 programLoop
@@ -43,16 +43,18 @@ checkOff:
     sd Param1 Color TmpDevice
     bnez Tmp SRa
     j fabLoopNearEnd
-    
+
+noFabricators: # Printer Setup hasn't run yet
+  yield
+  j programLoop
 
 updateFabricator:
   move Param1 3 # Input Amount
   jal getDeviceAt
   move DialAmount Param1
   ld stackSize DialAmount Setting
-  brgtz stackSize 3
+  brgtz stackSize 2
   move stackSize 10
-  #sd $B208B Setting sp
   move Param1 6
   jal getDeviceAt # ProductionMode
   ld productionMode Param1 On

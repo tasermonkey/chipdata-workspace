@@ -18,7 +18,7 @@ function build(world: { gasTemp: number; outsidePressure: number }) {
 // Active Vent modes (Stationpedia): 0 Outward pushes pipe gas out into the room, 1 Inward pulls
 // room gas into the pipe. Here the room is outside and the pipe is the coolant pipe (atmo).
 describe("Alaska IC Cooler", () => {
-	// CODE_REVIEW.md 1.3: cooling used Outward, which pushed the coolant out instead of drawing it in.
+	// Cooling once used Outward, which pushed the coolant out instead of drawing it in.
 	it("starts cooling once the gas is warm, drawing cold outside air in (Inward)", async () => {
 		const world = await build({ gasTemp: 310, outsidePressure: 0 });
 		await reachStage(world, 2, { maxTicks: 30 });
@@ -28,7 +28,7 @@ describe("Alaska IC Cooler", () => {
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
-	// CODE_REVIEW.md 1.3: emptying used Inward, which kept filling the coolant pipe.
+	// Emptying once used Inward, which kept filling the coolant pipe.
 	it("empties the coolant pipe back outside (Outward) once cooling is done", async () => {
 		const world = await build({ gasTemp: 280, outsidePressure: 50 });
 		await world.runTicks(3);
@@ -38,7 +38,7 @@ describe("Alaska IC Cooler", () => {
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
-	// CODE_REVIEW.md 1.2: the thresholds are MAX_TEMP 303 K and MIN_TEMP 290 K.
+	// The thresholds are MAX_TEMP 303 K and MIN_TEMP 290 K.
 	it("waits until the gas reaches 303 K, and cools until it's below 290 K", async () => {
 		const world = await build({ gasTemp: 302, outsidePressure: 0 });
 		await reachStage(world, 1, { maxTicks: 30 });
@@ -57,7 +57,7 @@ describe("Alaska IC Cooler", () => {
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
-	// CODE_REVIEW.md 1.1: `move stage 0` used the alias with the wrong case.
+	// `move stage 0` once used the alias with the wrong case.
 	it("goes back to waiting (Stage 0) once the gas has cooled, without an error", async () => {
 		const world = await build({ gasTemp: 310, outsidePressure: 0 });
 		await reachStage(world, 2, { maxTicks: 30 });
@@ -70,7 +70,7 @@ describe("Alaska IC Cooler", () => {
 		expect(world.chip("ic")).toHaveRegister("Stage", 0);
 	});
 
-	// CODE_REVIEW.md 2.2: stage 0 waited for the outside-air pipe to read exactly 0 kPa.
+	// Stage 0 once waited for the outside-air pipe to read exactly 0 kPa.
 	it("counts the outside-air pipe as empty at EMPTY_KPA (1 kPa) or below", async () => {
 		const world = await build({ gasTemp: 280, outsidePressure: 1.5 });
 		await world.runTicks(6);

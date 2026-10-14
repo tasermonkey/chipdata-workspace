@@ -1,3 +1,6 @@
+# Battery Control: generation, usage and power delta on the console, and the transformer
+# set from its throttle (also on db Setting). Power Controller Battery runs the rest.
+# Devices are found by name.
 define BATTERY_T HASH("StationBatteryNuclear")
 define PowerUsage_NAME HASH("Power Usage")
 define BatteryPer_NAME HASH("Battery Charge Per")
@@ -17,6 +20,7 @@ define Transformer_T HASH("StructureTransformer")
 define TransformerOutputValue HASH("Transformer Output Value")
 define TransformerDisplayT HASH("ModularDeviceLEDdisplay2")
 define BatteryStorageGuage HASH("Battery Storage Gauge")
+define TRANSFORMER_MAX 50000 # W, with the throttle all the way up
 
 alias totalPowerUsage r8
 alias powerTotalOutputSum r9
@@ -43,7 +47,7 @@ poke 0 sp #Save TOS
 sbn OUTPUT_T PowerTotalGen Mode 2 # Power
 
 sbn PowerDeltaGauge_T PowerDeltaGauge Setting 0.5
-sbn HASH("ModularDeviceLightLarge") TransformerLight Color 5
+sbn HASH("ModularDeviceLightLarge") TransformerLight Color Color.Yellow
 sbn TransformerDisplayT TransformerOutputValue Mode 2 # Power
 
 start:
@@ -86,7 +90,7 @@ updatePowerDelta:
   div r0 1 r0
   sbn PowerDeltaGauge_T PowerDeltaGauge Setting r0
   sgt r0 r0 0.5
-  select r0 r0 2 4
+  select r0 r0 Color.Green Color.Red
   sbn PowerDeltaGauge_T PowerDeltaGauge Color r0
   j ra
   zeroGen:
@@ -95,7 +99,7 @@ updatePowerDelta:
 
 transformerLever:
   lbn r0 ThrottleT TransformerPowerThrottle Setting Minimum
-  mul r0 r0 50000
+  mul r0 r0 TRANSFORMER_MAX
   slt r1 r0 totalPowerUsage
   s db Setting r0
   lbn r2 HASH("ModularDeviceLightLarge") TransformerLight On Minimum

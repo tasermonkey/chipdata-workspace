@@ -74,6 +74,21 @@ describe("VCIC - Trading Switch Board", () => {
 			expect(world.chip("board")).toHaveStackAt(ACTIVE_DOCK, 4);
 			expect(world.device("blue")).toHaveProps({ On: 1 });
 		});
+
+		it("clear the selected dock when its switch is turned off", async () => {
+			const world = await build();
+			await world.runTicks(1);
+			await switchOn(world, "green");
+			expect(world.chip("board")).toHaveStackAt(ACTIVE_DOCK, 3);
+
+			world.device("green").set("On", 0);
+			await world.runTicks(2);
+			expect(world.chip("board")).toHaveStackAt(ACTIVE_DOCK, 0);
+
+			await switchOn(world, "orange"); // and a dock can be picked again
+			expect(world.chip("board")).toHaveStackAt(ACTIVE_DOCK, 1);
+			expect(world.chip("board")).toHaveNoErrors();
+		});
 	});
 
 	for (const [kind, address, inSwitch, outSwitch] of [

@@ -1,3 +1,6 @@
+# Sat Control: shows where the medium ("EchoStar") and large ("Big-Boy") dishes point,
+# sets their power from the throttles, and while a dish's manual switch is on, points it
+# at the Trader Vert/Horz targets. SatState lights while the medium dish moves.
 define VC_DESIRED_VALUE HASH("VC Current Value")
 define HC_DESIRED_VALUE HASH("HC Current Value")
 define DISPLAY_VALUE_T HASH("ModularDeviceLEDdisplay3")
@@ -20,7 +23,6 @@ define SAT_LDISH_CONTROL_SW HASH("LargeSatManualSwitch")
 define SAT_LDISH_POWER_THROTTLE HASH("LargeSatPowerThrottle")
 define SAT_LDISH_POWER_DISPLAY HASH("LargeSatPowerDisplay")
 
-
 define SAT_MOVING_NAME HASH("SatState")
 define SAT_MOVE_TYPE HASH("ModularDeviceLight")
 
@@ -28,24 +30,25 @@ alias DESIRE_VC_VALUE r1
 alias DESIRE_HC_VALUE r2
 alias CURRENT_VC_VALUE r3
 alias CURRENT_HC_VALUE r4
-
 alias CURRENT_POWER_LEVEL_PER r5
+alias IS_MOVING r6
+alias MANUAL_ON r7
 
-sbn SAT_MOVE_TYPE SAT_MOVING_NAME Color 5
-sbn DISPLAY_VALUE_T SAT_DISH_POWER_DISPLAY Mode 2 # Set to percent display
-sbn DISPLAY_VALUE_T SAT_LDISH_POWER_DISPLAY Mode 2 # Set to percent display
+sbn SAT_MOVE_TYPE SAT_MOVING_NAME Color Color.Yellow
+sbn DISPLAY_VALUE_T SAT_DISH_POWER_DISPLAY Mode 2 # watts
+sbn DISPLAY_VALUE_T SAT_LDISH_POWER_DISPLAY Mode 2 # watts
 programLoop:
 yield
+lbn DESIRE_VC_VALUE DISPLAY_VALUE_T VC_DESIRED_VALUE Setting Maximum
+lbn DESIRE_HC_VALUE DISPLAY_VALUE_T HC_DESIRED_VALUE Setting Maximum
 jal mediumDishLoop
 jal largeDishLoop
 j programLoop
 
 mediumDishLoop:
-    lbn CURRENT_VC_VALUE SAT_DISH_T SAT_DISH_NAME Idle Maximum
-    seqz CURRENT_VC_VALUE CURRENT_VC_VALUE
-    sbn SAT_MOVE_TYPE SAT_MOVING_NAME On CURRENT_VC_VALUE
-    lbn DESIRE_VC_VALUE DISPLAY_VALUE_T VC_DESIRED_VALUE Setting Maximum
-    lbn DESIRE_HC_VALUE DISPLAY_VALUE_T HC_DESIRED_VALUE Setting Maximum
+    lbn IS_MOVING SAT_DISH_T SAT_DISH_NAME Idle Maximum
+    seqz IS_MOVING IS_MOVING
+    sbn SAT_MOVE_TYPE SAT_MOVING_NAME On IS_MOVING
     lbn CURRENT_VC_VALUE SAT_DISH_T SAT_DISH_NAME Vertical Maximum
     sbn DISPLAY_VALUE_T SAT_DISH_VC_CUR_OUT Setting CURRENT_VC_VALUE
     lbn CURRENT_HC_VALUE SAT_DISH_T SAT_DISH_NAME Horizontal Maximum
@@ -58,27 +61,26 @@ mediumDishLoop:
     sbn SAT_DISH_T SAT_DISH_NAME Setting CURRENT_POWER_LEVEL_PER
     sbn DISPLAY_VALUE_T SAT_DISH_POWER_DISPLAY Setting CURRENT_POWER_LEVEL_PER
 
-    lbn CURRENT_VC_VALUE SWITCH_TYPE SAT_DISH_CONTROL_SW Setting Maximum
-    beqz CURRENT_VC_VALUE ra
+    lbn MANUAL_ON SWITCH_TYPE SAT_DISH_CONTROL_SW Setting Maximum
+    beqz MANUAL_ON ra
     sbn SAT_DISH_T SAT_DISH_NAME Vertical DESIRE_VC_VALUE
     sbn SAT_DISH_T SAT_DISH_NAME Horizontal DESIRE_HC_VALUE
     j ra
 
 largeDishLoop:
-    lbn CURRENT_VC_VALUE SAT_LDISH_T SAT_LDISH_NAME Vertical Minimum
+    lbn CURRENT_VC_VALUE SAT_LDISH_T SAT_LDISH_NAME Vertical Maximum
     sbn DISPLAY_VALUE_T SAT_LDISH_VC_CUR_OUT Setting CURRENT_VC_VALUE
     lbn CURRENT_HC_VALUE SAT_LDISH_T SAT_LDISH_NAME Horizontal Maximum
     sbn DISPLAY_VALUE_T SAT_LDISH_HC_CUR_OUT Setting CURRENT_HC_VALUE
     # Min Power = 2000W, max 50,000W (0->48000) ... so ((48000 * PER) + 2000)
     lbn CURRENT_POWER_LEVEL_PER THROTTLE_TYPE SAT_LDISH_POWER_THROTTLE Setting Maximum
-    s db Setting CURRENT_POWER_LEVEL_PER
     mul CURRENT_POWER_LEVEL_PER 48000 CURRENT_POWER_LEVEL_PER
     add CURRENT_POWER_LEVEL_PER 2000 CURRENT_POWER_LEVEL_PER
     sbn SAT_LDISH_T SAT_LDISH_NAME Setting CURRENT_POWER_LEVEL_PER
     sbn DISPLAY_VALUE_T SAT_LDISH_POWER_DISPLAY Setting CURRENT_POWER_LEVEL_PER
-    #######
-    lbn CURRENT_VC_VALUE SWITCH_TYPE SAT_LDISH_CONTROL_SW Setting Maximum
-    beqz CURRENT_VC_VALUE ra
+
+    lbn MANUAL_ON SWITCH_TYPE SAT_LDISH_CONTROL_SW Setting Maximum
+    beqz MANUAL_ON ra
     sbn SAT_LDISH_T SAT_LDISH_NAME Vertical DESIRE_VC_VALUE
     sbn SAT_LDISH_T SAT_LDISH_NAME Horizontal DESIRE_HC_VALUE
     j ra

@@ -1,13 +1,15 @@
 # Alaska was the name of the save for a Europa run
-# This IC controls the ability to cool gases from our 'waste' gasses from power generation, ore smelting, etc
-# We needed CO2.  But the CO2 was HOT.  So Europa being cold, made a pipe system that would pass it through differing
-# radiators (the pipe ones, and at some point the medium radiators).
-# This will monitor the temperature of the CO2 being controlled, and keep it within a range (MIN/MAX TEMP) by sucking
-# in cold air from outside, until the CO2 is below the MIN temp.  Then would turn off the vents until the CO2 got above MAX TEMP.
+# This IC cools our 'waste' gases from power generation, ore smelting, etc.
+# We needed CO2. But the CO2 was HOT. So, Europa being cold, we made a pipe system that
+# passes it through radiators (the pipe ones, and at some point the medium radiators).
+# This watches the CO2's temperature and keeps it within a range (MIN/MAX TEMP): it
+# sucks in cold air from outside until the CO2 is below MIN_TEMP, then turns the vent
+# off until the CO2 gets above MAX_TEMP.
 # Required Hardware:
-#  - 1x Pipe Analyzer (PA_SRC/d0) - to measure the temperature of the gas beint temp controled
-#  - 1x Pipe Analyzer (PA_ATMO/d1) - to measure the outside air.  (I didn't realize at the time the Vents can measure the internal pipe temp)
-#  - 1x Vent (VP_ATMO/d2) - to bring in cold air from outside to cool the gas in the PA_SRC pipe
+#  - 1x Pipe Analyzer (PA_SRC/d0) - measures the temperature of the gas being cooled
+#  - 1x Pipe Analyzer (PA_ATMO/d1) - measures the outside air in the coolant pipe
+#    (I didn't realize at the time that vents can measure the pipe themselves)
+#  - 1x Vent (VP_ATMO/d2) - brings in cold air from outside to cool the PA_SRC pipe
 
 alias PA_SRC d0
 alias PA_ATMO d1

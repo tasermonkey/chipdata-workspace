@@ -1,11 +1,21 @@
 import { describe, expect, it } from "vitest";
+import { readRepoScript } from "../support/paths.ts";
 import { describeTraderInput, pressButton, startConsole, typeValue } from "./trader-input.ts";
 
 const SPEC = { script: "ic10/TraderControl/VCIC Trader Vert Input.ic10", prefix: "VC", other: "HC" };
+const HORZ = "ic10/TraderControl/VCIC Trader Horz Input.ic10";
+
+/** A script's code after its settings: the part the Horz and Vert copies share. */
+const shared = (path: string) => readRepoScript(path).split("# The Horz and Vert copies are the same from here on.")[1];
 
 describe("VCIC Trader Vert Input", () => {
-	// CODE_REVIEW.md 1.10: copied from the Horz script, it zeroed the horizontal display on startup.
+	// Copied from the Horz script, it once zeroed the horizontal display on startup.
 	describeTraderInput(SPEC);
+
+	it("is the Horz script apart from its settings", () => {
+		expect(shared(SPEC.script)).toBeDefined();
+		expect(shared(SPEC.script)).toEqual(shared(HORZ));
+	});
 
 	it("keeps the tilt between 0 and 90", async () => {
 		const world = await startConsole(SPEC);
