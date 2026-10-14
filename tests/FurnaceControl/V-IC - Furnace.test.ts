@@ -1,15 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { sim, type World } from "@tasermonkey/ic10-bench";
+import { Color, LedMode, sim, type World } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
+import { IRON, standIn } from "./recipes.ts";
 
 // From the Steam Workshop (AdvFurnaceControl/README.MD). The housings are compact IC housings, found by name.
 const SCRIPT = "ic10/FurnaceControl/AdvFurnaceControl/V-IC - Furnace.ic10";
-
-const RED = 4;
-const GREEN = 2;
-const TEXT = 10; // LED Mode
-/** Iron, as V-IC Hash hands it over: the recipe hash, and min/max temperature and pressure packed in one number. */
-const IRON = { hash: -1301215609, limits: 0.0095010000001001 };
 
 interface Setup {
 	furnace?: { Temperature?: number; Pressure?: number; On?: number };
@@ -17,7 +12,7 @@ interface Setup {
 	flush?: number;
 }
 
-/** The advanced furnace and everything around it; "Hash IC" is a stand-in housing holding the requested recipe. */
+/** The advanced furnace and everything around it; "Hash IC" holds the requested recipe. */
 function build({ furnace = {}, fuelPressure = 1000, flush = 0 }: Setup = {}) {
 	const gas = { Temperature: 300, TotalMoles: 100, Volume: 100 };
 	return sim({ root: REPO_ROOT })
@@ -32,7 +27,7 @@ function build({ furnace = {}, fuelPressure = 1000, flush = 0 }: Setup = {}) {
 		.device("fuelPump", "StructureVolumePump", {}, { name: "FuelPump" })
 		.device("coolantPump", "StructureVolumePump", {}, { name: "CoolantPump" })
 		.device("ingotDial", "StructureLogicDial", { Setting: 1 }, { name: "Ingot Dial" })
-		.housing("hashIc", { code: "yield\nj 0", prefab: "StructureCircuitHousingCompact", name: "Hash IC", props: { Setting: IRON.hash } })
+		.housing("hashIc", standIn("Hash IC", { Setting: IRON.hash }))
 		.housing("ic", { file: SCRIPT, prefab: "StructureCircuitHousingCompact", name: "Furnace IC" })
 		.build();
 }
@@ -51,8 +46,8 @@ describe("V-IC - Furnace (Advanced Furnace Control)", () => {
 			await world.runTicks(2);
 
 			expect(world.db("ic")).toHaveProps({ Setting: -1 });
-			expect(world.device("light")).toHaveProps({ Color: RED, On: 1 });
-			expect(world.device("led")).toHaveProps({ Mode: TEXT, On: 1 });
+			expect(world.device("light")).toHaveProps({ Color: Color.Red, On: 1 });
+			expect(world.device("led")).toHaveProps({ Mode: LedMode.String, On: 1 });
 			expect(world.device("furnace")).toHaveProps({ Open: 0, SettingInput: 0, SettingOutput: 0 });
 			expect(world.device("fuelPump")).toHaveProps({ On: 0 });
 			expect(world.device("coolantPump")).toHaveProps({ On: 0 });
@@ -91,7 +86,7 @@ describe("V-IC - Furnace (Advanced Furnace Control)", () => {
 			expect(ic).toHaveRegister("minpress", 100);
 			// 10000 packed, but the fourth ×100,000 magnifies the double's rounding: the game gets the same.
 			expect(ic.reg("maxpress")).toBe(9921);
-			expect(world.device("light")).toHaveProps({ Color: GREEN });
+			expect(world.device("light")).toHaveProps({ Color: Color.Green });
 			expect(world.device("furnace")).toHaveProps({ Activate: 1, SettingInput: 100 });
 			expect(world.device("mixer")).toHaveProps({ On: 0 });
 			expect(ic).toHaveNoErrors();

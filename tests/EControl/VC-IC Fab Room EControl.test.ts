@@ -18,10 +18,9 @@ const LIGHT_NAME = "Manufacturing Room - Light";
 const LIGHTS = ["StructureLightLongWide", "StructureLightLong", "StructureDiode"] as const;
 
 function build() {
-	let builder = sim({ root: REPO_ROOT });
-	for (const [key, prefab, id] of MACHINES) builder = builder.device(key, prefab, { On: 1 }, { id });
-	for (const prefab of LIGHTS) builder = builder.device(prefab, prefab, {}, { name: LIGHT_NAME });
-	return builder
+	return sim({ root: REPO_ROOT })
+		.devices(MACHINES.map(([key, prefab, id]) => [key, prefab, { On: 1 }, { id }] as const))
+		.devices(LIGHTS.map((prefab) => [prefab, prefab, {}, { name: LIGHT_NAME }] as const))
 		.device("hallLight", "StructureLightLong", {}, { name: "Hall Light" })
 		.device("sensor", "StructureOccupancySensor")
 		.housing("ic", { file: "ic10/EControl/VC-IC Fab Room EControl.ic10", pins: { d0: "sensor" } })

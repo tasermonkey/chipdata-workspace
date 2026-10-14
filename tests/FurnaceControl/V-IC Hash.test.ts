@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-bench";
+import { sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
+import { IRON, standIn } from "./recipes.ts";
 
 // From the Steam Workshop (AdvFurnaceControl/README.MD). The housings are compact IC housings, found by name.
 const SCRIPT = "ic10/FurnaceControl/AdvFurnaceControl/V-IC Hash.ic10";
 
-/** Recipe hashes and packed limits, as the script lists them, by ingot dial position. */
-const IRON = { dial: 1, hash: -1301215609, limits: 0.0095010000001001 };
+/** Recipe hashes, as the script lists them, by ingot dial position. */
 const STEEL = { dial: 8, hash: -654790771 };
 const CONSTANTAN = { dial: 12, hash: 1058547521 };
 const STELLITE = { dial: 17, hash: -1897868623 };
@@ -31,7 +31,7 @@ function build({ ingot = 1, amount = 2, ventLever = 1, temps = { o2: 300, h2: 30
 		.device("h2", "StructurePipeAnalysizer", { Temperature: temps.h2 }, { name: "H2 Analyzer" })
 		.device("mixer", "StructureGasMixer", {}, { name: "Fuel Mixer" })
 		.device("amountLed", "StructureConsoleLED5", {}, { name: "Amount" })
-		.housing("furnaceIc", { code: "yield\nj 0", prefab: "StructureCircuitHousingCompact", name: "Furnace IC" })
+		.housing("furnaceIc", standIn("Furnace IC"))
 		.housing("hash", { file: SCRIPT, prefab: "StructureCircuitHousingCompact", name: "Hash IC" })
 		.build();
 }
@@ -88,8 +88,8 @@ describe("V-IC Hash (Advanced Furnace Control)", () => {
 	it("runs the furnace room's vents while the vent lever is down, and stops them when it's up", async () => {
 		const world = await build({ ventLever: 0 });
 		await world.runTicks(2);
-		expect(world.device("vent1")).toHaveProps({ On: 1, Mode: 0, PressureExternal: 101, PressureInternal: 0 });
-		expect(world.device("vent2")).toHaveProps({ On: 1, Mode: 1, PressureExternal: 101, PressureInternal: 55000 });
+		expect(world.device("vent1")).toHaveProps({ On: 1, Mode: VentMode.Outward, PressureExternal: 101, PressureInternal: 0 });
+		expect(world.device("vent2")).toHaveProps({ On: 1, Mode: VentMode.Inward, PressureExternal: 101, PressureInternal: 55000 });
 
 		world.device("ventLever").set("Open", 1);
 		await world.runTicks(2);

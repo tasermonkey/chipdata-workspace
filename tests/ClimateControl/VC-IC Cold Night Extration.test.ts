@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-bench";
+import { sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 import { describeNightAirWithGas } from "./night-air.ts";
 
@@ -18,7 +18,7 @@ describe("VC-IC Cold Night Extraction", () => {
 	it("at night (127 °C or below outside) pulls air into the pipe", async () => {
 		const world = await build({ outside: 300, pipeTemp: 350, pipePressure: 10000 });
 		await world.runTicks(3);
-		expect(world.device("vent")).toHaveProps({ Mode: 1, On: 1 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Inward, On: 1 });
 		expect(world.db("ic")).toHaveProps({ Setting: 350 }); // shows the pipe temperature
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
@@ -26,17 +26,17 @@ describe("VC-IC Cold Night Extraction", () => {
 	it("stops pulling once the pipe reaches 41,000 kPa", async () => {
 		const world = await build({ outside: 300, pipeTemp: 350, pipePressure: 41000 });
 		await world.runTicks(3);
-		expect(world.device("vent")).toHaveProps({ Mode: 1, On: 0 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Inward, On: 0 });
 	});
 
 	it("by day expels the pipe's gas only while it's above 180 °C", async () => {
 		const world = await build({ outside: 450, pipeTemp: 460, pipePressure: 10000 });
 		await world.runTicks(3);
-		expect(world.device("vent")).toHaveProps({ Mode: 0, On: 1 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 1 });
 
 		world.device("vent").set("TemperatureOutput", 440);
 		await world.runTicks(3);
-		expect(world.device("vent")).toHaveProps({ Mode: 0, On: 0 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 0 });
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 });

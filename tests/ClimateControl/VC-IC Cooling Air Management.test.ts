@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeVent, heatExchange, PIPE_VOLUME, sim } from "@tasermonkey/ic10-bench";
+import { activeVent, heatExchange, PIPE_VOLUME, sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const SCRIPT = "ic10/ClimateControl/VC-IC Cooling Air Management [498974].ic10";
@@ -28,7 +28,7 @@ describe("VC-IC Cooling Air Management", () => {
 		const world = await build({ temp: HOT, pressure: 5000 });
 		await world.runTicks(2);
 
-		expect(world.device("vent")).toHaveProps({ Mode: 0, On: 1 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 1 });
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
@@ -37,6 +37,7 @@ describe("VC-IC Cooling Air Management", () => {
 		await world.runTicks(2);
 
 		expect(world.device("vent")).toHaveProps({ On: 0 });
+		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
 	it("leaves a cool pipe alone", async () => {
@@ -44,6 +45,7 @@ describe("VC-IC Cooling Air Management", () => {
 		await world.runTicks(2);
 
 		expect(world.device("vent")).toHaveProps({ On: 0 });
+		expect(world.chip("ic")).toHaveNoErrors();
 	});
 });
 
@@ -72,7 +74,7 @@ describe("VC-IC Cooling Air Management, with gas", () => {
 		const world = await buildWithGas({ segments: 500, pressure: 2000 });
 		const pipe = world.pipe("exchange");
 		await world.runTicks(2);
-		expect(world.device("vent")).toHaveProps({ Mode: 0, On: 1 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 1 });
 
 		await world.runUntil((w) => w.device("vent").get("On") === 0, { maxTicks: 300 });
 		// The script checks every 5.5 s, so the vent can run past 500 kPa for up to one interval.

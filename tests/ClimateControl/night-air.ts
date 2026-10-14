@@ -4,7 +4,7 @@
  * 41,000 kPa; by day it expels the pipe's gas while the pipe is above 453 K.
  */
 import { describe, expect, it } from "vitest";
-import { activeVent, dayNight, heatExchange, PIPE_VOLUME, sim } from "@tasermonkey/ic10-bench";
+import { activeVent, dayNight, heatExchange, PIPE_VOLUME, sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const NIGHT_TEMP_MAX = 408;
@@ -39,19 +39,19 @@ export function describeNightAirWithGas(name: string, script: string) {
 			const store = world.pipe("store");
 
 			await world.runTicks(SETTLE);
-			expect(world.device("vent")).toHaveProps({ Mode: 1, On: 1 }); // night: filling
+			expect(world.device("vent")).toHaveProps({ Mode: VentMode.Inward, On: 1 }); // night: filling
 			const atStart = store.pressure;
 
 			await world.runUntil(() => outside() > NIGHT_TEMP_MAX, { maxTicks: 200 });
 			const filled = store.pressure;
 			expect(filled).toBeGreaterThan(atStart + 5000);
 			await world.runTicks(SETTLE);
-			expect(world.device("vent")).toHaveProps({ Mode: 0, On: 0 }); // morning: the pipe isn't hot yet
+			expect(world.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 0 }); // morning: the pipe isn't hot yet
 
 			await world.runUntil(() => store.temperature > MAX_TEMP_IN_PIPE, { maxTicks: 200 });
 			expect(store.pressure).toBeGreaterThanOrEqual(filled); // held (and warmed)
 			await world.runTicks(SETTLE);
-			expect(world.device("vent")).toHaveProps({ Mode: 0, On: 1 }); // hot: expelling
+			expect(world.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 1 }); // hot: expelling
 			const hot = store.pressure;
 			await world.runTicks(20);
 			expect(store.pressure).toBeLessThan(hot);
@@ -63,7 +63,7 @@ export function describeNightAirWithGas(name: string, script: string) {
 			await world.runTicks(300); // noon
 			await world.runUntil(() => world.room("outside").temperature <= NIGHT_TEMP_MAX, { maxTicks: 300 });
 			await world.runTicks(SETTLE);
-			expect(world.device("vent")).toHaveProps({ Mode: 1, On: 1 });
+			expect(world.device("vent")).toHaveProps({ Mode: VentMode.Inward, On: 1 });
 			const before = world.pipe("store").pressure;
 			await world.runTicks(20);
 			expect(world.pipe("store").pressure).toBeGreaterThan(before);

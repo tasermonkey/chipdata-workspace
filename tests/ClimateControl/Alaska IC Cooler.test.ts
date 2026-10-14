@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { activeVent, heatExchange, PIPE_VOLUME, sim } from "@tasermonkey/ic10-bench";
+import { activeVent, heatExchange, PIPE_VOLUME, sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
+import { reachStage } from "../support/stage.ts";
 
 const SCRIPT = "ic10/ClimateControl/Alaska IC Cooler [101290].ic10";
-
-// Predicates read Stage as r15: they run before the script has defined its aliases.
 
 /** Temperatures in kelvin; the script starts cooling at 303 K and stops below 290 K. */
 function build(world: { gasTemp: number; outsidePressure: number }) {
@@ -22,10 +21,10 @@ describe("Alaska IC Cooler", () => {
 	// CODE_REVIEW.md 1.3: cooling used Outward, which pushed the coolant out instead of drawing it in.
 	it("starts cooling once the gas is warm, drawing cold outside air in (Inward)", async () => {
 		const world = await build({ gasTemp: 310, outsidePressure: 0 });
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 2, { maxTicks: 30 });
+		await reachStage(world, 2, { maxTicks: 30 });
 		await world.runTicks(2);
 
-		expect(world.device("vent")).toHaveProps({ Mode: 1, On: 1 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Inward, On: 1 });
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
@@ -35,33 +34,33 @@ describe("Alaska IC Cooler", () => {
 		await world.runTicks(3);
 
 		expect(world.chip("ic")).toHaveRegister("Stage", 0);
-		expect(world.device("vent")).toHaveProps({ Mode: 0, On: 1 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 1 });
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
 	// CODE_REVIEW.md 1.2: the thresholds are MAX_TEMP 303 K and MIN_TEMP 290 K.
 	it("waits until the gas reaches 303 K, and cools until it's below 290 K", async () => {
 		const world = await build({ gasTemp: 302, outsidePressure: 0 });
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 1, { maxTicks: 30 });
+		await reachStage(world, 1, { maxTicks: 30 });
 		await world.runSeconds(20);
 		expect(world.chip("ic")).toHaveRegister("Stage", 1);
 
 		world.device("source").set("Temperature", 303);
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 2, { maxTicks: 30 });
+		await reachStage(world, 2, { maxTicks: 30 });
 
 		world.device("source").set("Temperature", 290);
 		await world.runSeconds(5);
 		expect(world.chip("ic")).toHaveRegister("Stage", 2);
 
 		world.device("source").set("Temperature", 289);
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 0, { maxTicks: 10 });
+		await reachStage(world, 0, { maxTicks: 10 });
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
 	// CODE_REVIEW.md 1.1: `move stage 0` used the alias with the wrong case.
 	it("goes back to waiting (Stage 0) once the gas has cooled, without an error", async () => {
 		const world = await build({ gasTemp: 310, outsidePressure: 0 });
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 2, { maxTicks: 30 });
+		await reachStage(world, 2, { maxTicks: 30 });
 
 		world.device("source").set("Temperature", 280);
 		world.device("atmo").set("Pressure", 50); // the outside-air pipe still holds air from cooling
@@ -78,7 +77,7 @@ describe("Alaska IC Cooler", () => {
 		expect(world.chip("ic")).toHaveRegister("Stage", 0); // not empty yet
 
 		world.device("atmo").set("Pressure", 0.4);
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 1, { maxTicks: 10 });
+		await reachStage(world, 1, { maxTicks: 10 });
 		await world.runTicks(1); // the vent goes off after the stage changes, past a yield
 		expect(world.device("vent")).toHaveProps({ On: 0 });
 		expect(world.chip("ic")).toHaveNoErrors();
@@ -108,11 +107,11 @@ async function buildWithGas() {
 describe("Alaska IC Cooler, with gas", () => {
 	it("cools the hot gas below 290 K by drawing cold outside air through the radiator", async () => {
 		const world = await buildWithGas();
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 2, { maxTicks: 30 });
+		await reachStage(world, 2, { maxTicks: 30 });
 		const start = world.tick;
 		const waste = world.record("waste.Temperature");
 
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 0, { maxTicks: 120 });
+		await reachStage(world, 0, { maxTicks: 120 });
 		expect(world.pipe("waste").temperature).toBeLessThan(290);
 		expect(world.tick - start).toBeLessThan(60);
 		// It only ever falls while cooling.
@@ -123,15 +122,15 @@ describe("Alaska IC Cooler, with gas", () => {
 
 	it("then empties the coolant pipe back outside and switches the vent off", async () => {
 		const world = await buildWithGas();
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 2, { maxTicks: 30 });
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 0, { maxTicks: 120 });
+		await reachStage(world, 2, { maxTicks: 30 });
+		await reachStage(world, 0, { maxTicks: 120 });
 		await world.runTicks(2); // stage 0 sets Outward on its next pass
-		expect(world.device("vent")).toHaveProps({ Mode: 0, On: 1 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 1 });
 		const full = world.pipe("coolant").pressure;
 
 		await world.runTicks(2);
 		expect(world.pipe("coolant").pressure).toBeLessThan(full); // draining
-		await world.runUntil((w) => w.chip("ic").reg("r15") === 1, { maxTicks: 200 });
+		await reachStage(world, 1, { maxTicks: 200 });
 		expect(world.pipe("coolant").pressure).toBeLessThanOrEqual(1);
 		await world.runTicks(2);
 		expect(world.device("vent")).toHaveProps({ On: 0 });

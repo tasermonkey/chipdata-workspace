@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { activeVent, airConditioner, PIPE_VOLUME, sim } from "@tasermonkey/ic10-bench";
+import { activeVent, airConditioner, PIPE_VOLUME, sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
+import { inRegister, stage } from "../support/stage.ts";
 
 const SCRIPT = "ic10/ClimateControl/CoolCleanMarsAir [7335].ic10";
 
@@ -52,27 +53,27 @@ describe("CoolCleanMarsAir", () => {
 	it("cycles the coolant: fill to 2500 kPa, hold until 288 K, then drain until near-empty", async () => {
 		const world = await build(285);
 		const vent = world.device("coolant");
-		const stage = () => world.chip("ac").reg("r15");
+		const ac = inRegister("ac");
 		await world.runTicks(2);
-		expect(vent).toHaveProps({ Mode: 1, On: 1 }); // filling
+		expect(vent).toHaveProps({ Mode: VentMode.Inward, On: 1 }); // filling
 
 		vent.set("PressureOutput", 2500);
 		await world.runTicks(2);
-		expect(stage()).toBe(1);
+		expect(stage(world, ac)).toBe(1);
 		expect(vent).toHaveProps({ On: 0 }); // holding
 
 		vent.set("TemperatureOutput", 290);
 		await world.runTicks(2);
-		expect(stage()).toBe(2);
-		expect(vent).toHaveProps({ Mode: 0, On: 1 }); // draining
+		expect(stage(world, ac)).toBe(2);
+		expect(vent).toHaveProps({ Mode: VentMode.Outward, On: 1 }); // draining
 
 		vent.set("PressureOutput", 1.5);
 		await world.runTicks(4);
-		expect(stage()).toBe(2); // not empty yet
+		expect(stage(world, ac)).toBe(2); // not empty yet
 		vent.set("PressureOutput", 0.4);
 		await world.runTicks(3);
-		expect(stage()).toBe(0);
-		expect(vent).toHaveProps({ Mode: 1, On: 1 }); // filling again
+		expect(stage(world, ac)).toBe(0);
+		expect(vent).toHaveProps({ Mode: VentMode.Inward, On: 1 }); // filling again
 		expect(world.chip("ac")).toHaveNoErrors();
 	});
 });
@@ -104,7 +105,7 @@ describe("CoolCleanMarsAir, with gas", () => {
 	it("cools the base air to the setpoint, draining and refilling the coolant as it warms", async () => {
 		const world = await buildWithGas();
 		const stages: number[] = [];
-		world.every({ ticks: 1 }, (w) => stages.push(w.chip("ac").reg("r15")));
+		world.every({ ticks: 1 }, (w) => stages.push(stage(w, inRegister("ac"))));
 
 		// The AC stops within 1 K of its Setting.
 		await world.runUntil((w) => w.pipe("base").temperature < SETPOINT + 1, { maxTicks: 400 });

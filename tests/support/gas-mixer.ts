@@ -33,14 +33,17 @@ interface Gas {
 }
 
 function build(spec: MixerSpec, gases: { input1?: Gas; input2?: Gas; output: Gas }) {
-	let builder = sim({ root: REPO_ROOT }).device("mixer", "StructureGasMixer", {}, { name: spec.mixer });
-	for (const port of ["input1", "input2", "output"] as const) {
+	const analyzers = (["input1", "input2", "output"] as const).flatMap((port) => {
 		const gas = gases[port];
-		if (!gas) continue; // not built
+		if (!gas) return []; // not built
 		const props = { On: 1, Pressure: gas.pressure, TotalMoles: gas.moles ?? 100, Temperature: gas.temperature };
-		builder = builder.device(port, "StructurePipeAnalysizer", props, { name: spec[port] });
-	}
-	return builder.housing("ic", { file: spec.script }).build();
+		return [[port, "StructurePipeAnalysizer", props, { name: spec[port] }] as const];
+	});
+	return sim({ root: REPO_ROOT })
+		.device("mixer", "StructureGasMixer", {}, { name: spec.mixer })
+		.devices(analyzers)
+		.housing("ic", { file: spec.script })
+		.build();
 }
 
 /** The mixer's Setting for a ratio X of input 1: 100 · T1·X / (T1·X + T2·(1 − X)). */

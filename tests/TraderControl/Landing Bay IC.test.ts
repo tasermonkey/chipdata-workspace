@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { sim, type World } from "@tasermonkey/ic10-bench";
+import { sim, VentMode, type World } from "@tasermonkey/ic10-bench";
 import { readRepoScript, REPO_ROOT } from "../support/paths.ts";
+import { inHousing, reachStage, stage as stageAt } from "../support/stage.ts";
 
 const SCRIPT = "ic10/TraderControl/Landing Bay IC.ic10";
 
 // The stage lives in the housing's Setting:
 //   1 close door → 2 pump outside air out → 3 fill with breathable air → 4 closed, idle
 //   5 pump breathable air back → 6 wait for vacuum → 7 let outside air in → 8 open, idle
-const INWARD = 1; // vent Mode: pull air from the room into the pipe
-const OUTWARD = 0;
+const SETTING = inHousing();
 
 /**
  * The hangar door, its two large vents, the hangar's gas sensor, the airlock switch, and the dish
@@ -32,8 +32,8 @@ function build({ doorOpen, pressure, extKpa }: { doorOpen: 0 | 1; pressure: numb
 		.build();
 }
 
-const stage = (world: World) => world.db("ic").get("Setting");
-const reach = (world: World, n: number, maxTicks = 20) => world.runUntil((w) => stage(w) === n, { maxTicks });
+const stage = (world: World) => stageAt(world, SETTING);
+const reach = (world: World, n: number, maxTicks = 20) => reachStage(world, n, { at: SETTING, maxTicks });
 
 describe("Landing Bay IC", () => {
 	it("starts idle: stage 4 with the door closed", async () => {
@@ -71,8 +71,8 @@ describe("Landing Bay IC", () => {
 		const good = world.record("good.On");
 		await world.runTicks(6);
 		expect(stage(world)).toBe(6); // the hangar still has air
-		expect(world.device("good")).toHaveProps({ Mode: INWARD });
-		expect(good.values.every((on) => on === 1)).toBe(true);
+		expect(world.device("good")).toHaveProps({ Mode: VentMode.Inward });
+		expect(good).toStayAt(1);
 		expect(world.device("door")).toHaveProps({ Open: 0 });
 
 		world.device("sensor").set("Pressure", 0);
@@ -91,7 +91,7 @@ describe("Landing Bay IC", () => {
 		await reach(world, 2);
 		expect(world.device("door")).toHaveProps({ Open: 0 });
 		await world.runTicks(3);
-		expect(world.device("eject")).toHaveProps({ Mode: INWARD, On: 1 });
+		expect(world.device("eject")).toHaveProps({ Mode: VentMode.Inward, On: 1 });
 		expect(stage(world)).toBe(2);
 
 		world.device("sensor").set("Pressure", 0); // outside air gone
@@ -99,8 +99,8 @@ describe("Landing Bay IC", () => {
 		await world.runTicks(2); // past the handler's yield, once the vent is on
 		const good = world.record("good.On");
 		await world.runTicks(6);
-		expect(world.device("good")).toHaveProps({ Mode: OUTWARD });
-		expect(good.values.every((on) => on === 1)).toBe(true); // filling the whole time
+		expect(world.device("good")).toHaveProps({ Mode: VentMode.Outward });
+		expect(good).toStayAt(1); // filling the whole time
 		expect(world.device("eject")).toHaveProps({ On: 0 });
 
 		world.device("sensor").set("Pressure", 100);
@@ -118,7 +118,7 @@ describe("Landing Bay IC", () => {
 		await reach(world, 7);
 		await world.runTicks(3);
 
-		expect(world.device("eject")).toHaveProps({ Mode: OUTWARD, On: 1 });
+		expect(world.device("eject")).toHaveProps({ Mode: VentMode.Outward, On: 1 });
 		expect(world.device("door")).toHaveProps({ Open: 0 });
 
 		world.device("sensor").set("Pressure", 50);

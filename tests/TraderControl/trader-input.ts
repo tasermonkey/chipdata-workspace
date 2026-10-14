@@ -3,7 +3,7 @@
  * display) with VC or HC names, setting one of the satellite dishes' target angles.
  */
 import { describe, expect, it } from "vitest";
-import { sim, type World } from "@tasermonkey/ic10-bench";
+import { press, sim, type World } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const BUTTONS = ["Add 1", "Add 5", "Add 10", "Sub 1", "Sub 5", "Sub 10"] as const;
@@ -19,20 +19,23 @@ export interface TraderInputSpec {
 /** This chip's console, with the other chip's display ("other") on the same network. */
 function build(spec: TraderInputSpec, { own = 0, other = 0 } = {}) {
 	const named = (name: string) => ({ name: `${spec.prefix} ${name}` });
-	let builder = sim({ root: REPO_ROOT })
+	return sim({ root: REPO_ROOT })
 		.device("value", "ModularDeviceLEDdisplay3", { Setting: own }, named("Current Value"))
 		.device("other", "ModularDeviceLEDdisplay3", { Setting: other }, { name: `${spec.other} Current Value` })
 		.device("numpad", "ModularDeviceNumpad", { Mode: 1 }, named("Num Pad"))
-		.device("confirm", "ModularDeviceSquareButton", {}, named("Num Pad Confirm"));
-	for (const button of BUTTONS) builder = builder.device(button, "ModularDeviceRoundButton", {}, named(button));
-	return builder.housing("ic", { file: spec.script }).build();
+		.device("confirm", "ModularDeviceSquareButton", {}, named("Num Pad Confirm"))
+		.devices(BUTTONS.map((button) => [button, "ModularDeviceRoundButton", {}, named(button)] as const))
+		.housing("ic", { file: spec.script })
+		.build();
 }
 
-/** Hold a button down for one tick. */
-export async function press(world: World, button: Button) {
-	world.device(button).set("Activate", 1);
-	await world.runTicks(1);
-	world.device(button).set("Activate", 0);
+/**
+ * Press a button, and run the tick that reads it and the tick it comes back up in: a press in the
+ * next tick would otherwise land on its release and be lost.
+ */
+export async function pressButton(world: World, button: Button | "confirm") {
+	press(world, button);
+	await world.runTicks(2);
 }
 
 /** Type a number on the numpad, a digit a tick, and press Confirm. */
@@ -42,9 +45,7 @@ export async function typeValue(world: World, value: number) {
 		world.device("numpad").set("Setting", Number(key));
 		await world.runTicks(1);
 	}
-	world.device("confirm").set("Activate", 1);
-	await world.runTicks(1);
-	world.device("confirm").set("Activate", 0);
+	await pressButton(world, "confirm");
 }
 
 /** Build the console and run the chip's startup. */
@@ -65,12 +66,12 @@ export function describeTraderInput(spec: TraderInputSpec): void {
 
 		it("adds and subtracts with the buttons", async () => {
 			const world = await startConsole(spec);
-			await press(world, "Add 10");
-			await press(world, "Add 5");
+			await pressButton(world, "Add 10");
+			await pressButton(world, "Add 5");
 			expect(world.device("value")).toHaveProps({ Setting: 15 });
-			await press(world, "Sub 1");
+			await pressButton(world, "Sub 1");
 			expect(world.device("value")).toHaveProps({ Setting: 14 });
-			await press(world, "Sub 5");
+			await pressButton(world, "Sub 5");
 			expect(world.device("value")).toHaveProps({ Setting: 9 });
 			expect(world.device("other")).toHaveProps({ Setting: 0 });
 			expect(world.chip("ic")).toHaveNoErrors();
@@ -88,8 +89,7 @@ export function describeTraderInput(spec: TraderInputSpec): void {
 			expect(world.device("numpad")).toHaveProps({ Mode: 1, Setting: 42 });
 			expect(world.device("value")).toHaveProps({ Setting: 0 });
 
-			world.device("confirm").set("Activate", 1);
-			await world.runTicks(1);
+			await pressButton(world, "confirm");
 			expect(world.device("value")).toHaveProps({ Setting: 42 });
 			expect(world.device("numpad")).toHaveProps({ Setting: 0 });
 		});

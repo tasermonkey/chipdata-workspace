@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type KnownPrefab, sim } from "@tasermonkey/ic10-bench";
+import { Color, LedMode, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 /** Console parts, by in-game name. */
@@ -22,21 +22,18 @@ interface Console {
 
 /** The medium dish "EchoStar", the large dish "Big-Boy", and the console that drives them. */
 function build({ target = { vertical: 0, horizontal: 0 }, manual = {}, throttle = {} }: Console = {}) {
-	let builder = sim({ root: REPO_ROOT })
+	const setting = (name: string) => (name === "VC Current Value" ? target.vertical : name === "HC Current Value" ? target.horizontal : 0);
+	return sim({ root: REPO_ROOT })
 		.device("medium", "StructureSatelliteDish", { Vertical: 20, Horizontal: 100, Idle: 1 }, { name: "EchoStar" })
 		.device("large", "StructureLargeSatelliteDish", { Vertical: 40, Horizontal: 200, Idle: 1 }, { name: "Big-Boy" })
-		.device("light", "ModularDeviceLight", {}, { name: "SatState" });
-	for (const name of DISPLAYS) {
-		const Setting = name === "VC Current Value" ? target.vertical : name === "HC Current Value" ? target.horizontal : 0;
-		builder = builder.device(name, "ModularDeviceLEDdisplay3", { Setting }, { name });
-	}
-	const part = (key: string, prefab: KnownPrefab, name: string, Setting: number) =>
-		builder.device(key, prefab, { Setting }, { name });
-	builder = part("mediumSwitch", "ModularDeviceFlipCoverSwitch", "MedSatManualSwitch", manual.medium ?? 0);
-	builder = part("largeSwitch", "ModularDeviceFlipCoverSwitch", "LargeSatManualSwitch", manual.large ?? 0);
-	builder = part("mediumThrottle", "ModularDeviceThrottle3x2", "MedSatPowerThrottle", throttle.medium ?? 0);
-	builder = part("largeThrottle", "ModularDeviceThrottle3x2", "LargeSatPowerThrottle", throttle.large ?? 0);
-	return builder.housing("ic", { file: "ic10/TraderControl/VCIC-Sat Control.ic10" }).build();
+		.device("light", "ModularDeviceLight", {}, { name: "SatState" })
+		.devices(DISPLAYS.map((name) => [name, "ModularDeviceLEDdisplay3", { Setting: setting(name) }, { name }] as const))
+		.device("mediumSwitch", "ModularDeviceFlipCoverSwitch", { Setting: manual.medium ?? 0 }, { name: "MedSatManualSwitch" })
+		.device("largeSwitch", "ModularDeviceFlipCoverSwitch", { Setting: manual.large ?? 0 }, { name: "LargeSatManualSwitch" })
+		.device("mediumThrottle", "ModularDeviceThrottle3x2", { Setting: throttle.medium ?? 0 }, { name: "MedSatPowerThrottle" })
+		.device("largeThrottle", "ModularDeviceThrottle3x2", { Setting: throttle.large ?? 0 }, { name: "LargeSatPowerThrottle" })
+		.housing("ic", { file: "ic10/TraderControl/VCIC-Sat Control.ic10" })
+		.build();
 }
 
 describe("VCIC-Sat Control", () => {
@@ -56,9 +53,9 @@ describe("VCIC-Sat Control", () => {
 		await world.runTicks(2);
 
 		expect(world.device("medium")).toHaveProps({ Setting: 4000 });
-		expect(world.device("MedSatPowerDisplay")).toHaveProps({ Setting: 4000, Mode: 2 });
+		expect(world.device("MedSatPowerDisplay")).toHaveProps({ Setting: 4000, Mode: LedMode.Power });
 		expect(world.device("large")).toHaveProps({ Setting: 14000 });
-		expect(world.device("LargeSatPowerDisplay")).toHaveProps({ Setting: 14000, Mode: 2 });
+		expect(world.device("LargeSatPowerDisplay")).toHaveProps({ Setting: 14000, Mode: LedMode.Power });
 		expect(world.db("ic")).toHaveProps({ Setting: 0.25 }); // the large throttle, for debugging
 	});
 
@@ -83,7 +80,7 @@ describe("VCIC-Sat Control", () => {
 	it("lights the yellow SatState light while the medium dish is moving", async () => {
 		const world = await build();
 		await world.runTicks(2);
-		expect(world.device("light")).toHaveProps({ Color: 5, On: 0 });
+		expect(world.device("light")).toHaveProps({ Color: Color.Yellow, On: 0 });
 
 		world.device("medium").set("Idle", 0);
 		await world.runTicks(1);
@@ -99,7 +96,7 @@ describe("VCIC-Sat Control", () => {
 		const world = await build();
 		world.device("large").set("Idle", 0);
 		await world.runTicks(2);
-		expect(world.device("light")).toHaveProps({ Color: 5, On: 0 });
+		expect(world.device("light")).toHaveProps({ Color: Color.Yellow, On: 0 });
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
 

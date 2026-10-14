@@ -18,14 +18,14 @@ export const LIGHTS = [
 
 /** One light of each type, an occupancy sensor on d0 (and d1 for `sensors: 2`), and a grow light to leave alone. */
 function build(script: string, sensors: 1 | 2) {
-	let builder = sim({ root: REPO_ROOT });
-	for (const prefab of LIGHTS) builder = builder.device(prefab, prefab);
-	builder = builder
+	const pins = sensors === 2 ? { d0: "sensor1", d1: "sensor2" } : { d0: "sensor1" };
+	return sim({ root: REPO_ROOT })
+		.devices(LIGHTS.map((prefab) => [prefab, prefab] as const))
 		.device("grow", "StructureGrowLight", { On: 1 })
 		.device("sensor1", "StructureOccupancySensor")
-		.device("sensor2", "StructureOccupancySensor");
-	const pins = sensors === 2 ? { d0: "sensor1", d1: "sensor2" } : { d0: "sensor1" };
-	return builder.housing("ic", { file: script, pins }).build();
+		.device("sensor2", "StructureOccupancySensor")
+		.housing("ic", { file: script, pins })
+		.build();
 }
 
 /** `sleeps`: whether the script sleeps 1 s between passes (Kitchen Bedroom doesn't). */
@@ -80,7 +80,7 @@ export function describeRoomLights(script: string, { sensors, sleeps }: { sensor
 
 				const sleeping = world.record((w) => (w.chip("ic").sleeping ? 1 : 0));
 				await world.runTicks(10);
-				expect(sleeping.values.every((s) => s === 0)).toBe(true);
+				expect(sleeping).toStayAt(0);
 			});
 		}
 	});

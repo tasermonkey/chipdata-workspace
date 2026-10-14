@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-bench";
+import { Color, LedMode, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
-const RED = 4;
-const YELLOW = 5;
-const WHITE = 6;
 const INCOMING = 1; // the weather station's Mode while a storm is on its way
 
 /**
@@ -25,8 +22,8 @@ describe("VCIC - Weather", () => {
 		const world = await build({ Mode: 0, NextWeatherEventTime: 0 });
 		await world.runTicks(2);
 
-		expect(world.device("light")).toHaveProps({ On: 0, Color: WHITE });
-		expect(world.device("counter")).toHaveProps({ On: 0, Setting: 0, Color: WHITE, Mode: 7 });
+		expect(world.device("light")).toHaveProps({ On: 0, Color: Color.White });
+		expect(world.device("counter")).toHaveProps({ On: 0, Setting: 0, Color: Color.White, Mode: LedMode.Seconds });
 		expect(world.db("ic")).toHaveProps({ Setting: 0 });
 		expect(world.chip("ic")).toHaveNoErrors();
 	});
@@ -36,8 +33,8 @@ describe("VCIC - Weather", () => {
 		const blink = world.record("light.On");
 		await world.runTicks(10);
 
-		expect(world.device("counter")).toHaveProps({ On: 1, Setting: 300, Color: RED });
-		expect(world.device("light")).toHaveProps({ Color: RED });
+		expect(world.device("counter")).toHaveProps({ On: 1, Setting: 300, Color: Color.Red });
+		expect(world.device("light")).toHaveProps({ Color: Color.Red });
 		expect(world.db("ic")).toHaveProps({ Setting: 1 });
 		// Tick 0 only sets up and yields; from then on the light changes every tick.
 		expect(blink.values).toEqual([0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]);
@@ -50,8 +47,8 @@ describe("VCIC - Weather", () => {
 		world.device("station").set("NextWeatherEventTime", 119.6);
 		await world.runTicks(2);
 
-		expect(world.device("counter")).toHaveProps({ Setting: 120, Color: YELLOW });
-		expect(world.device("light")).toHaveProps({ Color: YELLOW });
+		expect(world.device("counter")).toHaveProps({ Setting: 120, Color: Color.Yellow });
+		expect(world.device("light")).toHaveProps({ Color: Color.Yellow });
 	});
 
 	it("goes back to white once the storm has passed", async () => {
@@ -60,7 +57,7 @@ describe("VCIC - Weather", () => {
 		world.device("station").set("Mode", 0).set("NextWeatherEventTime", 0);
 		await world.runTicks(2);
 
-		expect(world.device("light")).toHaveProps({ On: 0, Color: WHITE });
+		expect(world.device("light")).toHaveProps({ On: 0, Color: Color.White });
 		expect(world.device("counter")).toHaveProps({ On: 0, Setting: 0 });
 		expect(world.db("ic")).toHaveProps({ Setting: 0 });
 	});

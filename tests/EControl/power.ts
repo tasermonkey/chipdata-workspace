@@ -3,12 +3,8 @@
  * which are built from the same pieces. Each script's test runs the pieces it has.
  */
 import { describe, expect, it } from "vitest";
-import { type KnownPrefab, sim, type World } from "@tasermonkey/ic10-bench";
+import { Color, type DeviceSpec, type KnownPrefab, LedMode, sim, type World } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
-
-const GREEN = 2;
-const RED = 4;
-const YELLOW = 5;
 
 /** Console-mod parts (mods' devices, from ic10-mods/), by prefab and in-game name. */
 const CONSOLE: [prefab: KnownPrefab, name: string][] = [
@@ -48,23 +44,17 @@ export interface Plant {
 export function buildPlant(script: string, plant: Plant = {}) {
 	const { ratio = 0.5, charge = 1000, coal = [1000], coalOn = 1, wind = [], upright = [], usage = 500, otherAnalyzers = [], throttle = 0.5 } =
 		plant;
-	let builder = sim({ root: REPO_ROOT }).device("battery", "StationBatteryNuclear", { Ratio: ratio, Charge: charge });
-	coal.forEach((w, i) => {
-		builder = builder.device(`coal${i}`, "StructureSolidFuelGenerator", { PowerGeneration: w, On: coalOn });
-	});
-	wind.forEach((w, i) => {
-		builder = builder.device(`wind${i}`, "StructureWindTurbine", { PowerGeneration: w });
-	});
-	upright.forEach((w, i) => {
-		builder = builder.device(`upright${i}`, "StructureUprightWindTurbine", { PowerGeneration: w });
-	});
-	otherAnalyzers.forEach((w, i) => {
-		builder = builder.device(`analyzer${i + 1}`, "StructureCableAnalysizer", { PowerRequired: w }, { name: `Other CA ${i + 1}` });
-	});
-	for (const [prefab, name] of CONSOLE) {
-		builder = builder.device(name, prefab, name === "Transformer Throttle" ? { Setting: throttle } : {}, { name });
-	}
-	return builder
+	return sim({ root: REPO_ROOT })
+		.device("battery", "StationBatteryNuclear", { Ratio: ratio, Charge: charge })
+		.devices(coal.map((w, i): DeviceSpec => [`coal${i}`, "StructureSolidFuelGenerator", { PowerGeneration: w, On: coalOn }]))
+		.devices(wind.map((w, i): DeviceSpec => [`wind${i}`, "StructureWindTurbine", { PowerGeneration: w }]))
+		.devices(upright.map((w, i): DeviceSpec => [`upright${i}`, "StructureUprightWindTurbine", { PowerGeneration: w }]))
+		.devices(
+			otherAnalyzers.map((w, i): DeviceSpec => [`analyzer${i + 1}`, "StructureCableAnalysizer", { PowerRequired: w }, { name: `Other CA ${i + 1}` }]),
+		)
+		.devices(
+			CONSOLE.map(([prefab, name]) => [name, prefab, name === "Transformer Throttle" ? { Setting: throttle } : {}, { name }] as DeviceSpec),
+		)
 		.device("analyzer", "StructureCableAnalysizer", { PowerRequired: usage }, { name: "Base CA" })
 		.device("chute", "StructureChuteDigitalValveRight", {}, { name: "Coal Chute Low Marker" })
 		.device("transformer", "StructureTransformer", {}, { name: "Primary Transformer" })
@@ -132,8 +122,8 @@ export function describeLowCoalWarning(script: string): void {
 			const world = await buildPlant(script);
 			const light = world.record("Low Coal.On");
 			await passes(world, 6);
-			expect(new Set(light.values.slice(3))).toEqual(new Set([0, 1]));
-			expect(world.device("Low Coal")).toHaveProps({ Color: YELLOW });
+			expect(light).toBlink();
+			expect(world.device("Low Coal")).toHaveProps({ Color: Color.Yellow });
 		});
 
 		it("keeps it off while there's coal at the marker", async () => {
@@ -141,7 +131,7 @@ export function describeLowCoalWarning(script: string): void {
 			world.device("chute").slot(0).put("ItemCoalOre", { Quantity: 20 });
 			const light = world.record("Low Coal.On");
 			await passes(world, 6);
-			expect(light.values.every((on) => on === 0)).toBe(true);
+			expect(light).toStayAt(0);
 			expect(world.chip("ic")).toHaveNoErrors();
 		});
 	});
@@ -150,17 +140,17 @@ export function describeLowCoalWarning(script: string): void {
 export function describeBatteryDisplays(script: string): void {
 	describe("battery displays", () => {
 		const cases: [string, number, number][] = [
-			["green above 75%", 0.8, GREEN],
-			["yellow in between", 0.5, YELLOW],
-			["red below 33%", 0.3, RED],
+			["green above 75%", 0.8, Color.Green],
+			["yellow in between", 0.5, Color.Yellow],
+			["red below 33%", 0.3, Color.Red],
 		];
-		for (const [when, ratio, Color] of cases) {
+		for (const [when, ratio, color] of cases) {
 			it(`show the charge, ${when}`, async () => {
 				const world = await buildPlant(script, { ratio, charge: 12345 });
 				await passes(world, 2);
-				expect(world.device("Battery Charge Per")).toHaveProps({ Setting: ratio, Color });
-				expect(world.device("Battery Storage Gauge")).toHaveProps({ Setting: ratio, Color });
-				expect(world.device("Stored Power Display")).toHaveProps({ Setting: 12345, Color, Mode: 2 });
+				expect(world.device("Battery Charge Per")).toHaveProps({ Setting: ratio, Color: color });
+				expect(world.device("Battery Storage Gauge")).toHaveProps({ Setting: ratio, Color: color });
+				expect(world.device("Stored Power Display")).toHaveProps({ Setting: 12345, Color: color, Mode: LedMode.Power });
 			});
 		}
 	});
@@ -172,12 +162,12 @@ export function describeGenerationDisplays(script: string): void {
 			const world = await buildPlant(script, { coal: [1000, 3000], wind: [200, 400, 600], usage: 2500 });
 			await passes(world, 2);
 
-			expect(world.device("Coal Power Generation Sum")).toHaveProps({ Setting: 4000, Mode: 2 });
-			expect(world.device("Coal Power Generation Avg")).toHaveProps({ Setting: 2000, Mode: 2 });
+			expect(world.device("Coal Power Generation Sum")).toHaveProps({ Setting: 4000, Mode: LedMode.Power });
+			expect(world.device("Coal Power Generation Avg")).toHaveProps({ Setting: 2000, Mode: LedMode.Power });
 			expect(world.device("Wind Turbine Generation Sum")).toHaveProps({ Setting: 1200 });
 			expect(world.device("Wind Turbine Generation Avg")).toHaveProps({ Setting: 400 });
-			expect(world.device("Total Power Generation")).toHaveProps({ Setting: 5200, Mode: 2 });
-			expect(world.device("Power Usage")).toHaveProps({ Setting: 2500, Mode: 2 });
+			expect(world.device("Total Power Generation")).toHaveProps({ Setting: 5200, Mode: LedMode.Power });
+			expect(world.device("Power Usage")).toHaveProps({ Setting: 2500, Mode: LedMode.Power });
 			expect(world.chip("ic")).toHaveNoErrors();
 		});
 
@@ -195,13 +185,13 @@ export function describePowerDelta(script: string): void {
 		it("shows generation / (generation + usage): green while under half is used", async () => {
 			const world = await buildPlant(script, { coal: [1000], usage: 500 });
 			await passes(world, 2);
-			expect(world.device("Power Delta")).toHaveProps({ Setting: expect.closeTo(1000 / 1500, 5), Color: GREEN });
+			expect(world.device("Power Delta")).toHaveProps({ Setting: expect.closeTo(1000 / 1500, 5), Color: Color.Green });
 		});
 
 		it("red once more than half is used", async () => {
 			const world = await buildPlant(script, { coal: [1000], usage: 3000 });
 			await passes(world, 2);
-			expect(world.device("Power Delta")).toHaveProps({ Setting: 0.25, Color: RED });
+			expect(world.device("Power Delta")).toHaveProps({ Setting: 0.25, Color: Color.Red });
 		});
 
 		// CODE_REVIEW.md 1.9 (Battery Controller 1): the guard tested the battery ratio.
@@ -226,22 +216,22 @@ export function describeTransformer(script: string): void {
 			const world = await buildPlant(script, { throttle: 0.4, usage: 5000 });
 			await passes(world, 2);
 			expect(world.device("transformer")).toHaveProps({ Setting: 20000 });
-			expect(world.device("Transformer Output Value")).toHaveProps({ Setting: 20000, Mode: 2 });
+			expect(world.device("Transformer Output Value")).toHaveProps({ Setting: 20000, Mode: LedMode.Power });
 		});
 
 		it("blinks its light while the base needs more than the transformer gives", async () => {
 			const world = await buildPlant(script, { throttle: 0.1, usage: 8000 }); // 5,000 W < 8,000 W
 			const light = world.record("TransformerPoweredUp Light.On");
 			await passes(world, 6);
-			expect(new Set(light.values.slice(3))).toEqual(new Set([0, 1]));
-			expect(world.device("TransformerPoweredUp Light")).toHaveProps({ Color: YELLOW });
+			expect(light).toBlink();
+			expect(world.device("TransformerPoweredUp Light")).toHaveProps({ Color: Color.Yellow });
 		});
 
 		it("keeps the light off while it gives enough", async () => {
 			const world = await buildPlant(script, { throttle: 0.5, usage: 8000 });
 			const light = world.record("TransformerPoweredUp Light.On");
 			await passes(world, 6);
-			expect(light.values.every((on) => on === 0)).toBe(true);
+			expect(light).toStayAt(0);
 			expect(world.chip("ic")).toHaveNoErrors();
 		});
 	});

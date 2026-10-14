@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeTraderInput, press, startConsole, typeValue } from "./trader-input.ts";
+import { describeTraderInput, pressButton, startConsole, typeValue } from "./trader-input.ts";
 
 const SPEC = { script: "ic10/TraderControl/VCIC Trader Vert Input.ic10", prefix: "VC", other: "HC" };
 
@@ -9,10 +9,10 @@ describe("VCIC Trader Vert Input", () => {
 
 	it("keeps the tilt between 0 and 90", async () => {
 		const world = await startConsole(SPEC);
-		await press(world, "Sub 1");
+		await pressButton(world, "Sub 1");
 		expect(world.device("value")).toHaveProps({ Setting: 0 });
 
-		for (let i = 0; i < 10; i++) await press(world, "Add 10");
+		for (let i = 0; i < 10; i++) await pressButton(world, "Add 10");
 		expect(world.device("value")).toHaveProps({ Setting: 90 });
 		expect(world.chip("ic")).toHaveNoErrors();
 	});

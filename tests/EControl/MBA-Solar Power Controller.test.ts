@@ -19,11 +19,9 @@ interface Setup {
 
 /** One panel of each kind, a daylight sensor, and optionally the offset dial. */
 function build({ sun, dial, pinned = true }: Setup) {
-	let builder = sim({ root: REPO_ROOT }).device("sensor", "StructureDaylightSensor", {
-		Vertical: sun.vertical,
-		Horizontal: sun.horizontal,
-	});
-	for (const prefab of PANELS) builder = builder.device(prefab, prefab);
+	let builder = sim({ root: REPO_ROOT })
+		.device("sensor", "StructureDaylightSensor", { Vertical: sun.vertical, Horizontal: sun.horizontal })
+		.devices(PANELS.map((prefab) => [prefab, prefab] as const));
 	if (dial !== undefined) builder = builder.device("dial", "StructureLogicDial", { Setting: dial });
 	const pins = { ...(pinned && { d0: "sensor" }), ...(dial !== undefined && { d1: "dial" }) };
 	return builder.housing("ic", { file: "ic10/EControl/MBA-Solar Power Controller.ic10", pins }).build();

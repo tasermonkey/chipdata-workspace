@@ -1,0 +1,32 @@
+{
+	"$schema": "./node_modules/@tasermonkey/ic10-lint/schema.json",
+	"dir": "ic10",
+	"rules": {
+		"max-lines": "error",
+		"max-columns": "error",
+		"max-bytes": "error",
+		"validate": "error",
+		"batch-ops": "error",
+		"hash-name": "error",
+		"relative-branch-to-label": "warn",
+		"absolute-jump-number": "warn",
+		"unused": "warn",
+		"register-flow": "off",
+		"idle": "warn"
+	},
+	"overrides": {
+		"ic10/EControl/VCIC - Battery Controller 1.ic10": {
+			"reason": "over the game's limits as saved; not to be trimmed unasked. It may shrink but not grow",
+			"limits": {
+				"lines": 162,
+				"bytes": 5135
+			}
+		},
+		"ic10/SuitControl/Simple SUit Controller MKII.ic10": {
+			"reason": "over the game's limits as saved; not to be trimmed unasked. It may shrink but not grow",
+			"limits": {
+				"lines": 132
+			}
+		}
+	}
+}

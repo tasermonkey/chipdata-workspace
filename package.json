@@ -6,6 +6,7 @@
 	"scripts": {
 		"catalog": "ic10-bench catalog",
 		"import-mods": "ic10-bench import-mods",
+		"lint": "ic10-bench lint",
 		"pretest": "npm run catalog",
 		"test": "vitest run",
 		"test:watch": "vitest",
@@ -13,8 +14,9 @@
 		"typecheck": "tsc -p tsconfig.json"
 	},
 	"devDependencies": {
-		"@tasermonkey/ic10": "^1.0.0",
-		"@tasermonkey/ic10-bench": "^1.0.2",
+		"@tasermonkey/ic10": "^1.0.1",
+		"@tasermonkey/ic10-bench": "^1.1.0",
+		"@tasermonkey/ic10-lint": "^1.0.0",
 		"@types/node": "^26.2.0",
 		"typescript": "^7.0.2",
 		"vitest": "^5.0.3"

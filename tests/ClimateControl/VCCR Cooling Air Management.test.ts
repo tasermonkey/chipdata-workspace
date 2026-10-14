@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-bench";
+import { sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 import { describeNightAirWithGas } from "./night-air.ts";
 
@@ -29,7 +29,7 @@ describe("VCCR Cooling Air Management", () => {
 		const world = await build({ outsideTemp: 300, pipeTemp: 500, pipePressure: 1000 });
 		await world.runTicks(SETTLE_TICKS);
 
-		expect(world.device("vent")).toHaveProps({ Mode: 1, On: 1 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Inward, On: 1 });
 		expect(world.chip("ic")).toHaveRegister("OutsideTemp", 300);
 		expect(world.chip("ic")).toHaveNoErrors();
 		expect(world.chip("ic")).toNeverAutoYield();
@@ -39,17 +39,17 @@ describe("VCCR Cooling Air Management", () => {
 		const world = await build({ outsideTemp: 300, pipeTemp: 500, pipePressure: 41_000 });
 		await world.runTicks(SETTLE_TICKS);
 
-		expect(world.device("vent")).toHaveProps({ Mode: 1, On: 0 });
+		expect(world.device("vent")).toHaveProps({ Mode: VentMode.Inward, On: 0 });
 	});
 
 	it("by day, vents outward only while the pipe is hotter than 180 °C", async () => {
 		const hot = await build({ outsideTemp: 500, pipeTemp: 500, pipePressure: 1000 });
 		await hot.runTicks(SETTLE_TICKS);
-		expect(hot.device("vent")).toHaveProps({ Mode: 0, On: 1 });
+		expect(hot.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 1 });
 
 		const cool = await build({ outsideTemp: 500, pipeTemp: 400, pipePressure: 1000 });
 		await cool.runTicks(SETTLE_TICKS);
-		expect(cool.device("vent")).toHaveProps({ Mode: 0, On: 0 });
+		expect(cool.device("vent")).toHaveProps({ Mode: VentMode.Outward, On: 0 });
 	});
 
 	it("switches to day mode when day comes", async () => {
@@ -57,8 +57,8 @@ describe("VCCR Cooling Air Management", () => {
 		world.at({ tick: 10 }, (w) => w.device("sensor").set("Temperature", 450));
 		const mode = world.record("vent.Mode");
 
-		await world.runUntil((w) => w.device("vent").get("Mode") === 1, { maxTicks: 5 });
-		await world.runUntil((w) => w.device("vent").get("Mode") === 0, { maxTicks: 20 });
+		await world.runUntil((w) => w.device("vent").get("Mode") === VentMode.Inward, { maxTicks: 5 });
+		await world.runUntil((w) => w.device("vent").get("Mode") === VentMode.Outward, { maxTicks: 20 });
 
 		expect(world.tick).toBe(12); // the sensor reads 450 in tick 10; the vent switches in tick 11
 		expect(mode).toToggleAtMost(2); // unset (0) → night (1) → day (0)

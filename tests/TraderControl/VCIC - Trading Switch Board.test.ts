@@ -29,11 +29,10 @@ const OUTPUT = 2;
 
 /** Console switches (the board reads their On), found by reference ID. */
 function build() {
-	let builder = sim({ root: REPO_ROOT });
-	for (const [key, id] of [...DOCKS, ...DIRECTION_SWITCHES]) {
-		builder = builder.device(key, "ModularDeviceFlipCoverSwitch", { On: 0 }, { id });
-	}
-	return builder.housing("board", { file: "ic10/TraderControl/VCIC - Trading Switch Board.ic10" }).build();
+	return sim({ root: REPO_ROOT })
+		.devices([...DOCKS, ...DIRECTION_SWITCHES].map(([key, id]) => [key, "ModularDeviceFlipCoverSwitch", { On: 0 }, { id }] as const))
+		.housing("board", { file: "ic10/TraderControl/VCIC - Trading Switch Board.ic10" })
+		.build();
 }
 
 async function switchOn(world: World, key: string) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sim } from "@tasermonkey/ic10-bench";
+import { sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const SCRIPT = "ic10/FurnaceControl/VC IC - Arc Furnace.ic10";
@@ -18,7 +18,7 @@ describe("VC IC - Arc Furnace", () => {
 	it("turns on the furnace room's vent, pulling air in", async () => {
 		const world = await build();
 		await world.runTicks(1);
-		expect(world.device("vent")).toHaveProps({ On: 1, Mode: 1 });
+		expect(world.device("vent")).toHaveProps({ On: 1, Mode: VentMode.Inward });
 	});
 
 	it("starts an idle furnace that has ore waiting, and turns off one with none", async () => {
@@ -77,7 +77,7 @@ describe("VC IC - Arc Furnace", () => {
 			.build();
 		await world.runTicks(20);
 
-		expect(world.device("vent")).toHaveProps({ On: 1, Mode: 1 });
+		expect(world.device("vent")).toHaveProps({ On: 1, Mode: VentMode.Inward });
 		expect(world.chip("ic")).toHaveNoErrors();
 		expect(world.chip("ic")).toNeverAutoYield();
 	});

@@ -452,7 +452,9 @@ is what happened in 1.9 and 1.10.
 Unused symbols make it look like a feature exists when it doesn't (see 1.2 and 1.8):
 
 - Alaska: `MIN_TEMP`, `MAX_TEMP`
-- Filter Controller: `WasteGasT`, `WasteGasName`
+- Filter Controller: `WasteGasT`, `WasteGasName`. `WasteGasT` also names a prefab that doesn't exist:
+  `HASH("StructureGasPipeAnalyzer")`, where the pipe analyzer is `StructurePipeAnalysizer`
+  (ic10-lint's `hash-name` rule). Fix the name if this is ever used.
 - Suit MKI/MKII: `MIN_TEMP`, `MAX_TEMP`, `MAX_PRESSURE`, `MIN_OXY_RATIO`
 - Battery Control / Controller 1: `CableAnaylizer_NAME` (see 2.5), `State` (Battery Control), `UPRIGHT_WIND_TURB_T`
 - Kitchen Bedroom: `personDetected2`, `Sensor2`
@@ -540,6 +542,12 @@ lines would help, for example "what this does / d0 = … / required names = …"
   `checkOff`'s `ld Tmp Param1 On` and stops handling the others too. A `bdns`-style check isn't
   possible for IDs, but Control could skip a block whose power light reads NaN. Pinned in
   [VCIC - Printer Setup.test.ts](tests/FabControl/VCIC%20-%20Printer%20Setup.test.ts).
+- **Control with no fabricators** (found by the `idle` check in
+  [tests/scripts.test.ts](tests/scripts.test.ts), 2026-10-14): when stack slot 0 (the fabricator
+  count) is 0, as it is before Setup has run, `move sp Tmp` sets `sp` to 1 and
+  `ble sp 1 programLoop` jumps straight back to the top. That loop has no `yield`, so the chip uses
+  all 128 lines every tick until Setup fills the stack. It's harmless once Setup has run, but a
+  `yield` after `programLoop:` would make the empty case idle.
 
 ### FoodControl
 - **Grow Lights**: `sleep 1` followed by `yield` is redundant. Move the aliases above `start:`.

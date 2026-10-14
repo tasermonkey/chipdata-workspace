@@ -36,6 +36,7 @@ describe("MBA - Filter Controller MKI", () => {
 			for (const [prop, value] of Object.entries(props)) world.db("filter").set(prop, value);
 			await world.runSeconds(6); // it checks every 5 s
 			expect(world.db("filter")).toHaveProps({ Mode: 0 });
+			expect(world.chip("filter")).toHaveNoErrors();
 		});
 	}
 });

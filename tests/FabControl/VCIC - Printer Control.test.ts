@@ -1,12 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { type KnownPrefab, parseId, type ReferenceId, sim, type World } from "@tasermonkey/ic10-bench";
+import { Color, type DeviceSpec, type KnownPrefab, LedMode, parseId, press, type ReferenceId, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const SETUP = "ic10/FabControl/VCIC - Printer Setup.ic10";
 const CONTROL = "ic10/FabControl/VCIC - Printer Control.ic10";
-
-const GREEN = 2;
-const RED = 4;
 
 /** The reference IDs the setup chip hard-codes, one block of 12 stack slots per fabricator. */
 const FABS = {
@@ -51,27 +48,19 @@ const key = (fab: Fab, part: Part) => `${fab}.${part}`;
  * setup chip is declared first, so it fills Control's stack before Control's first line.
  */
 function build({ dial = 20, power = {} as Partial<Record<Fab, number>> } = {}) {
-	let builder = sim({ root: REPO_ROOT });
-	for (const [fab, { prefab, ids }] of Object.entries(FABS) as [Fab, (typeof FABS)[Fab]][]) {
-		builder = builder
-			.device(key(fab, "printer"), prefab, { Activate: 1, ExportCount: 5, CompletionRatio: 0.25 }, { id: ids.printer })
-			.device(key(fab, "stacker"), "StructureStacker", {}, { id: ids.stacker });
-		for (const [part, prefab] of Object.entries(CONSOLE) as [keyof typeof CONSOLE, KnownPrefab][]) {
-			const props: Record<string, number> =
-				part === "power" ? { On: power[fab] ?? 1 } : part === "dial" ? { Setting: dial } : {};
-			builder = builder.device(key(fab, part), prefab, props, { id: ids[part] });
-		}
-	}
-	return builder
+	const devices = (Object.entries(FABS) as [Fab, (typeof FABS)[Fab]][]).flatMap(([fab, { prefab, ids }]) => [
+		[key(fab, "printer"), prefab, { Activate: 1, ExportCount: 5, CompletionRatio: 0.25 }, { id: ids.printer }] as DeviceSpec,
+		[key(fab, "stacker"), "StructureStacker", {}, { id: ids.stacker }] as DeviceSpec,
+		...(Object.entries(CONSOLE) as [keyof typeof CONSOLE, KnownPrefab][]).map(([part, prefab]) => {
+			const props = part === "power" ? { On: power[fab] ?? 1 } : part === "dial" ? { Setting: dial } : {};
+			return [key(fab, part), prefab, props, { id: ids[part] }] as DeviceSpec;
+		}),
+	]);
+	return sim({ root: REPO_ROOT })
+		.devices(devices)
 		.housing("setup", { file: SETUP, pins: { d0: "control" } })
 		.housing("control", { file: CONTROL })
 		.build();
-}
-
-/** A button press: Activate is 1 for one tick (0.5 s), then 0 again. */
-function press(world: World, button: string) {
-	world.device(button).set("Activate", 1);
-	world.at({ tick: world.tick + 1 }, (w) => w.device(button).set("Activate", 0));
 }
 
 describe("VCIC - Printer Setup and Printer Control", () => {
@@ -100,8 +89,8 @@ describe("VCIC - Printer Setup and Printer Control", () => {
 		expect(world.device(key("autolathe", "printer"))).toHaveProps({ Activate: 1 });
 
 		for (const fab of Object.keys(FABS) as Fab[]) {
-			expect(world.device(key(fab, "power"))).toHaveProps({ Color: GREEN });
-			expect(world.device(key(fab, "amount"))).toHaveProps({ Setting: 20, Mode: 0 });
+			expect(world.device(key(fab, "power"))).toHaveProps({ Color: Color.Green });
+			expect(world.device(key(fab, "amount"))).toHaveProps({ Setting: 20, Mode: LedMode.Default });
 			expect(world.device(key(fab, "stacker"))).toHaveProps({ Setting: 20 });
 		}
 		expect(world.device(key("electronics", "progress"))).toHaveProps({ Setting: 0.75 });
@@ -153,7 +142,7 @@ describe("VCIC - Printer Setup and Printer Control", () => {
 		world.device(key("electronics", "printer")).set("CompletionRatio", 0.75);
 		await world.runTicks(4);
 
-		expect(world.device(key("electronics", "power"))).toHaveProps({ Color: RED });
+		expect(world.device(key("electronics", "power"))).toHaveProps({ Color: Color.Red });
 		expect(world.device(key("electronics", "printer"))).toHaveProps({ Activate: 1 }); // not stopped
 		expect(world.device(key("electronics", "amount"))).toHaveProps({ Setting: 0 });
 		expect(world.device(key("electronics", "progress"))).toHaveProps({ Setting: 0 });
@@ -170,9 +159,9 @@ describe("VCIC - Printer Setup and Printer Control", () => {
 		await world.runTicks(4);
 
 		const amount = world.device(key("autolathe", "amount"));
-		expect(amount).toHaveProps({ Mode: 10 }); // text
+		expect(amount).toHaveProps({ Mode: LedMode.String });
 		// With nothing in the stacker's slot, MaxQuantity reads 0 and the amount falls back to 500.
 		expect(world.device(key("autolathe", "stacker"))).toHaveProps({ Setting: 500 });
-		expect(world.device(key("pipes", "amount"))).toHaveProps({ Mode: 0, Setting: 20 });
+		expect(world.device(key("pipes", "amount"))).toHaveProps({ Mode: LedMode.Default, Setting: 20 });
 	});
 });

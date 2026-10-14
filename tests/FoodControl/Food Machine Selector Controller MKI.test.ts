@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hash, sim, type World } from "@tasermonkey/ic10-bench";
+import { hash, press, sim, type World } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
 const EQUALS = 1; // sorter instruction: PrefabHashEquals
@@ -24,11 +24,10 @@ function build({ dial, lever = 0 }: { dial: number; lever?: number }) {
 		.build();
 }
 
-async function press(world: World) {
-	world.device("button").set("Activate", 1);
-	await world.runTicks(1);
-	world.device("button").set("Activate", 0);
-	await world.runTicks(1);
+/** Press the button, and run until the press is over. */
+async function pressButton(world: World) {
+	press(world, "button");
+	await world.runTicks(2);
 }
 
 describe("Food Machine Selector Controller MKI", () => {
@@ -42,7 +41,7 @@ describe("Food Machine Selector Controller MKI", () => {
 	it("on a press, sends wheat (dial 0) one way: sort everything but wheat", async () => {
 		const world = await build({ dial: 0 });
 		await world.runTicks(1);
-		await press(world);
+		await pressButton(world);
 
 		expect(world.device("sorter")).toHaveProps({ Mode: 1 });
 		expect(world.device("sorter").stackAt(0)).toBe(instruction("ItemWheat", NOT_EQUALS));
@@ -54,7 +53,7 @@ describe("Food Machine Selector Controller MKI", () => {
 	it("on a press, sends potatoes (dial 1) the other way: sort only potatoes", async () => {
 		const world = await build({ dial: 1 });
 		await world.runTicks(1);
-		await press(world);
+		await pressButton(world);
 
 		expect(world.device("sorter").stackAt(0)).toBe(instruction("ItemPotato", EQUALS));
 		expect(world.device("flipFlop")).toHaveProps({ Mode: 1 });
@@ -65,7 +64,7 @@ describe("Food Machine Selector Controller MKI", () => {
 		for (const lever of [0, 1]) {
 			const world = await build({ dial: 2, lever });
 			await world.runTicks(1);
-			await press(world);
+			await pressButton(world);
 
 			expect(world.device("sorter").stackAt(0)).toBe(instruction("ItemSoybean", lever ? EQUALS : NOT_EQUALS));
 			expect(world.device("flipFlop")).toHaveProps({ Mode: lever });
@@ -78,7 +77,7 @@ describe("Food Machine Selector Controller MKI", () => {
 		await world.runTicks(2);
 		expect(world.device("memory")).toHaveProps({ Setting: hash("ItemSoybean") });
 
-		await press(world);
+		await pressButton(world);
 		expect(world.device("sorter").stackAt(0)).toBe(instruction("ItemSoybean", EQUALS));
 		expect(world.chip("ic")).toHaveNoErrors();
 	});

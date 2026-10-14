@@ -8,8 +8,8 @@ const SCRIPT = "ic10/FoodControl/Grow Lights.ic10";
 function build(vertical: number, { lights = 2, sensor = true } = {}) {
 	let builder = sim({ root: REPO_ROOT });
 	if (sensor) builder = builder.device("sensor", "StructureDaylightSensor", { Vertical: vertical });
-	for (let i = 1; i <= lights; i++) builder = builder.device(`light${i}`, "StructureGrowLight");
 	return builder
+		.devices(Array.from({ length: lights }, (_, i) => [`light${i + 1}`, "StructureGrowLight"] as const))
 		.device("wallLight", "StructureWallLight")
 		.housing("ic", { file: SCRIPT, pins: sensor ? { d0: "sensor" } : {} })
 		.build();
@@ -54,6 +54,7 @@ describe("Grow Lights", () => {
 		await world.runTicks(1);
 		for (let i = 1; i <= 5; i++) expect(world.device(`light${i}`)).toHaveProps({ On: 1 });
 		expect(world.device("wallLight")).toHaveProps({ On: 0 });
+		expect(world.chip("ic")).toHaveNoErrors();
 	});
 
 	it("turns the lights off when the sensor reads NaN", async () => {

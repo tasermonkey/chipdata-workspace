@@ -16,6 +16,9 @@ In these scripts; VC just stand for our vulcan play through.  IC is IC chips
   the tests can use them. `npm run import-mods` refreshes this machine's file from the game's
   Stationpedia export; see "Using modded devices" in the
   [`@tasermonkey/ic10-bench` README](https://github.com/tasermonkey/ic10-bench/tree/main/packages/ic10-bench#using-modded-devices).
+- [`ic10-lint.json`](ic10-lint.json): what [`@tasermonkey/ic10-lint`](https://www.npmjs.com/package/@tasermonkey/ic10-lint)
+  checks in every script (the game's size limits, that it loads, the devices' logic types), and the
+  two scripts allowed to stay over the game's limits.
 - [`CODE_REVIEW.md`](CODE_REVIEW.md): a review of these scripts, and what was fixed.
 
 The tests use [IC10 Bench](https://github.com/tasermonkey/ic10-bench), which I built alongside these
@@ -34,6 +37,9 @@ cd chipdata-workspace
 npm install
 npm test
 ```
+
+`npm test` also checks every script against the game's limits and the device catalogue.
+`npm run lint` runs just those checks, without the tests.
 
 To test your own scripts, see the
 [`@tasermonkey/ic10-bench` README](https://github.com/tasermonkey/ic10-bench/tree/main/packages/ic10-bench#getting-started).
