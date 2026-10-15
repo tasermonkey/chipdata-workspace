@@ -1,9 +1,7 @@
 define MIN_TEMP 280 # 7C
 define MAX_TEMP 313 # 40C
 define MIN_PRESSURE 40
-define MAX_PRESSURE 150
-define MIN_OXY_RATIO 0.19
-
+define MAX_PRESSURE 150  # Also for ref MIN_OXY_RATIO 0.19
 define TempDelta 5
 define O2PartialPressureMinKpa 30 # filtration on below this
 define O2PartialPressureOkKpa 40  # and off again above this
@@ -45,9 +43,7 @@ helmetCheck:
     move rReturn ra
     jal checkSafe
     beqz rHelmetOpen checkClosedHelmet
-    checkOpenedHelmet:
-        #s db SoundAlert 1
-        bnez r1 rReturn
+        bnez r1 rReturn #start checkOpenedHelmet
         s dHelmet Open 0
         j rReturn
     checkClosedHelmet:

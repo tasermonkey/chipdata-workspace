@@ -1,15 +1,12 @@
 # Battery Control: generation, usage and power delta on the console, and the transformer
 # set from its throttle (also on db Setting). Power Controller Battery runs the rest.
 # Devices are found by name.
-define BATTERY_T HASH("StationBatteryNuclear")
 define PowerUsage_NAME HASH("Power Usage")
-define BatteryPer_NAME HASH("Battery Charge Per")
 define PowerTotalGen HASH("Total Power Generation")
 define CableAnaylizer_NAME HASH("Base CA")
 define GEN_T HASH("StructureSolidFuelGenerator")
 define CABLE_CA_TYPE HASH("StructureCableAnalysizer")
 define OUTPUT_T HASH("ModularDeviceLEDdisplay3")
-define CHARGE_LEVEL_T HASH("ModularDeviceSliderDiode2")
 define PowerDeltaGauge_T HASH("ModularDeviceGauge3x3")
 define PowerDeltaGauge HASH("Power Delta")
 define TransformerLight HASH("TransformerPoweredUp Light")
@@ -19,7 +16,6 @@ define TransformerMain HASH("Primary Transformer")
 define Transformer_T HASH("StructureTransformer")
 define TransformerOutputValue HASH("Transformer Output Value")
 define TransformerDisplayT HASH("ModularDeviceLEDdisplay2")
-define BatteryStorageGuage HASH("Battery Storage Gauge")
 define TRANSFORMER_MAX 50000 # W, with the throttle all the way up
 
 alias totalPowerUsage r8
@@ -30,8 +26,6 @@ alias outputNameAvg r12
 alias outputNameSum r13
 alias generatorType r14
 
-# State = 0 => Charge, State = 1 => Wait Till need to charge
-alias State r15
 move sp 1
 
 push HASH("Coal Power Generation Avg")

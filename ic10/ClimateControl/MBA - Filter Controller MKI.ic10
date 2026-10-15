@@ -1,8 +1,5 @@
 # Filter Controller: sits in a filtration unit and runs it while the waste gas is
 # 23-27 C and over 5,000 kPa, and the output is under 40,000 kPa.
-define WasteGasT HASH("StructureGasPipeAnalyzer")
-define WasteGasName HASH("Cooling PA")
-
 define MIN_WASTE_TEMP 296 # 23C
 define MAX_WASTE_TEMP 300 # 27C
 define MIN_WASTE_PRESSURE 5000

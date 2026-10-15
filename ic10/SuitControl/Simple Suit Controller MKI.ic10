@@ -23,9 +23,7 @@ helmetCheck:
     move rReturn ra
     jal checkSafe
     beqz rHelmetOpen checkClosedHelmet
-    checkOpenedHelmet:
-        #s db SoundAlert 1
-        bnez r1 rReturn
+        bnez r1 rReturn # start checkOpenedHelmet
         s dHelmet Open 0
         j rReturn
     checkClosedHelmet:

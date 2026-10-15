@@ -2,7 +2,7 @@ define Dial 554524804 #Update 6.24
 define Button 491845673
 define lever 1220484876
 define Vent -1129453144
-alias Hash db
+
 main:
 sbn Dial HASH("Ingot Dial") Mode 17
 sbn Dial HASH("Amount Dial") Mode 30

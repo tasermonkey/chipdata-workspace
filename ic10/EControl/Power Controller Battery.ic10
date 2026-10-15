@@ -13,7 +13,6 @@ define LowCoalWarning HASH("Low Coal")
 
 define BatteryPer_NAME HASH("Battery Charge Per")
 define PowerDeltaGauge_T HASH("ModularDeviceGauge3x3")
-define PowerDeltaGauge HASH("Power Delta")
 define BatteryStorageGuage HASH("Battery Storage Gauge")
 define StoredPowerDisplay HASH("Stored Power Display")
 define OUTPUT_T HASH("ModularDeviceLEDdisplay3")

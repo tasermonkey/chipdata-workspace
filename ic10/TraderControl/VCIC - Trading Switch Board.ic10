@@ -16,7 +16,6 @@ alias tmp r8
 # persistent vars
 alias spSwitches r15
 
-define SW_T HASH("StructureLogicSwitch2")
 define GasInputSwitch $A287A
 define GasOutputSwitch $A288C
 define LiqInputSwitch $A2885

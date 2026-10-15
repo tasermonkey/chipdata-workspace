@@ -1,4 +1,4 @@
-# turn on and activate arc furnaces that have work.
+# turn on and activate arc furnaces that have work.  Alias's documents pins
 alias ArcFurnace1 d0
 alias ArcFurnace2 d1
 alias ArcFurnace3 d2
@@ -12,11 +12,8 @@ init:
 
 # vent room logic
 lb r1 HASH("StructureGasSensor") Pressure Maximum
-#brlt r1 99 3
 sbn HASH("StructureActiveVent") HASH("FurnanceVent") On 1
 sbn HASH("StructureActiveVent") HASH("FurnanceVent") Mode 1
-#brgt r1 60 2
-#sbn HASH("StructureActiveVent") HASH("FurnanceVent") On 0
 
 #start of furnance Logic
 move r0 0
