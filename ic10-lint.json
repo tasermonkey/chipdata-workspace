@@ -15,10 +15,10 @@
 		"idle": "error"
 	},
 	"overrides": {
-		"ic10/SuitControl/Simple SUit Controller MKII.ic10": {
-			"reason": "over the game's limits as saved; not to be trimmed unasked. It may shrink but not grow",
-			"limits": {
-				"lines": 132
+		"ic10/FurnaceControl/VC IC - Arc Furnace.ic10": {
+			"reason": "Staying for documentation, and the script has room",
+			"rules": {
+				"unused": "off"
 			}
 		}
 	}
