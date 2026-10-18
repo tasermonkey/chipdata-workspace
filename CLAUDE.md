@@ -12,7 +12,7 @@ here for people browsing; this is for changing it.
 | `tests/scripts.test.ts` | Every script, with no test of its own needed: lint, and a 50-tick run with nothing connected. |
 | `tests/stations.test.ts` | Every station map's scripts exist. |
 | `stations/<station>.json` | Per save game, chip id → script, for ic10-link. A chip's id is the number in brackets in its file's name in the game's chipdata folder. |
-| `ic10-lint.json` | Which lint rules are errors, and the scripts allowed over a limit (with why). |
+| `ic10-lint.json` | Which lint rules are errors, and the scripts allowed over a limit (with why). A script that breaks a rule on purpose, like an in-game audit of the game's errors, gets an override turning that rule off; a key with `*` covers a folder (`"ic10/Audit/**"`). The same file decides `npm test`, `npm run lint`, and whether ic10-link sends a script. |
 | `ic10-mods/` | The modded devices the scripts talk to, so the tests can use them. |
 | `local/` | Not committed, on this machine only. `local/instructions.md` is the IC10 instruction reference, from the wiki. |
 
