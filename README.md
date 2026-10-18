@@ -19,7 +19,7 @@ In these scripts; VC just stand for our vulcan play through.  IC is IC chips
 - [`ic10-lint.json`](ic10-lint.json): what [`@tasermonkey/ic10-lint`](https://www.npmjs.com/package/@tasermonkey/ic10-lint)
   checks in every script (the game's size limits, that it loads, the devices' logic types), and the
   script allowed to stay over the game's limits.
-- [`CODE_REVIEW.md`](CODE_REVIEW.md): what's still open in these scripts, and what to do in game.
+- [`stations/`](stations/): which chip runs which script, per save game (see below).
 
 The tests use [IC10 Bench](https://github.com/tasermonkey/ic10-bench), which I built alongside these
 scripts: [`@tasermonkey/ic10-bench`](https://www.npmjs.com/package/@tasermonkey/ic10-bench) runs IC10
@@ -43,3 +43,21 @@ npm test
 
 To test your own scripts, see the
 [`@tasermonkey/ic10-bench` README](https://github.com/tasermonkey/ic10-bench/tree/main/packages/ic10-bench#getting-started).
+
+## Sync with the game
+
+With [my fork](https://github.com/tasermonkey/stationeers.ic10sync) of the
+[IC10Sync](https://github.com/semoro/stationeers.ic10sync) mod, the game keeps each save's chips as
+files, a folder per save, and loads a changed file back into its chip. `stations/<save>.json` says which chip
+(by its id) runs which script here, and
+[ic10-link](https://github.com/tasermonkey/ic10-bench/tree/main/packages/ic10-link) keeps the two
+in step:
+
+```
+npm run ic-link:status
+npm run ic-link
+```
+
+`ic-link:status` lists the chips in the save played last, and how each compares with its script.
+`ic-link` watches: a saved script goes to its chips once it passes lint and its tests, and a chip
+edited in game comes back into its script, to see in `git diff`.
