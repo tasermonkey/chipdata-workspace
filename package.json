@@ -11,12 +11,15 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"pretypecheck": "npm run catalog",
-		"typecheck": "tsc -p tsconfig.json"
+		"typecheck": "tsc -p tsconfig.json",
+		"ic-link": "ic10-link watch",
+		"ic-link:status": "ic10-link status"
 	},
 	"devDependencies": {
 		"@tasermonkey/ic10": "^1.0.1",
-		"@tasermonkey/ic10-bench": "^1.1.0",
-		"@tasermonkey/ic10-lint": "^1.0.0",
+		"@tasermonkey/ic10-bench": "file:../ic10-bench/packages/ic10-bench",
+		"@tasermonkey/ic10-link": "file:../ic10-bench/packages/ic10-link",
+		"@tasermonkey/ic10-lint": "^1.0.2",
 		"@types/node": "^26.2.0",
 		"typescript": "^7.0.2",
 		"vitest": "^5.0.3"

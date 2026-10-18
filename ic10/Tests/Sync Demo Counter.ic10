@@ -1,0 +1,18 @@
+# Sync Demo Counter: a second demo for ic10-link, to swap with Sync Demo.
+# db Setting: counts up by STEP each second, so the housing shows it's running.
+# Change STEP and save; the count goes up by the new step once sent.
+# d0: a light (optional), blinking once a second.
+define STEP 2
+alias Light d0
+alias count r0
+alias on r1
+
+start:
+add count count STEP
+s db Setting count
+seqz on on
+bdns Light wait
+s Light On on
+wait:
+sleep 1
+j start

@@ -6,3 +6,5 @@ local/
 # Built by `ic10-bench catalog` (`npm run catalog`); they hold the game's own text, so they aren't committed
 .ic10-bench/
 ic10-bench-env.d.ts
+# ic10-link's record of what each chip last had, and chips' code from before a script was first sent to them
+.ic10-link/

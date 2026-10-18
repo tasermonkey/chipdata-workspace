@@ -57,11 +57,6 @@
 			"version": "1.0.2"
 		},
 		{
-			"workshopId": "3573053238",
-			"name": "Inventory Tweaks",
-			"version": "0.4.9"
-		},
-		{
 			"workshopId": "3576112002",
 			"name": "Infinite Spray Paint",
 			"version": "1.2"
@@ -72,11 +67,6 @@
 			"version": "0.2.5116.23239.1"
 		},
 		{
-			"workshopId": "3586857584",
-			"name": "Compass Mod",
-			"version": "0.2.5116.23239.1"
-		},
-		{
 			"workshopId": "3587239682",
 			"name": "Re-Volt",
 			"version": "1.8.1"
@@ -84,7 +74,7 @@
 		{
 			"workshopId": "3592775931",
 			"name": "IC10 Editor",
-			"version": "1.0.1"
+			"version": "1.0.2"
 		},
 		{
 			"workshopId": "3614893812",
@@ -105,6 +95,31 @@
 			"workshopId": "3755414853",
 			"name": "ModularConsolesReloaded",
 			"version": "0.3.4"
+		},
+		{
+			"workshopId": "3776545141",
+			"name": "Stationeers UI Ascended",
+			"version": "1.0.3"
+		},
+		{
+			"workshopId": "3793938093",
+			"name": "Overpressure Valve",
+			"version": "1.1.3"
+		},
+		{
+			"workshopId": "3794718944",
+			"name": "Sprayer",
+			"version": "2.6.0"
+		},
+		{
+			"workshopId": "3800163882",
+			"name": "Crosscables",
+			"version": "0.1.1"
+		},
+		{
+			"workshopId": "3819662919",
+			"name": "DS-8 Server Rack",
+			"version": "5.12.0"
 		}
 	],
 	"prefabs": [
