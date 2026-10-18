@@ -4,7 +4,7 @@ import { REPO_ROOT } from "../support/paths.ts";
 import { IRON, standIn } from "./recipes.ts";
 
 // From the Steam Workshop (AdvFurnaceControl/README.MD). The housings are compact IC housings, found by name.
-const SCRIPT = "ic10/FurnaceControl/AdvFurnaceControl/V-IC - Furnace.ic10";
+const SCRIPT = "ic10/FurnaceControl/AdvFurnaceControl/Adv Furnace.ic10";
 
 interface Setup {
 	furnace?: { Temperature?: number; Pressure?: number; On?: number };
@@ -32,14 +32,14 @@ function build({ furnace = {}, fuelPressure = 1000, flush = 0 }: Setup = {}) {
 		.build();
 }
 
-/** Hand the chip a recipe, as V-IC Hash's Confirm does. */
+/** Hand the chip a recipe, as Hash's Confirm does. */
 async function start(world: World) {
 	await world.runTicks(2);
 	world.db("ic").set("Setting", IRON.limits);
 	await world.runTicks(2);
 }
 
-describe("V-IC - Furnace (Advanced Furnace Control)", () => {
+describe("Adv Furnace (Advanced Furnace Control)", () => {
 	describe("waiting for a recipe", () => {
 		it("shows Ready! in red, and keeps the furnace closed with the pumps off", async () => {
 			const world = await build();

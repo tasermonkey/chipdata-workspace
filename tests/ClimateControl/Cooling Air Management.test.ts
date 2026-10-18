@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { activeVent, heatExchange, PIPE_VOLUME, sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
-const SCRIPT = "ic10/ClimateControl/VC-IC Cooling Air Management [498974].ic10";
+const SCRIPT = "ic10/ClimateControl/Cooling Air Management.ic10";
 
 /**
  * The vent's PressureInternal is its configured limit, not a reading; it's set here to something
@@ -23,7 +23,7 @@ const HOT = 450; // above MAX_PIPE_TEMP, 419.15 K
 const COOL = 400;
 
 // It once read the vent's PressureInternal setting, and expelled only below 500 kPa.
-describe("VC-IC Cooling Air Management", () => {
+describe("Cooling Air Management", () => {
 	it("expels a hot pipe that is well above the 500 kPa floor", async () => {
 		const world = await build({ temp: HOT, pressure: 5000 });
 		await world.runTicks(2);
@@ -69,7 +69,7 @@ async function buildWithGas(options: { segments: number; pressure: number; radia
 	return world;
 }
 
-describe("VC-IC Cooling Air Management, with gas", () => {
+describe("Cooling Air Management, with gas", () => {
 	it("expels a hot pipe down to about 500 kPa, then leaves it", async () => {
 		const world = await buildWithGas({ segments: 500, pressure: 2000 });
 		const pipe = world.pipe("exchange");

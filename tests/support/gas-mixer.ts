@@ -7,7 +7,7 @@ import { sim } from "@tasermonkey/ic10-bench";
 import { readRepoScript, REPO_ROOT } from "./paths.ts";
 
 /** The copy every mixer's shared code is compared with. */
-const REFERENCE = "ic10/ClimateControl/AirMixers/MBA - O2-CO2-N Mixer [50597].ic10";
+const REFERENCE = "ic10/ClimateControl/AirMixers/O2-CO2-N Mixer.ic10";
 
 /** A mixer's code after its settings: the part every copy shares. */
 const shared = (path: string) => readRepoScript(path).split("# The mixer copies are the same from here on")[1];

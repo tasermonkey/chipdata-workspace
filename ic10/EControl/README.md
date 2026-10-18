@@ -8,8 +8,8 @@ Turns a room's lights on while someone is in it, based on occupancy detection. O
 - An occupancy sensor on d0, and optionally a second on d1 (for treating 2 technically different rooms as one).
 - Name the room's lights, and set `ROOM_LIGHT` at the top of the script to that name: a different name for each room, so one room's chip leaves another room's lights alone.
 
-## VC-IC Fab Room EControl
-[Source Code](./VC-IC%20Fab%20Room%20EControl.ic10)
+## Fab Room EControl
+[Source Code](./Fab%20Room%20EControl.ic10)
 
 This is like the other EControl scripts, but the printer room it also controls the printers on/off.
 
@@ -19,7 +19,7 @@ This script for the printer/fab room goes well with the [FabControl](../FabContr
 
 ## Fab Control Setup
 You will have to edit the Fab Control script to have the IDs of the printers to which it controls and monitors.
-Script: [VC-IC Fab Room EControl](./VC-IC%20Fab%20Room%20EControl.ic10)
+Script: [Fab Room EControl](./Fab%20Room%20EControl.ic10)
 ```
 push 0 # the machines' IDs, between here and the poke (see the README)
 push $1486 # authlathe1
@@ -35,7 +35,7 @@ poke 0 sp #Save TOS
 Only edit the lines between the first `push 0` and the `poke`.  You may use the `${id}` hex version or the the pure `Decimal` version.
 
 ## Battery Control
-[Source Code - Battery Control](./VCIC%20-%20Battery%20Control.ic10)
+[Source Code - Battery Control](./Battery%20Control.ic10)
 [Source Code - Power Controller Battery](./Power%20Controller%20Battery.ic10)
 
 Oh Boy this is a complex one.  I was playing with the modular consoles.  Have a cool dashboard ![Battery Console](./image-Battery%20Control.png) 
@@ -62,7 +62,7 @@ It runs on 2 IC chips, since it was too big for one:
 - Battery Storage Gauge / type ModularDeviceGauge3x3
 
 ## Solar Power Controller
-[Source Code](./MBA-Solar%20Power%20Controller.ic10)
+[Source Code](./Solar%20Power%20Controller.ic10)
 
 This was grabbed from somewhere ... I got tired of figuring this out.  Anyways ... its pretty flexible.
 - Face all panels the same direction (data ports/power ports all facing same cardinal direction)

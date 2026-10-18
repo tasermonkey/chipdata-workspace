@@ -8,14 +8,14 @@ const GOOD = { TemperatureInput: 298, PressureInput: 6000, PressureOutput: 1000 
 function build(props: Partial<typeof GOOD>) {
 	return sim({ root: REPO_ROOT })
 		.housing("filter", {
-			file: "ic10/ClimateControl/MBA - Filter Controller MKI.ic10",
+			file: "ic10/ClimateControl/Filter Controller MKI.ic10",
 			prefab: "StructureFiltration",
 			props: { ...GOOD, ...props },
 		})
 		.build();
 }
 
-describe("MBA - Filter Controller MKI", () => {
+describe("Filter Controller MKI", () => {
 	it("filters while the waste gas is 23–27 °C, above 5,000 kPa, and the output isn't full", async () => {
 		const world = await build({});
 		await world.runTicks(1);

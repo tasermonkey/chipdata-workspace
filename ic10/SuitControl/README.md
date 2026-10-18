@@ -8,7 +8,7 @@ This would not work well, if the base atmo got containimated with non-breathable
 
 
 ## Simple Suit Controller MKII
-[Source Code](./Simple%20SUit%20Controller%20MKII.ic10)
+[Source Code](./Simple%20Suit%20Controller%20MKII.ic10)
 
 This is the next iteration.
 - Turn on and off filters so that they last longer

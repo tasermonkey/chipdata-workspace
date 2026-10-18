@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { Color, type DeviceSpec, type KnownPrefab, LedMode, parseId, press, type ReferenceId, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
-const SETUP = "ic10/FabControl/VCIC - Printer Setup.ic10";
-const CONTROL = "ic10/FabControl/VCIC - Printer Control.ic10";
+const SETUP = "ic10/FabControl/Printer Setup.ic10";
+const CONTROL = "ic10/FabControl/Printer Control.ic10";
 
 /** The reference IDs the setup chip hard-codes, one block of 12 stack slots per fabricator. */
 const FABS = {
@@ -63,7 +63,7 @@ function build({ dial = 20, power = {} as Partial<Record<Fab, number>> } = {}) {
 		.build();
 }
 
-describe("VCIC - Printer Setup and Printer Control", () => {
+describe("Printer Setup and Printer Control", () => {
 	it("setup writes each fabricator's device IDs into Control's stack", async () => {
 		const world = await build();
 		await world.chip("setup").runToHalt({ maxTicks: 1 });

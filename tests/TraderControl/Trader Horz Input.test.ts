@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { describeTraderInput, pressButton, startConsole, typeValue } from "./trader-input.ts";
 
-const SPEC = { script: "ic10/TraderControl/VCIC Trader Horz Input.ic10", prefix: "HC", other: "VC" };
+const SPEC = { script: "ic10/TraderControl/Trader Horz Input.ic10", prefix: "HC", other: "VC" };
 
-describe("VCIC Trader Horz Input", () => {
+describe("Trader Horz Input", () => {
 	describeTraderInput(SPEC);
 
 	it("wraps the heading around 360", async () => {

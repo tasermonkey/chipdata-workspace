@@ -5,9 +5,6 @@ will only write simple code, and won't make too complex of control code for this
 
 I mostly play multiplayer with a couple of friends.  And none of us are this type of engineer, so the game has been decently complex for us.
 
-## Notes
-In these scripts; VC just stand for our vulcan play through.  IC is IC chips
-
 ## What's in here
 
 - [`ic10/`](ic10/): the scripts, by what they control. Each folder's README says what its scripts do.

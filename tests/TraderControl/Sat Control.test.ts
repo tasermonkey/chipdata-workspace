@@ -32,11 +32,11 @@ function build({ target = { vertical: 0, horizontal: 0 }, manual = {}, throttle 
 		.device("largeSwitch", "ModularDeviceFlipCoverSwitch", { Setting: manual.large ?? 0 }, { name: "LargeSatManualSwitch" })
 		.device("mediumThrottle", "ModularDeviceThrottle3x2", { Setting: throttle.medium ?? 0 }, { name: "MedSatPowerThrottle" })
 		.device("largeThrottle", "ModularDeviceThrottle3x2", { Setting: throttle.large ?? 0 }, { name: "LargeSatPowerThrottle" })
-		.housing("ic", { file: "ic10/TraderControl/VCIC-Sat Control.ic10" })
+		.housing("ic", { file: "ic10/TraderControl/Sat Control.ic10" })
 		.build();
 }
 
-describe("VCIC-Sat Control", () => {
+describe("Sat Control", () => {
 	it("shows where each dish is pointing", async () => {
 		const world = await build();
 		await world.runTicks(2);

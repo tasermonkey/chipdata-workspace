@@ -15,7 +15,7 @@
 		"idle": "error"
 	},
 	"overrides": {
-		"ic10/FurnaceControl/VC IC - Arc Furnace.ic10": {
+		"ic10/FurnaceControl/Arc Furnace.ic10": {
 			"reason": "Staying for documentation, and the script has room",
 			"rules": {
 				"unused": "off"

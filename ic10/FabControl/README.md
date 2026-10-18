@@ -9,8 +9,8 @@ Setup instructions
    - 1 Mode Flip Switch (To switch between manual and stack mode)
    - 1 On/Off switch (so that the machine may function like normal)
 4. 2 IC Housing (though 1 is used only for setup and may be removed/turned off when done)
-    - 1 IC Housing/Chip - [controller chip](./VCIC%20-%20Printer%20Control.ic10)        - The actual code to control the fabrication room
-    - 1 IC Housing/Chip - [configuration chip](./VCIC%20-%20Printer%20Setup.ic10) - To tell the other chip what fabricatorto control
+    - 1 IC Housing/Chip - [controller chip](./Printer%20Control.ic10)        - The actual code to control the fabrication room
+    - 1 IC Housing/Chip - [configuration chip](./Printer%20Setup.ic10) - To tell the other chip what fabricatorto control
 5. All devices on 1 logistical data network
 6. 1 stacker per fabricator
 7. Tablet with the Configuration Chip
@@ -22,10 +22,10 @@ Setup instructions
 
 ## Software Setup
 1. Install the controller chip:
-- Add the [controller chip](./VCIC%20-%20Printer%20Control.ic10) to the housing.
+- Add the [controller chip](./Printer%20Control.ic10) to the housing.
 - Optionally name the housing so that you can easily find it for the setup chip
 2. The setup chip is:
-- [View Code](./VCIC%20-%20Printer%20Setup.ic10) 
+- [View Code](./Printer%20Setup.ic10) 
 - Memory Should reference the code chip.  It changes the 'stack' of the code chip with the items under control of that controller chip
     - In the setup code, the `$<string>` means the "ReferenceId" (If you use the ReferenceId in the tablet that already has the dollar you add the dollar sign, if you use the decimal number version of ReferenceId, you do not need the `$` (just match what the tablet says)
 ```

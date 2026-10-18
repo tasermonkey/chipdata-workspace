@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
-const SCRIPT = "ic10/FurnaceControl/VC IC - Arc Furnace.ic10";
+const SCRIPT = "ic10/FurnaceControl/Arc Furnace.ic10";
 
 /** Arc furnaces on d0 and d2 (d1 left empty), and the furnace room's vent. */
 function build() {
@@ -14,7 +14,7 @@ function build() {
 		.build();
 }
 
-describe("VC IC - Arc Furnace", () => {
+describe("Arc Furnace", () => {
 	it("turns on the furnace room's vent, pulling air in", async () => {
 		const world = await build();
 		await world.runTicks(1);

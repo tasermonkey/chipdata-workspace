@@ -1,5 +1,5 @@
 # Printer Control: each fabricator's amount, stack mode, +/- buttons and power light.
-# Its devices' IDs are in its stack, written there by VCIC - Printer Setup.
+# Its devices' IDs are in its stack, written there by Printer Setup.
 alias fabSpTop r1
 alias stackSize r2
 alias productionMode r3

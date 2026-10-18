@@ -3,7 +3,7 @@ import { sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 import { describeHelmet } from "./helmet.ts";
 
-const SCRIPT = "ic10/SuitControl/Simple SUit Controller MKII.ic10";
+const SCRIPT = "ic10/SuitControl/Simple Suit Controller MKII.ic10";
 
 /** The chip sits in the suit (db); the helmet is on d0 and closed, in vacuum. */
 function build(helmet: { pressure: number; ratioOxygen: number }) {

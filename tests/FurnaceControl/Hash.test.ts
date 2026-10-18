@@ -4,7 +4,7 @@ import { REPO_ROOT } from "../support/paths.ts";
 import { IRON, standIn } from "./recipes.ts";
 
 // From the Steam Workshop (AdvFurnaceControl/README.MD). The housings are compact IC housings, found by name.
-const SCRIPT = "ic10/FurnaceControl/AdvFurnaceControl/V-IC Hash.ic10";
+const SCRIPT = "ic10/FurnaceControl/AdvFurnaceControl/Hash.ic10";
 
 /** Recipe hashes, as the script lists them, by ingot dial position. */
 const STEEL = { dial: 8, hash: -654790771 };
@@ -36,7 +36,7 @@ function build({ ingot = 1, amount = 2, ventLever = 1, temps = { o2: 300, h2: 30
 		.build();
 }
 
-describe("V-IC Hash (Advanced Furnace Control)", () => {
+describe("Hash (Advanced Furnace Control)", () => {
 	it("sets up the dials' ranges and turns the pipe analyzers on", async () => {
 		const world = await build();
 		await world.runTicks(1);

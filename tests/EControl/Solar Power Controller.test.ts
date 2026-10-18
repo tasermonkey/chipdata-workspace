@@ -24,14 +24,14 @@ function build({ sun, dial, pinned = true }: Setup) {
 		.devices(PANELS.map((prefab) => [prefab, prefab] as const));
 	if (dial !== undefined) builder = builder.device("dial", "StructureLogicDial", { Setting: dial });
 	const pins = { ...(pinned && { d0: "sensor" }), ...(dial !== undefined && { d1: "dial" }) };
-	return builder.housing("ic", { file: "ic10/EControl/MBA-Solar Power Controller.ic10", pins }).build();
+	return builder.housing("ic", { file: "ic10/EControl/Solar Power Controller.ic10", pins }).build();
 }
 
 function expectPanels(world: Awaited<ReturnType<typeof build>>, props: { Vertical: number; Horizontal: number }) {
 	for (const prefab of PANELS) expect(world.device(prefab)).toHaveProps(props);
 }
 
-describe("MBA-Solar Power Controller", () => {
+describe("Solar Power Controller", () => {
 	it("points every kind of panel at the sun: tilt |vertical − 90|, facing its heading", async () => {
 		const world = await build({ sun: { vertical: 30, horizontal: 45 } });
 		await world.runTicks(1);

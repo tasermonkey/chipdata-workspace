@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildPlant, describeGenerationDisplays, describePowerDelta, describeTransformer, passes } from "./power.ts";
 
-const SCRIPT = "ic10/EControl/VCIC - Battery Control.ic10";
+const SCRIPT = "ic10/EControl/Battery Control.ic10";
 
-describe("VCIC - Battery Control", () => {
+describe("Battery Control", () => {
 	describeGenerationDisplays(SCRIPT);
 	describePowerDelta(SCRIPT);
 	describeTransformer(SCRIPT);

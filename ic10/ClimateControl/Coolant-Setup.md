@@ -23,9 +23,9 @@ Vulcan Coolant Setup
   - 1 for our Advance Furnance Coolant (to cool nitrogen)
 
 ## Images
-![00](./images/VC-Coolant-00.png)
-![01](./images/VC-Coolant-01.png)
-![02](./images/VC-Coolant-02.png)
-![03](./images/VC-Coolant-03.png)
-![04](./images/VC-Coolant-04.png)
-![05](./images/VC-Coolant-05.png)
+![00](./images/Coolant-00.png)
+![01](./images/Coolant-01.png)
+![02](./images/Coolant-02.png)
+![03](./images/Coolant-03.png)
+![04](./images/Coolant-04.png)
+![05](./images/Coolant-05.png)

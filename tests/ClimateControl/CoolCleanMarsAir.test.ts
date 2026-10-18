@@ -3,7 +3,7 @@ import { activeVent, airConditioner, PIPE_VOLUME, sim, VentMode } from "@tasermo
 import { REPO_ROOT } from "../support/paths.ts";
 import { inRegister, stage } from "../support/stage.ts";
 
-const SCRIPT = "ic10/ClimateControl/CoolCleanMarsAir [7335].ic10";
+const SCRIPT = "ic10/ClimateControl/CoolCleanMarsAir.ic10";
 
 const SETPOINT = 290; // the AC's Setting, in kelvin
 

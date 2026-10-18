@@ -7,7 +7,7 @@ function build(pressure: number) {
 	return sim({ root: REPO_ROOT })
 		.device("crusher", "StructureIceCrusher")
 		.housing("ic", {
-			file: "ic10/Misc/MBA-IC Nitrice Crusher.ic10",
+			file: "ic10/Misc/Nitrice Crusher.ic10",
 			prefab: "StructureFiltration",
 			props: { PressureInput: pressure },
 			pins: { d0: "crusher" },
@@ -15,7 +15,7 @@ function build(pressure: number) {
 		.build();
 }
 
-describe("MBA-IC Nitrice Crusher", () => {
+describe("Nitrice Crusher", () => {
 	it("runs the crusher while it has ice and the pressure is fine", async () => {
 		const world = await build(1000);
 		world.device("crusher").slot(0).put("ItemNitrice");

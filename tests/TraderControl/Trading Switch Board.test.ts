@@ -31,7 +31,7 @@ const OUTPUT = 2;
 function build() {
 	return sim({ root: REPO_ROOT })
 		.devices([...DOCKS, ...DIRECTION_SWITCHES].map(([key, id]) => [key, "ModularDeviceFlipCoverSwitch", { On: 0 }, { id }] as const))
-		.housing("board", { file: "ic10/TraderControl/VCIC - Trading Switch Board.ic10" })
+		.housing("board", { file: "ic10/TraderControl/Trading Switch Board.ic10" })
 		.build();
 }
 
@@ -40,7 +40,7 @@ async function switchOn(world: World, key: string) {
 	await world.runTicks(1);
 }
 
-describe("VCIC - Trading Switch Board", () => {
+describe("Trading Switch Board", () => {
 	describe("dock switches", () => {
 		it("record which dock is selected, for the sister chips", async () => {
 			const world = await build();

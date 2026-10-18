@@ -13,8 +13,8 @@ The setup uses two chips, and each one sits in an **IC Housing (Compact)**. The 
 
 | Housing name | Script | Job |
 |---|---|---|
-| `Hash IC` | `V-IC Hash.ic10` | Reads the operator panel, picks the recipe, packs the recipe's control limits into one number, and runs the fuel mixer and vents |
-| `Furnace IC` | `V-IC - Furnace.ic10` | Unpacks the limits, then runs the Advanced Furnace (fuel, coolant, venting, and unloading when the batch is done) |
+| `Hash IC` | `Hash.ic10` | Reads the operator panel, picks the recipe, packs the recipe's control limits into one number, and runs the fuel mixer and vents |
+| `Furnace IC` | `Adv Furnace.ic10` | Unpacks the limits, then runs the Advanced Furnace (fuel, coolant, venting, and unloading when the batch is done) |
 | `Silos CD` | (another chip) | Only its `Setting` is read: a negative value forces the Hash IC to `off` |
 
 ### Devices (all addressed by name with `sbn` / `lbn`)
@@ -112,7 +112,7 @@ A **maxtemp of 10000** means "no upper limit", since the coolant pump never turn
 2. Join the four fields and put `0.` in front.
 3. Keep each block exactly three lines (`s db Setting <ingot hash>`, `move r2 ...`, `j main`). The dial selects a recipe with a relative jump, `brnez r0 r0`, where `r0 = 3 × (dial − 1) + 1`. Adding a line or a comment-only line inside the table moves every recipe after it. Comments on the same line as code are fine.
 
-### Hash IC (`V-IC Hash.ic10`) main loop
+### Hash IC (`Hash.ic10`) main loop
 
 1. **Panel and vents**: sets the dial modes and turns on the analyzers. If `VentLever` is off, it calls `VentOn`, which sets `Vent 1` to outward mode at 101 kPa and `Vent 2` to inward mode at 101 kPa external / 55000 kPa internal. If the lever is on, it calls `VentOff`, which sets both external targets to 0.
 2. **Fuel mixer** (`Mixer`): sets `Fuel Mixer` Setting = `100 / (1 + T_O2 / (2·T_H2))`. At equal input pressures, moles scale with 1/T, so this gives a **2:1 H₂:O₂ molar mix**. It assumes **H₂ is on mixer input 1**.
@@ -130,7 +130,7 @@ A **maxtemp of 10000** means "no upper limit", since the coolant pump never turn
 6. **Confirm**: if the button reads 1, `Set` writes `r2` to `Furnace IC` Setting. This runs *before* the jump table, so it sends the `r2` chosen on the **previous** pass. Because the loop runs every tick, that is normally the same recipe. If you turn the dial and press Confirm in the same tick, or press it on the first tick after power-up, the stale value or 0 is sent instead.
 7. **Jump table**: as described above, it sets its own Setting to the ingot hash and loads `r2`, then returns to `main`.
 
-### Furnace IC (`V-IC - Furnace.ic10`)
+### Furnace IC (`Adv Furnace.ic10`)
 
 **`start` (idle loop):** clears the limits and turns both pumps off. It turns the `Fuel Mixer` on whenever `Fuel PA` is below 5000 kPa, which keeps the fuel line topped up to about 5 MPa. Separately, `SLight` and `SLed` are switched on only while `A Furnace` is powered on. When they're on, the light is red and the LED shows `Ready!`. Then the furnace output is opened fully (`SettingOutput 100`) if the `Flush` lever is on or the furnace is above 40000 kPa; otherwise it is closed. Each pass writes `db Setting -1` and yields, then reads `db Setting` again. Once the Hash IC has written a positive packed value, the script calls `Get` and drops into `set`.
 

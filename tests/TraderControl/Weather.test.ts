@@ -13,11 +13,11 @@ function build(station: { Mode: number; NextWeatherEventTime: number }) {
 		.device("station", "StructureWeatherStation", station)
 		.device("light", "StructureDiode")
 		.device("counter", "StructureConsoleLED5")
-		.housing("ic", { file: "ic10/TraderControl/VCIC - Weather.ic10", pins: { d0: "station", d1: "light", d3: "counter" } })
+		.housing("ic", { file: "ic10/TraderControl/Weather.ic10", pins: { d0: "station", d1: "light", d3: "counter" } })
 		.build();
 }
 
-describe("VCIC - Weather", () => {
+describe("Weather", () => {
 	it("shows nothing, in white, while no storm is coming", async () => {
 		const world = await build({ Mode: 0, NextWeatherEventTime: 0 });
 		await world.runTicks(2);

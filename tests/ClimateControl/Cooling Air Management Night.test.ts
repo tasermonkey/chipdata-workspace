@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { activeVent, dayNight, heatExchange, PIPE_VOLUME, sim, VentMode } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
-const SCRIPT = "ic10/ClimateControl/VCCR Cooling Air Management (1) [22840].ic10";
+const SCRIPT = "ic10/ClimateControl/Cooling Air Management Night.ic10";
 
 /** Temperatures in kelvin; the script's thresholds are 408 K (night) and 453 K (pipe). */
 function build(world: { outsideTemp: number; pipeTemp: number; pipePressure: number }) {
@@ -23,7 +23,7 @@ function build(world: { outsideTemp: number; pipeTemp: number; pipePressure: num
 // The loop yields at the top and again inside each mode, so the vent is fully set in the third tick.
 const SETTLE_TICKS = 3;
 
-describe("VCCR Cooling Air Management", () => {
+describe("Cooling Air Management Night", () => {
 	it("pulls in night air while the pipe is under max pressure", async () => {
 		const world = await build({ outsideTemp: 300, pipeTemp: 500, pipePressure: 1000 });
 		await world.runTicks(SETTLE_TICKS);
@@ -115,7 +115,7 @@ async function buildWithGas() {
 	return world;
 }
 
-describe("VCCR Cooling Air Management, with gas", () => {
+describe("Cooling Air Management Night, with gas", () => {
 	it("fills the pipe at night, holds it in the morning, and expels it once the day heats it", async () => {
 		const world = await buildWithGas();
 		const outside = () => world.room("outside").temperature;

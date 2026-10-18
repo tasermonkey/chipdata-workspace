@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { parseId, sim } from "@tasermonkey/ic10-bench";
 import { REPO_ROOT } from "../support/paths.ts";
 
-const SETUP = "ic10/FabControl/VCIC - Printer Setup.ic10";
-const CONTROL = "ic10/FabControl/VCIC - Printer Control.ic10";
+const SETUP = "ic10/FabControl/Printer Setup.ic10";
+const CONTROL = "ic10/FabControl/Printer Control.ic10";
 
 const BLOCK = 12; // stack slots per fabricator
 const LAST_SLOT = 84; // the end of the last commented-out block
@@ -36,7 +36,7 @@ function buildAlone() {
 const slots = (world: Awaited<ReturnType<typeof buildAlone>>) =>
 	Array.from({ length: LAST_SLOT + 1 }, (_, i) => world.device("memory").stackAt(i));
 
-describe("VCIC - Printer Setup", () => {
+describe("Printer Setup", () => {
 	it("writes the fabricator count and three blocks of 12, and nothing for the commented-out ones", async () => {
 		const world = await buildAlone();
 		await world.runTicks(1);

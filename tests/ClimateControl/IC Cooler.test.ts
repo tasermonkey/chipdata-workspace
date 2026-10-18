@@ -3,7 +3,7 @@ import { activeVent, heatExchange, PIPE_VOLUME, sim, VentMode } from "@tasermonk
 import { REPO_ROOT } from "../support/paths.ts";
 import { reachStage } from "../support/stage.ts";
 
-const SCRIPT = "ic10/ClimateControl/Alaska IC Cooler [101290].ic10";
+const SCRIPT = "ic10/ClimateControl/IC Cooler.ic10";
 
 /** Temperatures in kelvin; the script starts cooling at 303 K and stops below 290 K. */
 function build(world: { gasTemp: number; outsidePressure: number }) {
@@ -17,7 +17,7 @@ function build(world: { gasTemp: number; outsidePressure: number }) {
 
 // Active Vent modes (Stationpedia): 0 Outward pushes pipe gas out into the room, 1 Inward pulls
 // room gas into the pipe. Here the room is outside and the pipe is the coolant pipe (atmo).
-describe("Alaska IC Cooler", () => {
+describe("IC Cooler", () => {
 	// Cooling once used Outward, which pushed the coolant out instead of drawing it in.
 	it("starts cooling once the gas is warm, drawing cold outside air in (Inward)", async () => {
 		const world = await build({ gasTemp: 310, outsidePressure: 0 });
@@ -104,7 +104,7 @@ async function buildWithGas() {
 	return world;
 }
 
-describe("Alaska IC Cooler, with gas", () => {
+describe("IC Cooler, with gas", () => {
 	it("cools the hot gas below 290 K by drawing cold outside air through the radiator", async () => {
 		const world = await buildWithGas();
 		await reachStage(world, 2, { maxTicks: 30 });

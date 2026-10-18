@@ -1,7 +1,7 @@
 # Furnance Control Scripts
 
 ## Arc Furnace Control script
-[Source](./VC%20IC%20-%20Arc%20Furnace.ic10)
+[Source](./Arc%20Furnace.ic10)
 
 - Just create a seperate room for the arc furnaces (no door required)
 - A Active Vent that sucks out its air

@@ -23,11 +23,11 @@ function build() {
 		.devices(LIGHTS.map((prefab) => [prefab, prefab, {}, { name: LIGHT_NAME }] as const))
 		.device("hallLight", "StructureLightLong", {}, { name: "Hall Light" })
 		.device("sensor", "StructureOccupancySensor")
-		.housing("ic", { file: "ic10/EControl/VC-IC Fab Room EControl.ic10", pins: { d0: "sensor" } })
+		.housing("ic", { file: "ic10/EControl/Fab Room EControl.ic10", pins: { d0: "sensor" } })
 		.build();
 }
 
-describe("VC-IC Fab Room EControl", () => {
+describe("Fab Room EControl", () => {
 	it("turns the room's lights and machines on while someone is there", async () => {
 		const world = await build();
 		world.device("sensor").set("Activate", 1);

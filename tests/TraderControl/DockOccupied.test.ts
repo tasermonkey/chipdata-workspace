@@ -12,10 +12,10 @@ function build(docks: Record<string, number>) {
 		[`${dock}.large`, "ModularDeviceLightLarge", {}, { name: dock }],
 		[`${dock}.display`, "ModularDeviceLEDdisplay2", {}, { name: dock }],
 	]);
-	return sim({ root: REPO_ROOT }).devices(devices).housing("ic", { file: "ic10/TraderControl/VCIC-DockOccupied.ic10" }).build();
+	return sim({ root: REPO_ROOT }).devices(devices).housing("ic", { file: "ic10/TraderControl/DockOccupied.ic10" }).build();
 }
 
-describe("VCIC-DockOccupied", () => {
+describe("DockOccupied", () => {
 	it("gives each dock's large light its colour at startup", async () => {
 		const world = await build({ "Green Dock": 0, "Orange Dock": 0, "Khaki Dock": 0, "Black Dock": 0, "Blue Dock": 0 });
 		await world.runTicks(1);
