@@ -1,7 +1,7 @@
 # Sync Demo: checks ic10-link between the editor and the game.
 # db Setting: VERSION. Change it and save; the housing shows the new number once sent.
-# d0: a lever (optional). d1: a light (optional), on while the lever is. From VSCode
-define VERSION 2
+# d0: a lever (optional). d1: a light (optional), on while the lever is. From Repo
+define VERSION 1 # link-per-chip
 alias Lever d0
 alias Light d1
 alias on r0
