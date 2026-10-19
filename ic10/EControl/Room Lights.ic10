@@ -1,14 +1,14 @@
 # Room Lights: the room's lights on while someone is in it, off once they leave.
 # d0: occupancy sensor. d1: a second one, optional (two rooms run as one).
 # Name the room's lights as in ROOM_LIGHT, one name per room. db Setting: 1 if occupied.
-define ROOM_LIGHT HASH("Room Light")
+define ROOM_LIGHT HASH("Room Light") # link-per-chip
 alias Sensor d0
 alias Sensor2 d1
 alias deviceHash r14
 alias personDetected r15
 alias personDetected2 r13
 
-push 0
+push 0 # link-per-chip {
 push HASH("StructureLightLongWide")
 push HASH("StructureLightLong")
 push HASH("StructureDiode")
@@ -18,7 +18,7 @@ push HASH("StructureLightRoundAngled")
 push HASH("StructureWallLight")
 push HASH("StructureWallLightBattery")
 push HASH("StructureLightLongAngled")
-poke 0 sp # the list's top
+poke 0 sp # link-per-chip } the list's top
 
 start:
 yield
