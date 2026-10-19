@@ -17,10 +17,9 @@
 		"ic-link:repl": "ic10-link repl"
 	},
 	"devDependencies": {
-		"@tasermonkey/ic10": "^1.0.1",
 		"@tasermonkey/ic10-bench": "file:../ic10-bench/packages/ic10-bench",
 		"@tasermonkey/ic10-link": "file:../ic10-bench/packages/ic10-link",
-		"@tasermonkey/ic10-lint": "^1.0.2",
+		"@tasermonkey/ic10-lint": "file:../ic10-bench/packages/ic10-lint",
 		"@types/node": "^26.2.0",
 		"typescript": "^7.0.2",
 		"vitest": "^5.0.3"
