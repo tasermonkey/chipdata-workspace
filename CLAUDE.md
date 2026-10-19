@@ -37,6 +37,7 @@ here for people browsing; this is for changing it.
 | `npm run typecheck` | The tests' types. |
 | `npm run ic-link:status` | Which chip runs which script in the save played last, and whether each matches. |
 | `npm run ic-link` | Watches: a saved script goes to its chips if it has no lint errors and its tests pass, and a chip edited in game comes back into its script. Until Ctrl+C. |
+| `npm run ic-link:repl` | A prompt for ic10-link's commands (`status`, `map`, …), with `watch` in the background until `stop`. For a person at a terminal; not for scripted use. |
 
 ## Tests
 

@@ -57,4 +57,5 @@ npm run ic-link
 
 `ic-link:status` lists the chips in the save played last, and how each compares with its script.
 `ic-link` watches: a saved script goes to its chips once it passes lint and its tests, and a chip
-edited in game comes back into its script, to see in `git diff`.
+edited in game comes back into its script, to see in `git diff`. `npm run ic-link:repl` opens a
+prompt for ic10-link's commands, with `watch` running in the background.

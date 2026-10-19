@@ -13,7 +13,8 @@
 		"pretypecheck": "npm run catalog",
 		"typecheck": "tsc -p tsconfig.json",
 		"ic-link": "ic10-link watch",
-		"ic-link:status": "ic10-link status"
+		"ic-link:status": "ic10-link status",
+		"ic-link:repl": "ic10-link repl"
 	},
 	"devDependencies": {
 		"@tasermonkey/ic10": "^1.0.1",
