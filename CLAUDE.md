@@ -10,8 +10,9 @@ here for people browsing; this is for changing it.
 | `ic10/<Category>/*.ic10` | The scripts: the source of truth, sent to the game from here. Each folder's README says what its scripts do; `ic10/Tests/` is for trying out ic10-link. |
 | `tests/<Category>/<Script>.test.ts` | A script's tests, on IC10 Bench. `tests/support/` has the shared helpers (`REPO_ROOT`, `readRepoScript`). |
 | `tests/scripts.test.ts` | Every script, with no test of its own needed: lint, and a 50-tick run with nothing connected. |
-| `tests/stations.test.ts` | Every station map's scripts exist. |
+| `tests/stations.test.ts` | Every station map's scripts exist, and every `<script>.ic10.json` still has its script. |
 | `stations/<station>.json` | Per save game, chip id → script, for ic10-link. A chip's id is the number in brackets in its file's name in the game's chipdata folder. |
+| `# link-per-chip` | On a `define` line: the value belongs to each chip (a room's name, a limit), so ic10-link neither overwrites a chip's value nor copies one back into the script. `<script>.ic10.json` with `{ "perChip": { "byDefineName": [...] } }` does the same without the comment; `npx ic10-link per-chip "<script>" <NAME...>` writes it. |
 | `ic10-lint.json` | Which lint rules are errors, and the scripts allowed over a limit (with why). A script that breaks a rule on purpose, like an in-game audit of the game's errors, gets an override turning that rule off; a key with `*` covers a folder (`"ic10/Audit/**"`). The same file decides `npm test`, `npm run lint`, and whether ic10-link sends a script. |
 | `ic10-mods/` | The modded devices the scripts talk to, so the tests can use them. |
 | `local/` | Not committed, on this machine only. `local/instructions.md` is the IC10 instruction reference, from the wiki. |
