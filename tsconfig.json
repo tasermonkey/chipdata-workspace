@@ -10,10 +10,7 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"noEmit": true,
-		"types": ["node"],
-		// A package linked from a checkout (npm install <folder>) finds vitest from where the link is,
-		// so its matcher types extend this project's vitest, not the checkout's copy.
-		"preserveSymlinks": true
+		"types": ["node"]
 	},
 	"include": ["tests", "ic10-bench-env.d.ts", "vitest.config.ts"]
 }
