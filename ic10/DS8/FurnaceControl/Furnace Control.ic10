@@ -1,0 +1,95 @@
+# Furnace Control: the Advanced Furnace's batch, from Ready to Unload.
+# DS-8 rack, socket 1. Owns the furnace's Open and SettingInput,
+# and the STATE and JOB scratch cells.
+define FURNACE_PORT 4128 # port 1: Advanced Furnace
+define RELEASE_PORT 4135 # port 8: Emergency release lever
+
+# Rack memory (status registers at 8 x DriveCapacity: 4096 for 512)
+define COUNT 511         # drive: how many recipes (not 0: F1 writes it)
+define ROW 8             # drive: recipe n's cells start at n x 8
+define STATE 4136        # scratch: this chip's state, below
+define REQUEST 4137      # scratch: the recipe the Panel asks for
+define TARGET 4138       # scratch: Reagents when the batch is done
+define JOB 4139          # scratch: the recipe running, 0 for none
+define HOLD 4140         # scratch: not 0 holds new batches
+
+define IDLE 0            # the furnace is off
+define READY 1
+define HELD 2
+define NODISK 3
+define ACTIVE 4
+define UNLOADING 5
+define EMERGENCY 6
+
+alias furnace r15
+alias recipe r14         # drive address of the running recipe
+alias now r13            # the state this tick
+
+put db STATE IDLE
+put db REQUEST 0
+
+idle:
+jal tick
+put db JOB 0
+# Off, no recipes, held, or ready: in that order
+ld r1 furnace On
+get r2 db COUNT
+get r3 db HOLD
+move now READY
+select now r3 HELD now
+select now r2 now NODISK
+select now r1 now IDLE
+put db STATE now
+sd furnace SettingInput 0
+sd furnace Open 0
+# The Panel's Confirm starts a batch
+bne now READY idle
+get r0 db REQUEST
+blez r0 idle
+put db JOB r0
+put db REQUEST 0
+mul recipe r0 ROW
+put db STATE ACTIVE
+
+active:
+jal tick
+get r2 db recipe         # the ingot's hash: 0 if the drive went
+beqz r2 idle
+sd furnace SettingInput 100
+# Done: the ingot is forming, and all its Reagents are in
+ld r0 furnace RecipeHash
+seq r0 r0 r2
+ld r1 furnace Reagents
+get r2 db TARGET
+sge r1 r1 r2
+and r0 r0 r1
+bnez r0 unload
+ld r0 furnace Open        # opened by hand
+bnez r0 unload
+j active
+
+unload:
+put db STATE UNLOADING
+sd furnace Open 1
+jal tick
+ld r0 furnace Reagents
+bgtz r0 unload
+j idle
+
+emergency:                # Furnace Release opens the output
+put db STATE EMERGENCY
+put db JOB 0
+put db REQUEST 0
+sd furnace SettingInput 0
+jal tick                  # comes back here while the lever is on
+j idle
+
+tick:                     # a tick, with every device in, no emergency
+yield
+get furnace db FURNACE_PORT
+beqz furnace tick
+get r0 db RELEASE_PORT
+beqz r0 tick
+ld r0 r0 Open            # the lever's position
+bnez r0 emergency
+j r17                    # ra: a rack chip has no name for it

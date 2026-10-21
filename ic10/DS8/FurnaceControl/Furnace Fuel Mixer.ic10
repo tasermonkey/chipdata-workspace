@@ -1,0 +1,46 @@
+# Furnace Fuel Mixer: keeps the fuel line topped up, 2:1 H2:O2.
+# DS-8 rack, socket 5. Owns the Gas Mixer. H2 goes in its input 1.
+define FUEL_PA_PORT 4131 # port 4: Pipe Analyzer, fuel line (mixer out)
+define MIXER_PORT 4133   # port 6: Gas Mixer
+define O2_PA_PORT 4166   # port 15: Pipe Analyzer, O2 into the mixer
+define H2_PA_PORT 4167   # port 16: Pipe Analyzer, H2 into the mixer
+
+# Rack memory (status registers at 8 x DriveCapacity: 4096 for 512)
+define STATE 4136        # scratch: Furnace Control's state
+define ACTIVE 4          # states from here on are in or after a batch
+
+define TOP_UP 5000       # kPa: fill the fuel line to this
+
+alias mixer r15
+alias o2Temp r14
+alias h2Temp r13
+
+main:
+yield
+get mixer db MIXER_PORT
+beqz mixer main
+get r0 db FUEL_PA_PORT
+beqz r0 main
+get r0 db O2_PA_PORT
+beqz r0 main
+ld o2Temp r0 Temperature
+get r0 db H2_PA_PORT
+beqz r0 main
+ld h2Temp r0 Temperature
+
+# At equal pressures, moles go as 1/T: this gives two H2 to one O2
+mul r0 h2Temp 2
+div r0 o2Temp r0
+add r0 r0 1
+div r0 100 r0
+sd mixer Setting r0
+
+# On while the fuel line is low, and no batch is running
+get r0 db FUEL_PA_PORT
+ld r0 r0 Pressure
+slt r0 r0 TOP_UP
+get r1 db STATE
+slt r1 r1 ACTIVE
+and r0 r0 r1
+sd mixer On r0
+j main

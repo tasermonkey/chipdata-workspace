@@ -1,0 +1,90 @@
+# Furnace Status: what the furnace is doing, and which line feeds it.
+# DS-8 rack, socket 7. Only shows: owns the status displays and light.
+define STATUS_LED_PORT 4164 # port 13: Display, the state as text
+define STATUS_LIGHT_PORT 4165 # port 14: Light, the state as a colour
+define PUMPS_LED_PORT 4176 # port 25: Display, which pumps are running
+
+# Rack memory (status registers at 8 x DriveCapacity: 4096 for 512)
+define STATE 4136        # scratch: Furnace Control's state
+define FUEL_ON 4141      # scratch: the fuel pump is running
+define COOL_ON 4142      # scratch: the coolant pump is running
+define READY 1           # states, as Furnace Control has them
+define HELD 2
+define NODISK 3
+define ACTIVE 4
+define UNLOADING 5
+define EMERGENCY 6
+
+define TEXT_MODE 10      # display mode: text
+
+alias text r15
+alias colour r14
+
+main:
+yield
+jal ports
+get r0 db STATE
+move text STR("Idle")    # the furnace is off
+move colour Color.Gray
+seq r1 r0 READY
+select text r1 STR("Ready") text
+select colour r1 Color.Yellow colour
+seq r1 r0 HELD
+select text r1 STR("Hold") text
+select colour r1 Color.Orange colour
+seq r1 r0 NODISK
+select text r1 STR("NoDisk") text
+select colour r1 Color.Purple colour
+seq r1 r0 ACTIVE
+select text r1 STR("Active") text
+select colour r1 Color.Green colour
+seq r1 r0 UNLOADING
+select text r1 STR("Unload") text
+select colour r1 Color.Blue colour
+seq r1 r0 EMERGENCY
+select text r1 STR("EMERG") text
+select colour r1 Color.Red colour
+get r0 db STATUS_LED_PORT
+jal show
+get r0 db STATUS_LIGHT_PORT
+sd r0 On 1
+sd r0 Color colour
+
+# Pumps: 0 neither, 1 fuel, 2 coolant, 3 both
+get r0 db FUEL_ON
+get r1 db COOL_ON
+mul r1 r1 2
+add r0 r0 r1
+move text STR("Off")
+move colour Color.Gray
+seq r1 r0 1
+select text r1 STR("Fuel") text
+select colour r1 Color.Orange colour
+seq r1 r0 2
+select text r1 STR("Cool") text
+select colour r1 Color.Blue colour
+seq r1 r0 3
+select text r1 STR("Both") text
+select colour r1 Color.Purple colour
+get r0 db PUMPS_LED_PORT
+jal show
+j main
+
+show:                    # r0: a display, to show text in colour
+sd r0 On 1
+sd r0 Mode TEXT_MODE
+sd r0 Setting text
+sd r0 Color colour
+j r17                    # ra: a rack chip has no name for it
+
+ports:                   # back once each port has its device
+get r0 db STATUS_LED_PORT
+beqz r0 portsWait
+get r0 db STATUS_LIGHT_PORT
+beqz r0 portsWait
+get r0 db PUMPS_LED_PORT
+beqz r0 portsWait
+j r17                    # ra: a rack chip has no name for it
+portsWait:
+yield
+j ports

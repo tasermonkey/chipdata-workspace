@@ -1,0 +1,56 @@
+# Furnace Release: the Advanced Furnace's output (SettingOutput).
+# DS-8 rack, socket 2. Reads the emergency lever itself, so the
+# release opens even if Furnace Control has stopped.
+define FURNACE_PORT 4128 # port 1: Advanced Furnace
+define FLUSH_PORT 4134   # port 7: Flush lever
+define RELEASE_PORT 4135 # port 8: Emergency release lever
+
+# Rack memory (status registers at 8 x DriveCapacity: 4096 for 512)
+define ROW 8             # drive: recipe n's cells start at n x 8
+define MAX_KPA 4         # recipe cell: highest pressure
+define STATE 4136        # scratch: Furnace Control's state
+define JOB 4139          # scratch: the recipe running, 0 for none
+define ACTIVE 4          # states, as Furnace Control has them
+define UNLOADING 5
+
+define FULL 100          # SettingOutput: wide open
+define VENT_SPEED 30     # SettingOutput while over the recipe's kPa
+define FLUSH_ABOVE 40000 # kPa: not in a batch, release above this
+define PRESS_CAP 55000   # kPa: the furnace's own limit
+
+alias furnace r15
+alias press r14
+alias output r13
+
+main:
+yield
+get furnace db FURNACE_PORT
+beqz furnace main
+get r0 db FLUSH_PORT
+beqz r0 main
+get r1 db RELEASE_PORT
+beqz r1 main
+ld r0 r0 Open           # the levers' positions
+ld r1 r1 Open
+ld press furnace Pressure
+min press press PRESS_CAP
+get r2 db STATE
+beq r2 ACTIVE batch
+# Not in a batch: the Flush lever, or too full
+sgt r3 press FLUSH_ABOVE
+or r0 r0 r3
+mul output r0 FULL
+seq r2 r2 UNLOADING      # but shut while unloading
+select output r2 0 output
+j out
+batch:                   # vent what's over the recipe's pressure
+get r2 db JOB
+mul r2 r2 ROW
+add r2 r2 MAX_KPA
+get r2 db r2
+sgt r2 press r2
+mul output r2 VENT_SPEED
+out:
+select output r1 FULL output   # the emergency lever wins
+sd furnace SettingOutput output
+j main

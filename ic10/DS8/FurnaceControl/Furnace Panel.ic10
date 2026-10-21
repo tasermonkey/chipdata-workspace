@@ -1,0 +1,85 @@
+# Furnace Panel: pick a recipe and an amount, then Confirm to start.
+# DS-8 rack, socket 6. Owns the dials, and the REQUEST and TARGET cells.
+define INGOT_PORT 4160   # port 9: Dial, which recipe (0 is none)
+define AMOUNT_PORT 4161  # port 10: Dial, how much
+define CONFIRM_PORT 4162 # port 11: Button
+define AMOUNT_LED_PORT 4163 # port 12: Display, the Reagents it will use
+
+# Rack memory (status registers at 8 x DriveCapacity: 4096 for 512)
+define COUNT 511         # drive: how many recipes (not 0: F1 writes it)
+define ROW 8             # drive: recipe n's cells start at n x 8
+define PER_STEP 5        # recipe cell: Reagents per Amount step
+define STATE 4136        # scratch: Furnace Control's state
+define REQUEST 4137      # scratch: the recipe asked for
+define TARGET 4138       # scratch: Reagents when the batch is done
+define READY 1           # states, as Furnace Control has them
+define UNLOADING 5
+
+define MAX_AMOUNT 30     # the Amount dial's top step
+
+alias recipe r15
+alias reagents r14       # how many the batch will use
+alias now r13            # Furnace Control's state this tick
+alias before r12         # and last tick
+
+main:
+yield
+jal ports
+get now db STATE
+get r0 db INGOT_PORT
+
+# Once a batch is out, the ingot dial goes back to none
+seq r1 before UNLOADING
+sne r2 now UNLOADING
+and r1 r1 r2
+move before now
+beqz r1 pick
+sd r0 Setting 0
+pick:
+get r1 db COUNT
+sd r0 Mode r1
+ld recipe r0 Setting
+ble recipe r1 amount
+sd r0 Setting r1
+move recipe r1
+
+amount:                  # at least 1 step
+get r0 db AMOUNT_PORT
+sd r0 Mode MAX_AMOUNT
+ld reagents r0 Setting
+bgtz reagents counted
+sd r0 Setting 1
+move reagents 1
+counted:                 # recipe 0's cell is 0, so no recipe is 0
+mul r0 recipe ROW
+add r0 r0 PER_STEP
+get r0 db r0
+mul reagents reagents r0
+get r0 db AMOUNT_LED_PORT
+sd r0 On 1
+sd r0 Mode 0
+sd r0 Setting reagents
+
+# Confirm, while the furnace is ready and a recipe is picked
+get r0 db CONFIRM_PORT
+ld r0 r0 Setting
+seq r1 now READY
+and r0 r0 r1
+sgtz r1 recipe
+and r0 r0 r1
+beqz r0 main
+put db TARGET reagents
+put db REQUEST recipe
+j main
+
+ports:                   # back once each port has its device
+move r0 INGOT_PORT       # ports 9 to 12 sit together
+portsNext:
+get r1 db r0
+beqz r1 portsWait
+add r0 r0 1
+ble r0 AMOUNT_LED_PORT portsNext
+j r17                    # ra: a rack chip has no name for it
+portsWait:
+yield
+j ports

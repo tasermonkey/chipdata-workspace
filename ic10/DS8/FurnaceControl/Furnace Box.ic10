@@ -1,0 +1,36 @@
+# Furnace Box: holds the air in the furnace's box at 101 kPa.
+# DS-8 rack, socket 8. Owns the box's two vents.
+define LEVER_PORT 4168   # port 17: Lever, on to stop the vents
+define VENT_OUT_PORT 4169 # port 18: Active Vent, fills the box
+define VENT_IN_PORT 4170 # port 19: Active Vent, empties the box
+
+define BOX_AIR 101       # kPa: the vents hold the box at this
+define VENT_MAX 55000    # kPa: the empty vent's pipe can take this
+define OUTWARD 0         # vent modes
+define INWARD 1
+
+alias lever r15
+alias ventOut r14
+alias ventIn r13
+
+main:
+yield
+get lever db LEVER_PORT
+beqz lever main
+get ventOut db VENT_OUT_PORT
+beqz ventOut main
+get ventIn db VENT_IN_PORT
+beqz ventIn main
+
+# The lever stops the vents: both aim for 0 kPa outside
+ld r0 lever Open         # the lever's position
+select r1 r0 0 BOX_AIR
+sd ventOut Mode OUTWARD
+sd ventOut PressureExternal r1
+sd ventOut PressureInternal 0
+sd ventOut On 1
+sd ventIn Mode INWARD
+sd ventIn PressureExternal r1
+sd ventIn PressureInternal VENT_MAX
+sd ventIn On 1
+j main

@@ -14,3 +14,6 @@
 ## AdvFurnaceControl
 This one comes from steam.  [See its instructions](./AdvFurnaceControl/README.MD)
 
+A version for the DS-8 Server Rack mod, with its recipes on a drive, is in
+[DS8/FurnaceControl](../DS8/FurnaceControl/README.md).
+

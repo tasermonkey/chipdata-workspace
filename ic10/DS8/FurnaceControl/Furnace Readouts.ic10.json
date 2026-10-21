@@ -1,0 +1,6 @@
+{
+	"host": "StructureServerRack",
+	"perChip": {
+		"byDefineName": ["FURNACE_K_MAX", "FURNACE_KPA_MAX", "BOX_K_MAX", "BOX_KPA_MAX"]
+	}
+}

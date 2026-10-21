@@ -1,0 +1,62 @@
+# Furnace Coolant Pump: coolant into the Advanced Furnace during a batch.
+# DS-8 rack, socket 4. Owns the coolant pump, and the COOL_ON scratch cell.
+define FURNACE_PORT 4128 # port 1: Advanced Furnace
+define PUMP_PORT 4130    # port 3: Volume Pump, coolant line
+define ANALYZER_PORT 4132 # port 5: Pipe Analyzer, coolant line
+
+# Rack memory (status registers at 8 x DriveCapacity: 4096 for 512)
+define ROW 8             # drive: recipe n's cells start at n x 8
+define MAX_K 2           # recipe cell: highest temperature
+define STATE 4136        # scratch: Furnace Control's state
+define JOB 4139          # scratch: the recipe running, 0 for none
+define COOL_ON 4142      # scratch: 1 while this pump runs
+define ACTIVE 4          # Furnace Control's batch state
+
+define MOVE 250000       # with GAS_R: about 30 moles a tick at max K
+define GAS_R 8314.46     # 1000 x the gas constant: kPa from n, T, V
+
+alias furnace r15
+alias maxTemp r14
+alias temp r13
+alias on r12
+alias volume r11
+
+main:
+yield
+get furnace db FURNACE_PORT
+beqz furnace main
+get r0 db PUMP_PORT
+beqz r0 main
+get r0 db ANALYZER_PORT
+beqz r0 main
+move on 0
+move volume 0
+get r0 db STATE
+bne r0 ACTIVE pump
+get r0 db JOB
+mul r0 r0 ROW
+add r0 r0 MAX_K
+get maxTemp db r0
+ld temp furnace Temperature
+
+# On: too hot
+sgt on temp maxTemp
+
+# How much: about 30 moles a tick, more the further over max K it is
+div r1 temp maxTemp
+max r1 r1 1
+mul r1 r1 MOVE
+get r0 db ANALYZER_PORT
+ld r2 r0 Volume
+mul volume r1 r2
+ld r2 r0 TotalMoles
+mul r3 r2 GAS_R
+div volume volume r3
+select volume r2 volume 0  # an empty line gives nothing
+
+pump:
+get r0 db PUMP_PORT
+sd r0 Setting volume
+sd r0 On on
+put db COOL_ON on
+j main

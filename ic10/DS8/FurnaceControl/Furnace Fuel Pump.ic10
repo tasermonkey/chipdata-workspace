@@ -1,0 +1,80 @@
+# Furnace Fuel Pump: fuel into the Advanced Furnace during a batch,
+# and lights it. DS-8 rack, socket 3. Owns the fuel pump, the
+# furnace's Activate, and the FUEL_ON scratch cell.
+define FURNACE_PORT 4128 # port 1: Advanced Furnace
+define PUMP_PORT 4129    # port 2: Volume Pump, fuel line
+define ANALYZER_PORT 4131 # port 4: Pipe Analyzer, fuel line
+
+# Rack memory (status registers at 8 x DriveCapacity: 4096 for 512)
+define ROW 8             # drive: recipe n's cells start at n x 8
+define MIN_K 1           # recipe cells
+define MAX_K 2
+define MIN_KPA 3
+define STATE 4136        # scratch: Furnace Control's state
+define JOB 4139          # scratch: the recipe running, 0 for none
+define FUEL_ON 4141      # scratch: 1 while this pump runs
+define ACTIVE 4          # Furnace Control's batch state
+
+define IGNITE_BELOW 600  # K: light the furnace at or below this
+define COLD 300          # K: a furnace reading 0 counts as this
+define GAS_R 8314.46     # 1000 x the gas constant: kPa from n, T, V
+
+alias furnace r15
+alias recipe r14         # drive address of the running recipe
+alias temp r13
+alias on r12
+alias volume r11
+
+main:
+yield
+get furnace db FURNACE_PORT
+beqz furnace main
+get r0 db PUMP_PORT
+beqz r0 main
+get r0 db ANALYZER_PORT
+beqz r0 main
+move on 0
+move volume 0
+get r0 db STATE
+bne r0 ACTIVE pump
+get recipe db JOB
+mul recipe recipe ROW
+ld temp furnace Temperature
+sle r0 temp IGNITE_BELOW
+sd furnace Activate r0
+
+# On: too cold, or under the recipe's pressure (if it has one)
+add r0 recipe MIN_K
+get r0 db r0
+slt on temp r0
+add r0 recipe MIN_KPA
+get r0 db r0
+ld r1 furnace Pressure
+slt r1 r1 r0
+select r1 r0 r1 0
+or on on r1
+
+# How much: about 0.06 x min kPa x (max K / T) / T_fuel moles a tick,
+# so more for a high-pressure recipe, and more while the furnace is cold
+add r1 recipe MAX_K
+get r1 db r1
+select r2 temp temp COLD
+div r1 r1 r2
+mul r1 r1 r0             # x min kPa
+mul r1 r1 500
+get r0 db ANALYZER_PORT
+ld r2 r0 Volume
+mul volume r1 r2
+ld r2 r0 Temperature
+ld r3 r0 TotalMoles
+mul r2 r2 r3
+mul r2 r2 GAS_R
+div volume volume r2
+select volume r3 volume 0  # an empty line gives nothing
+
+pump:
+get r0 db PUMP_PORT
+sd r0 Setting volume
+sd r0 On on
+put db FUEL_ON on
+j main
