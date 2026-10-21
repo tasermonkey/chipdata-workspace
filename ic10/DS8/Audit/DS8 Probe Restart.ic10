@@ -1,0 +1,18 @@
+# DS-8 probe, rack socket 1: does a chip start over, and is the drive
+# online when it does? Each start adds 1 to scratch cell 4140.
+# r12: how many times it has started. r13: drives online (4106) at the
+# moment it started. r10: drive cell 102 at that moment. r0: ticks
+# since the start. r1, r2: drive cell 102 and drives online now.
+move r0 0
+get r12 db 4140
+add r12 r12 1
+put db 4140 r12
+get r13 db 4106
+get r10 db 102
+put db 102 7777
+main:
+yield
+add r0 r0 1
+get r1 db 102
+get r2 db 4106
+j main

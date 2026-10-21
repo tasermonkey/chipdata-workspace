@@ -1,0 +1,30 @@
+# DS-8 probe, rack socket 1: how the game reads what the recipe setup
+# chip and the Status chip rely on.
+# r0: push 0095010000 (95010000 if the leading zeros are fine).
+# r1: HASH("ItemIronIngot"). r2: STR("NoDisk"). r3: Color.Purple.
+# r5: drive cell 200, written through rr4: r4 = 8 points at r8 = 77.
+# r6, r7: the pair split (10000 and 950).
+jal test
+push 0095010000
+pop r0
+move r1 HASH("ItemIronIngot")
+move r2 STR("NoDisk")
+move r3 Color.Purple
+move r8 77
+move r4 8
+put db 200 rr4
+get r5 db 200
+mod r6 r0 100000
+div r7 r0 100000
+trunc r7 r7
+move sp r14
+move ra r13
+done:
+yield
+j done
+test:
+    move r16 0
+    push 1234
+    move r14 sp
+    move r13 ra
+    j ra

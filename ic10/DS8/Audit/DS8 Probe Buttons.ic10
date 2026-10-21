@@ -1,0 +1,23 @@
+# DS-8 probe, an IC Housing: how long a press shows in Setting.
+# One Button and one modular RoundButton on the housing's network.
+# Button: r0 ticks seen at 1, r1 presses. RoundButton: r2 ticks, r3
+# presses. One tick a press means r0 = r1 and r2 = r3.
+move r0 0
+move r1 0
+move r2 0
+move r3 0
+move r6 0
+move r7 0
+main:
+yield
+lb r4 HASH("StructureLogicButton") Setting Sum
+add r0 r0 r4
+sgt r5 r4 r6
+add r1 r1 r5
+move r6 r4
+lb r4 HASH("ModularDeviceRoundButton") Setting Sum
+add r2 r2 r4
+sgt r5 r4 r7
+add r3 r3 r5
+move r7 r4
+j main

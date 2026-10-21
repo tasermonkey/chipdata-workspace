@@ -1,0 +1,18 @@
+# DS-8 probe, rack socket 1: does a socket chip have sp and ra?
+# r10: ra after the jal (5, the line after it). r11: sp after one
+# push (1). r12: 1 once it got back from test. IncorrectVariable at the
+# move sp line means no sp.
+move r12 0
+jal test
+move r12 1
+done:
+yield
+j done
+test:
+move r12 ra
+move sp 0
+push 5
+move r11 sp
+move r7 ra
+j ra
+# test

@@ -1,0 +1,22 @@
+# DS-8 probe, an IC Housing: where each lever keeps its position.
+# One of each on the housing's network, and no others of those kinds.
+# Lever: r0 Open, r1 Setting. Switch: r2 Open, r3 Setting.
+# BigLever: r4 Open, r5 Setting. FlipCoverSwitch: r6 Open, r7 Setting,
+# r8 On. Modular Switch: r9 Setting, r10 On. FlipSwitch: r11 Setting,
+# r12 On.
+main:
+yield
+lb r0 HASH("StructureLogicSwitch") Open Sum
+lb r1 HASH("StructureLogicSwitch") Setting Sum
+lb r2 HASH("StructureLogicSwitch2") Open Sum
+lb r3 HASH("StructureLogicSwitch2") Setting Sum
+lb r4 HASH("ModularDeviceBigLever") Open Sum
+lb r5 HASH("ModularDeviceBigLever") Setting Sum
+lb r6 HASH("ModularDeviceFlipCoverSwitch") Open Sum
+lb r7 HASH("ModularDeviceFlipCoverSwitch") Setting Sum
+lb r8 HASH("ModularDeviceFlipCoverSwitch") On Sum
+lb r9 HASH("ModularDeviceSwitch") Setting Sum
+lb r10 HASH("ModularDeviceSwitch") On Sum
+lb r11 HASH("ModularDeviceFlipSwitch") Setting Sum
+lb r12 HASH("ModularDeviceFlipSwitch") On Sum
+j main

@@ -1,0 +1,15 @@
+# DS-8 probe, an IC Housing: a dial's Mode as its top, and a Setting
+# written past it. One Dial and one modular Dial on the network.
+# Once at the start: Mode 17, then Setting 25.
+# Dial: r0 Setting, r2 Mode. Modular Dial: r1 Setting, r3 Mode.
+sb HASH("StructureLogicDial") Mode 17
+sb HASH("ModularDeviceDial") Mode 17
+sb HASH("StructureLogicDial") Setting 25
+sb HASH("ModularDeviceDial") Setting 25
+main:
+yield
+lb r0 HASH("StructureLogicDial") Setting Sum
+lb r1 HASH("ModularDeviceDial") Setting Sum
+lb r2 HASH("StructureLogicDial") Mode Sum
+lb r3 HASH("ModularDeviceDial") Mode Sum
+j main

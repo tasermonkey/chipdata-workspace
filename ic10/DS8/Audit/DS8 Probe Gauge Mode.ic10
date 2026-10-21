@@ -1,0 +1,15 @@
+# DS-8 probe, an IC Housing: what writing Mode to a gauge does (a gauge
+# has none). One Gauge2x2 on the network. Expected: the chip stops at
+# the sd line with an error, with r2 = 1 and r3 = 0.
+# r0: the gauge's ReferenceId. r2: 1 just before the write. r3: 1 if
+# the chip carried on past it.
+move r2 0
+move r3 0
+main:
+yield
+lb r0 HASH("ModularDeviceGauge2x2") ReferenceId Sum
+beqz r0 main
+move r2 1
+sd r0 Mode 3
+move r3 1
+j main

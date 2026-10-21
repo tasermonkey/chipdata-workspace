@@ -1,0 +1,33 @@
+# DS-8 probe, an IC Housing: gauges as readouts. On the network: one
+# each of Gauge2x2, Gauge3x3 and EdgewiseMeter3. Each is set to 0-3000
+# and shows 1500, so its needle should sit half way.
+# r0, r2, r4: each one's ReferenceId (2x2, 3x3, Edgewise).
+# r1, r3, r5: 1 if its PrefabHash, read by ID, is the HASH() the
+# Readouts chip looks for.
+main:
+yield
+sb HASH("ModularDeviceGauge2x2") On 1
+sb HASH("ModularDeviceGauge2x2") Minimum 0
+sb HASH("ModularDeviceGauge2x2") Maximum 3000
+sb HASH("ModularDeviceGauge2x2") Setting 1500
+sb HASH("ModularDeviceGauge3x3") On 1
+sb HASH("ModularDeviceGauge3x3") Minimum 0
+sb HASH("ModularDeviceGauge3x3") Maximum 3000
+sb HASH("ModularDeviceGauge3x3") Setting 1500
+sb HASH("ModularDeviceEdgewiseMeter3") On 1
+sb HASH("ModularDeviceEdgewiseMeter3") Minimum 0
+sb HASH("ModularDeviceEdgewiseMeter3") Maximum 3000
+sb HASH("ModularDeviceEdgewiseMeter3") Setting 1500
+lb r0 HASH("ModularDeviceGauge2x2") ReferenceId Sum
+lb r2 HASH("ModularDeviceGauge3x3") ReferenceId Sum
+lb r4 HASH("ModularDeviceEdgewiseMeter3") ReferenceId Sum
+beqz r0 main
+beqz r2 main
+beqz r4 main
+ld r1 r0 PrefabHash
+seq r1 r1 HASH("ModularDeviceGauge2x2")
+ld r3 r2 PrefabHash
+seq r3 r3 HASH("ModularDeviceGauge3x3")
+ld r5 r4 PrefabHash
+seq r5 r5 HASH("ModularDeviceEdgewiseMeter3")
+j main

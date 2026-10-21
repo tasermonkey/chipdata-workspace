@@ -1,0 +1,25 @@
+# DS-8 probe, rack socket 1: the drives, scratch cells and status registers.
+# r10, r11: drive cell 101 and scratch cell 4141 as this chip found them
+# when it started (5555 and 4242 if they kept what it wrote last time).
+# r0: ticks since it started. r1: drive cell 511, written r0 each tick.
+# r2: cell 512 (bay 2's bank). r3: drives online. r4: capacity on line.
+# r5: this chip's processor number. r6: faults. r7: scratch 4142, which
+# the Scratch probe in socket 2 writes (99).
+move r0 0
+get r10 db 101
+get r11 db 4141
+put db 101 5555
+put db 4141 4242
+main:
+yield
+add r0 r0 1
+put db 511 r0
+get r1 db 511
+get r2 db 512
+get r3 db 4106
+get r4 db 4108
+get r5 db 4127
+get r6 db 4111
+get r7 db 4142
+put db 4143 r0
+j main

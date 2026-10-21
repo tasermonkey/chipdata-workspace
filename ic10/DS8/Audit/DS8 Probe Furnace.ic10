@@ -1,0 +1,23 @@
+# DS-8 probe, an IC Housing by an Advanced Furnace: what the furnace
+# reports while it smelts. d0: the Advanced Furnace. d1: a Lever.
+# r0: RecipeHash. r1: 1 if that is HASH("ItemIronIngot"). r2: Reagents.
+# r3: Temperature. r4: Pressure. r5: Combustion. r6: Activate.
+# r7: the lever. While it's on, this chip writes Activate 0 every tick,
+# as the Fuel Pump chip does once the furnace is hot.
+alias Furnace d0
+alias Lever d1
+main:
+yield
+bdns Furnace main
+l r0 Furnace RecipeHash
+seq r1 r0 HASH("ItemIronIngot")
+l r2 Furnace Reagents
+l r3 Furnace Temperature
+l r4 Furnace Pressure
+l r5 Furnace Combustion
+l r6 Furnace Activate
+bdns Lever main
+l r7 Lever Open
+beqz r7 main
+s Furnace Activate 0
+j main

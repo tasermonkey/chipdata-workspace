@@ -1,0 +1,10 @@
+# DS-8 probe, any chip: are names case-sensitive?
+# A define and an alias that differ only in case.
+# Case-sensitive: r9 = 1 and r10 = 5. Otherwise it may not compile.
+define PROBE 5
+alias probe r9
+move probe 1
+move r10 PROBE
+done:
+yield
+j done

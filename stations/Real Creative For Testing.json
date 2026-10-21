@@ -3,6 +3,21 @@
 		"449": "ic10/Tests/Sync Demo Counter.ic10",
 		"450": "ic10/Tests/Sync Demo.ic10",
 		"451": "ic10/Tests/Sync Demo.ic10",
-		"2935": "ic10/EControl/Room Lights.ic10"
+		"2935": "ic10/EControl/Room Lights.ic10",
+		"6796": "ic10/DS8/Audit/DS8 Probe Buttons.ic10",
+		"6797": "ic10/DS8/Audit/DS8 Probe By ID.ic10",
+		"6798": "ic10/DS8/Audit/DS8 Probe Case.ic10",
+		"6799": "ic10/DS8/Audit/DS8 Probe Gauge Mode.ic10",
+		"6800": "ic10/DS8/Audit/DS8 Probe Gauges.ic10",
+		"6801": "ic10/DS8/Audit/DS8 Probe Scratch.ic10",
+		"6802": "ic10/DS8/Audit/DS8 Probe Dials.ic10",
+		"6803": "ic10/DS8/Audit/DS8 Probe Displays.ic10",
+		"6804": "ic10/DS8/Audit/DS8 Probe Furnace.ic10",
+		"6805": "ic10/DS8/Audit/DS8 Probe Levers.ic10",
+		"6806": "ic10/DS8/Audit/DS8 Probe Memory.ic10",
+		"6807": "ic10/DS8/Audit/DS8 Probe Numbers.ic10",
+		"6808": "ic10/DS8/Audit/DS8 Probe Ports.ic10",
+		"16890": "ic10/DS8/Audit/DS8 Probe Names.ic10",
+		"16985": "ic10/DS8/Audit/DS8 Probe Restart.ic10"
 	}
 }

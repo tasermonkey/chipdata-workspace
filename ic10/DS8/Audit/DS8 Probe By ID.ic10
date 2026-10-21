@@ -1,0 +1,20 @@
+# DS-8 probe, rack socket 1: ld and sd with an ID read from a port.
+# Port 1: a Lever. Port 2: a Console LED 5.
+# r0: port 1's ID. r1: port 2's ID. r2: the Lever's ReferenceId.
+# r3: 1 if port 1 holds the Lever. r4: the Lever's Open, read by ID.
+# r5: ticks; the display shows it, written by ID.
+move r5 0
+main:
+yield
+get r0 db 4128
+get r1 db 4129
+lb r2 HASH("StructureLogicSwitch") ReferenceId Maximum
+seq r3 r0 r2
+beqz r0 main
+beqz r1 main
+ld r4 r0 Open
+add r5 r5 1
+sd r1 On 1
+sd r1 Mode 0
+sd r1 Setting r5
+j main

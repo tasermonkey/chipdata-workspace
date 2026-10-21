@@ -1,0 +1,53 @@
+# DS-8 probe, an IC Housing: what the displays and lights show.
+# On the network: a Dial (it picks what to show, 0-9), a Console LED 5,
+# a modular LEDdisplay3, a Diode and a modular Light.
+# 0-6: the Status chip's texts and colours. 7: 1234 in kelvin.
+# 8: 23500000 in Pa. 9: 101325 in Pa.
+# r0: the dial. r1: the value shown. r2: the colour. r3: the mode.
+sb HASH("StructureLogicDial") Mode 9
+main:
+yield
+lb r0 HASH("StructureLogicDial") Setting Sum
+move r1 STR("Idle")
+move r2 Color.Gray
+move r3 10
+seq r4 r0 1
+select r1 r4 STR("Ready") r1
+select r2 r4 Color.Yellow r2
+seq r4 r0 2
+select r1 r4 STR("Hold") r1
+select r2 r4 Color.Orange r2
+seq r4 r0 3
+select r1 r4 STR("NoDisk") r1
+select r2 r4 Color.Purple r2
+seq r4 r0 4
+select r1 r4 STR("Active") r1
+select r2 r4 Color.Green r2
+seq r4 r0 5
+select r1 r4 STR("Unload") r1
+select r2 r4 Color.Blue r2
+seq r4 r0 6
+select r1 r4 STR("EMERG") r1
+select r2 r4 Color.Red r2
+seq r4 r0 7
+select r1 r4 1234 r1
+select r3 r4 3 r3
+seq r4 r0 8
+select r1 r4 23500000 r1
+select r3 r4 14 r3
+seq r4 r0 9
+select r1 r4 101325 r1
+select r3 r4 14 r3
+sb HASH("StructureConsoleLED5") On 1
+sb HASH("StructureConsoleLED5") Mode r3
+sb HASH("StructureConsoleLED5") Setting r1
+sb HASH("StructureConsoleLED5") Color r2
+sb HASH("ModularDeviceLEDdisplay3") On 1
+sb HASH("ModularDeviceLEDdisplay3") Mode r3
+sb HASH("ModularDeviceLEDdisplay3") Setting r1
+sb HASH("ModularDeviceLEDdisplay3") Color r2
+sb HASH("StructureDiode") On 1
+sb HASH("StructureDiode") Color r2
+sb HASH("ModularDeviceLight") On 1
+sb HASH("ModularDeviceLight") Color r2
+j main

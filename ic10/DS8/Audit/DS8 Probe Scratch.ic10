@@ -1,0 +1,9 @@
+# DS-8 probe, rack socket 2, beside the Memory probe in socket 1.
+# r0: scratch 4143, where socket 1 writes its tick count.
+# r1: this chip's processor number (2). It writes 99 to scratch 4142.
+main:
+yield
+get r0 db 4143
+get r1 db 4127
+put db 4142 99
+j main

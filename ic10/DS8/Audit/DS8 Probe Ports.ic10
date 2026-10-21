@@ -1,0 +1,21 @@
+# DS-8 probe, rack socket 1: the device IDs on I/O ports 1-16.
+# r0-r7: ports 1-8 (4128-4135). r8-r15: ports 9-16 (4160-4167).
+main:
+yield
+get r0 db 4128
+get r1 db 4129
+get r2 db 4130
+get r3 db 4131
+get r4 db 4132
+get r5 db 4133
+get r6 db 4134
+get r7 db 4135
+get r8 db 4160
+get r9 db 4161
+get r10 db 4162
+get r11 db 4163
+get r12 db 4164
+get r13 db 4165
+get r14 db 4166
+get r15 db 4167
+j main
