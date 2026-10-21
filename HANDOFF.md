@@ -35,8 +35,12 @@ Paste this into Claude Code, opened in `chipdata-workspace` on the new PC:
 6. **The game side:**
    - The mods in `ic10-mods/monkey-desk.json`, DS-8 Server Rack 5.12.2 among them.
    - IC10Sync: the per-station chipdata folders (`chipdata/<station>/`) that ic10-link expects
-     come from the user's fork at `P:\src\semoro\stationeers.ic10sync`, whose changes were still
-     uncommitted there. The Workshop copy writes all chips into `chipdata/` itself.
+     come from the user's fork, tasermonkey/stationeers.ic10sync (`main`, commit ea7bbf2 "Saving
+     scripts in subdirectory per save game"). Build it (`dotnet build -c Release`, with a
+     hand-written `IC10Sync.csproj`, net48) and put the DLL over the Workshop copy
+     (`steamapps/workshop/content/544550/3567395132/IC10Sync.dll`); the Workshop copy alone writes
+     all chips into `chipdata/` itself. Its config, `BepInEx/config/IC10Sync.cfg`, needs
+     `ChipDataPath` set to the Documents folder's `My Games/Stationeers/chipdata`.
    - The test save is "Real Creative For Testing"; its map is `stations/Real Creative For Testing.json`.
 
 ## Where things stand
