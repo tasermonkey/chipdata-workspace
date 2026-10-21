@@ -14,5 +14,5 @@ seqz on on
 bdns Light wait
 s Light On on
 wait:
-sleep 2
+sleep 1
 j start
