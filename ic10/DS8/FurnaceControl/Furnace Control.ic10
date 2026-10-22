@@ -90,6 +90,6 @@ get furnace db FURNACE_PORT
 beqz furnace tick
 get r0 db RELEASE_PORT
 beqz r0 tick
-ld r0 r0 Open            # the lever's position
+ld r0 r0 Setting         # the lever's position
 bnez r0 emergency
 j r17                    # ra: a rack chip has no name for it

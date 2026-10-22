@@ -30,8 +30,8 @@ get r0 db FLUSH_PORT
 beqz r0 main
 get r1 db RELEASE_PORT
 beqz r1 main
-ld r0 r0 Open           # the levers' positions
-ld r1 r1 Open
+ld r0 r0 Setting        # the levers' positions
+ld r1 r1 Setting
 ld press furnace Pressure
 min press press PRESS_CAP
 get r2 db STATE

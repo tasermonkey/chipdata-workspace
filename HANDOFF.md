@@ -73,7 +73,8 @@ Paste this into Claude Code, opened in `chipdata-workspace` on the new PC:
   ID to cell 0 on F1/ENT.
 - Rack scripts use **`r16` and `r17`, not `sp` and `ra`** (see Findings). A test,
   `tests/DS8/rack-scripts.test.ts`, keeps it that way.
-- Levers are read by `Open` (the wiki's position), not `Setting`.
+- Levers are read by `Setting`, not `Open`: a FlipCoverSwitch's `Open` is its cover (audit B1).
+  Every lever part but ModularConsoles' FlipSwitch keeps its position in `Setting`.
 
 ## Findings
 
@@ -105,6 +106,14 @@ What the game does, from the user's runs on 2026-10-20, beyond what the bench ha
   ModularConsoles' Switch and FlipSwitch have no `Open`. A Button's `Setting` is 1 for a half
   second; a Dial's `Mode` is its top.
 
+Session B (2026-10-21; its "What B found" in the audit README):
+
+- **Levers.** `Setting` follows the position on every lever part but the FlipSwitch; `On` on the
+  three modular switches. A FlipCoverSwitch's `Open` is its cover.
+- **Buttons.** One tick at 1 per press, even held. **Dials.** A Setting above Mode is clamped.
+- **Displays.** Kelvin mode adds a prefix too (`1.23kK`). **Gauges.** Writing Mode stops the chip
+  with IncorrectLogicType.
+
 **The bench extension now matches:** chips carry on through a power cycle, and a batch
 instruction with I/O off stops with DeviceListNull. **It doesn't copy:** a chip carrying on by
 itself after an error once the cause is gone (the emulator stops it for good), and the first-run
@@ -112,15 +121,13 @@ itself after an error once the cause is gone (the emulator stops it for good), a
 
 ## What's next
 
-1. In game: audit sessions B, C and D (`ic10/DS8/Audit/README.md`), filling in the Got columns.
-2. Fix whatever B-D find, in the scripts and, where the bench was wrong, in the extension.
-3. Known open questions B-D answer:
-   - Does a modular Switch or FlipSwitch keep its position in `Setting` or `On`? If so, it could
-     be a lever too.
+1. In game: audit sessions C and D (`ic10/DS8/Audit/README.md`), filling in the Got columns.
+   B is done, and its lever fix is in (levers read by `Setting`).
+2. Fix whatever C-D find, in the scripts and, where the bench was wrong, in the extension.
+3. Known open questions C-D answer:
    - Does Reagents count 50 per Amount step for iron, as the Panel assumes?
    - Does writing Activate 0 every tick, as the Fuel Pump chip does once the furnace is hot, leave
      a burning furnace alone?
-   - Does writing Mode to a gauge stop the chip?
 4. The F-08 release (above), when the user decides.
 5. Smaller: ic10-link's `auto-map` says "no chip is named like a script" when a renamed chip is
    only waiting for its file to be picked; a clearer message would help.

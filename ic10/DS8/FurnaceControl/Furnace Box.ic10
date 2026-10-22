@@ -23,7 +23,7 @@ get ventIn db VENT_IN_PORT
 beqz ventIn main
 
 # The lever stops the vents: both aim for 0 kPa outside
-ld r0 lever Open         # the lever's position
+ld r0 lever Setting      # the lever's position
 select r1 r0 0 BOX_AIR
 sd ventOut Mode OUTWARD
 sd ventOut PressureExternal r1

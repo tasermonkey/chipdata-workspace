@@ -144,8 +144,8 @@ export function build(setup: RackSetup = {}): Promise<World> {
 	const readout = (i: number) => (readouts[i] === "display" ? parts.display : readouts[i]);
 	const prefabs: Record<DeviceName, [string, Record<string, number>]> = {
 		furnace: ["StructureAdvancedFurnace", { Temperature: 300, Pressure: 1000, On: 1 }],
-		releaseLever: [parts.cover, { Open: 0 }],
-		flushLever: [parts.lever, { Open: 0 }],
+		releaseLever: [parts.cover, { Setting: 0 }],
+		flushLever: [parts.lever, { Setting: 0 }],
 		fuelPump: ["StructureVolumePump", {}],
 		fuelPa: ["StructurePipeAnalysizer", gas(300, 6000)],
 		coolantPump: ["StructureVolumePump", {}],
@@ -160,7 +160,7 @@ export function build(setup: RackSetup = {}): Promise<World> {
 		statusLed: [parts.display, {}],
 		statusLight: [parts.light, {}],
 		pumpsLed: [parts.display, {}],
-		ventLever: [parts.lever, { Open: 0 }],
+		ventLever: [parts.lever, { Setting: 0 }],
 		ventOut: ["StructureActiveVent", {}],
 		ventIn: ["StructureActiveVent", {}],
 		sensor: ["StructureGasSensor", { Temperature: 295, Pressure: 101 }],
@@ -203,9 +203,10 @@ export function setScratch(world: World, address: number, value: number) {
 }
 
 /**
- * A lever thrown. Its position is `Open` (the wiki's "what state the lever is in"); `Setting` is
- * left alone, so a script reading that instead fails its tests.
+ * A lever thrown. Its position is `Setting`, which follows it on every lever part but the
+ * FlipSwitch (audit B1). `Open` is left alone: on a FlipCoverSwitch it's the cover, so a script
+ * reading that instead fails its tests.
  */
 export function lever(world: World, device: DeviceName, on: boolean) {
-	world.device(device).set("Open", on ? 1 : 0);
+	world.device(device).set("Setting", on ? 1 : 0);
 }

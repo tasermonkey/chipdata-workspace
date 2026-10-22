@@ -154,7 +154,7 @@ when it's back on.
 
 | Role | Vanilla | ModularConsoles |
 | --- | --- | --- |
-| Levers (7, 8, 17) | Lever, Switch | BigLever, FlipCoverSwitch |
+| Levers (7, 8, 17) | Lever, Switch | BigLever, FlipCoverSwitch, Switch |
 | Confirm button (11) | Button | RoundButton, SquareButton, UtilityButton2x2 |
 | Dials (9, 10) | Dial | Dial, DialSmall |
 | Displays (12, 13, 25) | LED displays (Console LED 5, 1x2, 1x3) | LEDdisplay2, LEDdisplay3 |
@@ -162,11 +162,11 @@ when it's back on.
 | Status light (14) | Diode | Light, LightSmall, LightLarge, LabelDiode2, LabelDiode3 |
 
 - **Displays and gauges.** A display shows kelvin, or pressure in its Pa mode: the chip writes
-  pascals, and the display adds the prefix itself (`101.3kPa`, `23.5MPa`). A gauge shows kelvin or
-  kPa, from 0 to its scale: the scales are in the Readouts chip and are each chip's own
-  ([REFERENCE.md](./REFERENCE.md#settings)).
-- **What doesn't work.** A lever's position is read from its `Open`, so ModularConsoles' Switch and
-  FlipSwitch, which have none, can't be levers. A Meter3x3 can't be a readout, since its top is
+  pascals, and the display adds the prefix itself (`101 kPa`, `23.5 MPa`), for kelvin too
+  (`1.50kK`). A gauge shows kelvin or kPa, from 0 to its scale: the scales are in the Readouts
+  chip and are each chip's own ([REFERENCE.md](./REFERENCE.md#settings)).
+- **What doesn't work.** A lever's position is read from its `Setting`, which ModularConsoles'
+  FlipSwitch doesn't keep, so it can't be a lever. A Meter3x3 can't be a readout, since its top is
   read-only. A gauge on a display port stops its chip, since a gauge has no display mode.
 
 ## Status

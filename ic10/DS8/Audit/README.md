@@ -280,16 +280,20 @@ Swap the probe in the housing for each test.
 Probe: `DS8 Probe Levers.ic10`.
 
 1. Write down r0-r12 with everything off.
+![start state is all 0](image-3.png)
 2. Turn **all** of them on, and write r0-r12 down again.
+![After all are turned on](image-4.png)
+
+The FlipCoverSwitch's other value (Open) is the switch's cover.
 
 | Part | Registers | Off | On | Expected |
 | --- | --- | --- | --- | --- |
-| Lever | r0 Open, r1 Setting | | | Open 0 → 1; Setting unknown |
-| Switch | r2 Open, r3 Setting | | | Open 0 → 1; Setting unknown |
-| BigLever | r4 Open, r5 Setting | | | Open 0 → 1; Setting unknown |
-| FlipCoverSwitch | r6 Open, r7 Setting, r8 On | | | Open 0 → 1; others unknown |
-| Modular Switch | r9 Setting, r10 On | | | Unknown: which one follows it? |
-| FlipSwitch | r11 Setting, r12 On | | | Unknown: which one follows it? |
+| Lever | r0 Open, r1 Setting | 0, 0 | 1, 1 | Open 0 → 1; Setting unknown |
+| Switch | r2 Open, r3 Setting | 0, 0 | 1, 1 | Open 0 → 1; Setting unknown |
+| BigLever | r4 Open, r5 Setting | 0, 0 | 1, 1 | Open 0 → 1; Setting unknown |
+| FlipCoverSwitch | r6 Open, r7 Setting, r8 On | 0, 0, 0 | 0, 1, 1 | Open 0 → 1; others unknown |
+| Modular Switch | r9 Setting, r10 On | 0, 0 | 1, 1 | Unknown: which one follows it? |
+| FlipSwitch | r11 Setting, r12 On | 0, 0 | 0, 1 | Unknown: which one follows it? |
 
 The furnace scripts read **Open**. If the modular Switch or FlipSwitch follows Setting or On, it
 could be supported too.
@@ -303,9 +307,9 @@ Probe: `DS8 Probe Buttons.ic10`.
 
 | # | Register | Expected | Got |
 | --- | --- | --- | --- |
-| B2.1 | After the clicks: r1 (Button presses), r0 (ticks at 1) | 5, 5 | |
-| B2.2 | After the clicks: r3 (RoundButton presses), r2 (ticks at 1) | 5, 5 | |
-| B2.3 | After holding: did r0 / r2 go up by 1, or by about 4 (2 s)? | Unknown | |
+| B2.1 | After the clicks: r1 (Button presses), r0 (ticks at 1) | 5, 5 | 5,5 |
+| B2.2 | After the clicks: r3 (RoundButton presses), r2 (ticks at 1) | 5, 5 | 5, 5 |
+| B2.3 | After holding: did r0 / r2 go up by 1, or by about 4 (2 s)? | Unknown | up by 1, though the animation has the button released like a half-second later. |
 
 Five presses in five ticks means a chip reading every tick sees each press once, which is what
 the Panel chip's Confirm needs.
@@ -319,10 +323,10 @@ Probe: `DS8 Probe Dials.ic10`. It sets both dials to Mode 17 and Setting 25 as i
 
 | # | Question | Expected | Got |
 | --- | --- | --- | --- |
-| B3.1 | r2, r3 (Modes) | 17, 17 | |
-| B3.2 | r0, r1 just after the start (Setting 25 written) | 17 if it's clamped; 25 if not | |
-| B3.3 | Turned all the way up: r0, r1 | 17, 17 | |
-| B3.4 | All the way down | 0, 0 | |
+| B3.1 | r2, r3 (Modes) | 17, 17 | 17, 17|
+| B3.2 | r0, r1 just after the start (Setting 25 written) | 17 if it's clamped; 25 if not | 17, 17 |
+| B3.3 | Turned all the way up: r0, r1 | 17, 17 | 17, 17 |
+| B3.4 | All the way down | 0, 0 | 0, 0 |
 
 ### B4. Displays and lights
 
@@ -334,16 +338,16 @@ Probe: `DS8 Probe Displays.ic10`. The vanilla Dial picks what to show (it sets t
 
 | Dial | Expected text | Expected colour | LED 5 | LEDdisplay3 | Diode | Light |
 | --- | --- | --- | --- | --- | --- | --- |
-| 0 | Idle | Gray | | | | |
-| 1 | Ready | Yellow | | | | |
-| 2 | Hold | Orange | | | | |
-| 3 | NoDisk | Purple | | | | |
-| 4 | Active | Green | | | | |
-| 5 | Unload | Blue | | | | |
-| 6 | EMERG | Red | | | | |
-| 7 | 1234 K | Red (left from 6) | | | | |
-| 8 | 23.5 MPa (or 23500 kPa) | Red | | | | |
-| 9 | 101 kPa or 101.3 kPa | Red | | | | |
+| 0 | Idle | Gray | all correct| | | |
+| 1 | Ready | Yellow | all correct | | | |
+| 2 | Hold | Orange | All correct | | | |
+| 3 | NoDisk | Purple | All correct | | | |
+| 4 | Active | Green | All correct | | | |
+| 5 | Unload | Blue | All correct | | | |
+| 6 | EMERG | Red | All Correct | | | |
+| 7 | 1234 K | Gray (the probe resets it every tick) | 1.23kK, white | | | |
+| 8 | 23.5 MPa (or 23500 kPa) | Gray | 23.5 MPa, white | | | |
+| 9 | 101 kPa or 101.3 kPa | Gray | 101 kPa, white | | | |
 
 ### B5. Gauges
 
@@ -351,11 +355,11 @@ Probe: `DS8 Probe Gauges.ic10`. It sets each gauge to 0-3000 and shows 1500.
 
 | # | Question | Expected | Got |
 | --- | --- | --- | --- |
-| B5.1 | Gauge2x2's needle | Half way | |
-| B5.2 | Gauge3x3's needle | Half way | |
-| B5.3 | EdgewiseMeter3's needle | Half way | |
-| B5.4 | r1, r3, r5 (each PrefabHash matches its `HASH()`) | 1, 1, 1 | |
-| B5.5 | r0, r2, r4 (the ReferenceIds) | Not 0 | |
+| B5.1 | Gauge2x2's needle | Half way | half |
+| B5.2 | Gauge3x3's needle | Half way | half |
+| B5.3 | EdgewiseMeter3's needle | Half way | half |
+| B5.4 | r1, r3, r5 (each PrefabHash matches its `HASH()`) | 1, 1, 1 | 1, 1, 1 |
+| B5.5 | r0, r2, r4 (the ReferenceIds) | Not 0 | non-zeros |
 
 ### B6. Mode written to a gauge
 
@@ -363,8 +367,20 @@ Probe: `DS8 Probe Gauge Mode.ic10`. This one is meant to stop with an error.
 
 | # | Question | Expected | Got |
 | --- | --- | --- | --- |
-| B6.1 | Does the chip stop? On which line, with which error? | At the `sd r0 Mode 3` line, IncorrectLogicType or similar | |
-| B6.2 | r2, r3 | 1, 0 | |
+| B6.1 | Does the chip stop? On which line, with which error? | At the `sd r0 Mode 3` line, IncorrectLogicType or similar | Line 12 IncorrectLogicType |
+| B6.2 | r2, r3 | 1, 0 | 1, 0 |
+
+**What B found.**
+
+- **Levers.** `Setting` follows the position on every part but the FlipSwitch, and `On` on the
+  three modular switches. A FlipCoverSwitch's `Open` is its cover, not its switch, so the furnace
+  scripts, which read `Open`, can't use it as a lever.
+- **Buttons.** `Setting` is 1 for one tick (half a second) per press, however long it's held.
+- **Dials.** Writing a Setting above Mode clamps it to Mode.
+- **Displays.** Kelvin mode (3) adds a prefix too: 1234 shows as `1.23kK`. The LED 5 showed the
+  numbers in white, not the Gray written.
+- **Gauges.** Each shows half its scale for half its value. Writing Mode to one stops the chip
+  with IncorrectLogicType, at that line (counted from 0).
 
 ## C. The Advanced Furnace
 
