@@ -386,10 +386,8 @@ Probe: `DS8 Probe Gauge Mode.ic10`. This one is meant to stop with an error.
 
 ### Build
 
-1. An **Advanced Furnace** you can fuel and heat. An existing one is fine: this probe only reads
-   it, except in C4.
-2. An **IC Housing** on the furnace's data network, with **d0** set to the furnace and **d1** to a
-   vanilla **Lever** (off).
+1. An **Advanced Furnace** you can fuel and heat. An existing one is fine: this probe only reads it, except in C4.
+2. An **IC Housing** on the furnace's data network, with **d0** set to the furnace and **d1** to a vanilla **Lever** (off).
 3. Probe: `DS8 Probe Furnace.ic10`.
 4. If another chip controls this furnace, switch that chip off for these tests.
 
@@ -401,23 +399,25 @@ Probe: `DS8 Probe Gauge Mode.ic10`. This one is meant to stop with an error.
 
 | # | Register | Expected | Got |
 | --- | --- | --- | --- |
-| C1.1 | Empty: r0 (RecipeHash), r2 (Reagents) | 0, 0 | |
-| C1.2 | 10 ore: r0, r1 (it's iron), r2 | Unknown, unknown, unknown | |
-| C1.3 | 20 ore: r2 | Twice C1.2's? | |
+| C1.1 | Empty: r0 (RecipeHash), r2 (Reagents) | 0, 0 | 0, 0 (all zeroes) |
+| C1.2 | 10 ore: r0, r1 (it's iron), r2 | Unknown, unknown, unknown | 0, 0, 0|
+| C1.3 | 20 ore: r2 | Twice C1.2's? | 0, 0, 0 |
+
+After I added some fuel and started it ...
+![alt text](image-5.png)
 
 ### C2. Smelting
 
-1. Fuel the furnace and light it (its own Activate, or your usual way). Let it reach the iron
-   recipe's range: over 950 K and 100 kPa.
+1. Fuel the furnace and light it (its own Activate, or your usual way). Let it reach the iron recipe's range: over 950 K and 100 kPa.
 2. Once ingots are forming, write down r0-r6.
 
 | # | Register | Expected | Got |
 | --- | --- | --- | --- |
-| C2.1 | r0 (RecipeHash) | -1301215609 | |
-| C2.2 | r1 (it's iron) | 1 | |
-| C2.3 | r2 (Reagents): same as C1, or changing as it smelts? | Unknown | |
-| C2.4 | r5 (Combustion), r6 (Activate) | 1, 0 | |
-| C2.5 | How many ingots did 20 ore give? | Unknown | |
+| C2.1 | r0 (RecipeHash) | -1301215609 | -1301215609|
+| C2.2 | r1 (it's iron) | 1 | 1 |
+| C2.3 | r2 (Reagents): same as C1, or changing as it smelts? | Unknown | 20 |
+| C2.4 | r5 (Combustion), r6 (Activate) | 1, 0 | 1, 0 |
+| C2.5 | How many ingots did 20 ore give? | Unknown | 20 |
 
 The Panel chip shows Amount × 50 as the batch's Reagents for iron, and the batch ends when the
 furnace's Reagents reach that. C1 and C2 tell whether 50 Reagents is one Amount step's worth.
@@ -430,7 +430,9 @@ The Fuel Pump chip writes Activate 0 every tick once the furnace is over 600 K.
 
 | # | Question | Expected | Got |
 | --- | --- | --- | --- |
-| C3.1 | Does it keep burning (r5 stays 1, r3 doesn't fall)? | Yes | |
+| C3.1 | Does it keep burning (r5 stays 1, r3 doesn't fall)? | Yes | r5 stays 1; r3 falls |
+
+r2 goes up, r3 falls, r5 is 1, r4 goes up
 
 ### C4. Opening it
 
@@ -438,9 +440,22 @@ The Fuel Pump chip writes Activate 0 every tick once the furnace is over 600 K.
 
 | # | Question | Expected | Got |
 | --- | --- | --- | --- |
-| C4.1 | Do the ingots come out? | Yes | |
-| C4.2 | r2 (Reagents) afterwards | 0 | |
-| C4.3 | r0 (RecipeHash) afterwards | 0 | |
+| C4.1 | Do the ingots come out? | Yes | yes |
+| C4.2 | r2 (Reagents) afterwards | 0 | 0 0 |
+| C4.3 | r0 (RecipeHash) afterwards | 0 | 0 |
+
+So i think recipe hash won't change until pressure and temp is also in range
+
+**What C found.**
+
+- **RecipeHash and Reagents** stay 0 with ore in, until the furnace is in the recipe's range.
+  Then RecipeHash is the ingot's, and Reagents climbs as the ore melts in: 1 per ore, and 20 ore
+  gave 20 ingots. So a Panel step of 50 Reagents is 50 iron ore, or 50 ingots.
+- **Activate 0 every tick** leaves it burning: Combustion stays 1.
+- **Opening it** lets the ingots out, and Reagents and RecipeHash go back to 0.
+
+Furnace Control relies on all of this: a batch is done when RecipeHash is its ingot and Reagents
+reach the target, and unloading ends at Reagents 0.
 
 ## D. The whole setup
 

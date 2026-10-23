@@ -14,8 +14,7 @@ An Advanced Furnace run from a [DS-8 Server Rack](../README.md). It does what
   pumps.
 
 The work is split over nine small chips, so each one has plenty of room to read. A tenth chip
-writes the recipes and then comes out. [REFERENCE.md](./REFERENCE.md) has what each chip does and
-the rack memory they share.
+writes the recipes and then comes out. [REFERENCE.md](./REFERENCE.md) has what each chip does and the rack memory they share.
 
 ## How it fits together
 

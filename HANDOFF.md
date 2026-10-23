@@ -121,15 +121,12 @@ itself after an error once the cause is gone (the emulator stops it for good), a
 
 ## What's next
 
-1. In game: audit sessions C and D (`ic10/DS8/Audit/README.md`), filling in the Got columns.
-   B is done, and its lever fix is in (levers read by `Setting`).
-2. Fix whatever C-D find, in the scripts and, where the bench was wrong, in the extension.
-3. Known open questions C-D answer:
-   - Does Reagents count 50 per Amount step for iron, as the Panel assumes?
-   - Does writing Activate 0 every tick, as the Fuel Pump chip does once the furnace is hot, leave
-     a burning furnace alone?
-4. The F-08 release (above), when the user decides.
-5. Smaller: ic10-link's `auto-map` says "no chip is named like a script" when a renamed chip is
+1. In game: audit session D (`ic10/DS8/Audit/README.md`), the whole setup. B is done, and its
+   lever fix is in (levers read by `Setting`). C is done and needed no change: Reagents count 1
+   per ore, so a Panel step of 50 is 50 iron ore, and Activate 0 leaves the furnace burning.
+2. Fix whatever D finds, in the scripts and, where the bench was wrong, in the extension.
+3. The F-08 release (above), when the user decides.
+4. Smaller: ic10-link's `auto-map` says "no chip is named like a script" when a renamed chip is
    only waiting for its file to be picked; a clearer message would help.
 
 ## Working preferences
