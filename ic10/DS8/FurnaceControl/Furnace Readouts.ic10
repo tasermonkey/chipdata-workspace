@@ -1,6 +1,7 @@
 # Furnace Readouts: temperature and pressure, in the furnace and its box.
 # DS-8 rack, socket 9. Owns the four readouts. Each can be a display,
 # or a gauge: Gauge2x2, Gauge3x3 or EdgewiseMeter3.
+# Needs the tmz-opext mod: its calls take arguments.
 define FURNACE_PORT 4128 # port 1: Advanced Furnace
 define SENSOR_PORT 4171  # port 20: Gas Sensor, in the box
 define FURNACE_K_PORT 4172 # port 21: readout, furnace temperature
@@ -18,31 +19,24 @@ define PASCAL 14
 alias furnace r15
 alias sensor r14
 
+tmsi 511 0               # calls save no registers: ports sets r14, r15
 main:
 yield
-jal ports
+tmjc r0 ports
 
-# Each: r1 the value, r2 a display's mode, r3 a gauge's top
+# Each: show(readout, value, a display's mode, a gauge's top)
 ld r1 furnace Temperature
-move r2 KELVIN
-move r3 FURNACE_K_MAX
 get r0 db FURNACE_K_PORT
-jal show
+tmjc r0 show r0 r1 KELVIN FURNACE_K_MAX
 ld r1 furnace Pressure
-move r2 PASCAL
-move r3 FURNACE_KPA_MAX
 get r0 db FURNACE_KPA_PORT
-jal show
+tmjc r0 show r0 r1 PASCAL FURNACE_KPA_MAX
 ld r1 sensor Temperature
-move r2 KELVIN
-move r3 BOX_K_MAX
 get r0 db BOX_K_PORT
-jal show
+tmjc r0 show r0 r1 KELVIN BOX_K_MAX
 ld r1 sensor Pressure
-move r2 PASCAL
-move r3 BOX_KPA_MAX
 get r0 db BOX_KPA_PORT
-jal show
+tmjc r0 show r0 r1 PASCAL BOX_KPA_MAX
 j main
 
 show:                    # r0: a readout, to show r1 on
@@ -59,12 +53,12 @@ seq r5 r2 PASCAL         # a display shows pascals, from kPa
 select r5 r5 1000 1
 mul r1 r1 r5
 sd r0 Setting r1
-j r17                    # ra: a rack chip has no name for it
+tmjr
 gauge:
 sd r0 Minimum 0
 sd r0 Maximum r3
 sd r0 Setting r1
-j r17                    # ra: a rack chip has no name for it
+tmjr
 
 ports:                   # back once each port has its device
 get furnace db FURNACE_PORT
@@ -77,7 +71,7 @@ get r1 db r0
 beqz r1 portsWait
 add r0 r0 1
 ble r0 BOX_KPA_PORT portsNext
-j r17                    # ra: a rack chip has no name for it
+tmjr
 portsWait:
 yield
 j ports

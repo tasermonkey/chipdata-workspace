@@ -14,8 +14,8 @@ What each chip does, and the rack memory they share. The [README](./README.md) h
 | 6 | [Furnace Panel](./Furnace%20Panel.ic10) | The dials and Confirm, and the amount display. | The dials; REQUEST, TARGET |
 | 7 | [Furnace Status](./Furnace%20Status.ic10) | The status display and light, and the pump display. | Those displays |
 | 8 | [Furnace Box](./Furnace%20Box.ic10) | Holds the box at 101 kPa: one vent fills it, the other empties it. | The two vents |
-| 9 | [Furnace Readouts](./Furnace%20Readouts.ic10) | The furnace's and box's temperature and pressure. | The four readouts |
-| any, once | [Furnace Recipes Setup](./Furnace%20Recipes%20Setup.ic10) | Writes the recipes to the drive, then stops at `done`. | The drive's recipes |
+| 9 | [Furnace Readouts](./Furnace%20Readouts.ic10) | The furnace's and box's temperature and pressure. Needs the [tmz-opext](https://github.com/tasermonkey/stationeers.tmz-opext) mod: its `show` takes arguments. | The four readouts |
+| any, once | [Furnace Recipes Setup](./Furnace%20Recipes%20Setup.ic10) | Writes the recipes to the drive, then stops at `done`. Needs the [tmz-opext](https://github.com/tasermonkey/stationeers.tmz-opext) mod: each recipe is one call. | The drive's recipes |
 
 No two chips write the same thing on a device. Control runs first, so the state every other chip
 reads is this tick's.
@@ -54,8 +54,8 @@ A top of 10000 K means no limit. A top of 55000 kPa is the furnace's own limit.
 ### Adding a recipe
 
 Copy the setup chip as `Furnace Recipes Setup 2.ic10`, set its `FIRST` to 18, and leave only the
-new recipes in it. Each is four `push` lines: the ingot, its K pair, its kPa pair, and its Reagents
-a step. A pair is two 5-digit numbers run together: `0095010000` is 950 to 10000. Running it adds
+new recipes in it. Each is one line, `tmjc r0 recipe` with the ingot, its K pair, its kPa pair,
+and its Reagents a step. A pair is two 5-digit numbers run together: `0095010000` is 950 to 10000. Running it adds
 the new recipes, and the count goes up to the last of them.
 
 ## Scratch cells

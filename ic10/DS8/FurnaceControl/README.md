@@ -109,9 +109,11 @@ GitHub shows these diagrams; VS Code's Markdown preview needs a Mermaid extensio
    port. (F1 or ENT there stores the device's ID in drive cell 0, which the furnace leaves
    alone.)
 3. **Fit the chips** in sockets 1-9, in the order of the [chips table](./REFERENCE.md#the-chips).
+   The Readouts chip (socket 9) also needs the
+   [tmz-opext](https://github.com/tasermonkey/stationeers.tmz-opext) mod; without it, leave it out.
    The status display shows `NoDisk`: the drive has no recipes yet.
 4. **Write the recipes.** Put [Furnace Recipes Setup](./Furnace%20Recipes%20Setup.ic10) in a free
-   socket, with **MEM WR** on and the rack not locked. When the status display changes to `Ready`
+   socket, with **MEM WR** on and the rack not locked. It needs tmz-opext too. When the status display changes to `Ready`
    (or `Idle`, with the furnace off), the recipes are in, and the chip can come out. The drive
    keeps them, even moved to another rack.
 5. **Smelt.** Turn the Ingot dial to a recipe (below) and the Amount dial to how much, then press

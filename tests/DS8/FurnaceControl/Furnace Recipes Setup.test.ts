@@ -91,7 +91,7 @@ describe("Furnace Recipes Setup (DS-8)", () => {
 	});
 
 	it("names each ingot by HASH(), as the game's prefab names", () => {
-		const names = [...readRepoScript(SCRIPT).matchAll(/push HASH\("(\w+)"\)/g)].map(([, name]) => name);
+		const names = [...readRepoScript(SCRIPT).matchAll(/tmjc r0 recipe HASH\("(\w+)"\)/g)].map(([, name]) => name);
 		expect(names).toEqual(RECIPES.map((r) => r.ingot));
 	});
 });

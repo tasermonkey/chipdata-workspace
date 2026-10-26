@@ -1,5 +1,6 @@
 # Furnace Recipes Setup: writes the recipes to the drive in bay 1.
 # Run it once: when the status display leaves NoDisk, take it out.
+# Needs the tmz-opext mod: each recipe is one call.
 # A recipe: the ingot; min and max K; min and max kPa; and Reagents
 # per Amount step. A pair is 5 digits each: 0095010000 is 950, 10000.
 define FIRST 1           # the first recipe's number
@@ -7,116 +8,67 @@ define COUNT 511         # drive: how many recipes (not 0: F1 writes it)
 define ROW 8             # drive: recipe n's cells start at n x 8
 define PAIR 100000       # splits a pair
 
-start:
-move r16 0               # sp: a rack chip has no name for it
-push HASH("ItemIronIngot")      # 1: basic ingots
-push 0095010000
-push 0010010000
-push 50
-push HASH("ItemCopperIngot")    # 2
-push 0095010000
-push 0100010000
-push 50
-push HASH("ItemGoldIngot")      # 3
-push 0095010000
-push 0100010000
-push 50
-push HASH("ItemSiliconIngot")   # 4
-push 0095010000
-push 0100010000
-push 50
-push HASH("ItemSilverIngot")    # 5
-push 0095010000
-push 0100010000
-push 50
-push HASH("ItemLeadIngot")      # 6
-push 0095010000
-push 0100010000
-push 50
-push HASH("ItemNickelIngot")    # 7
-push 0095010000
-push 0100010000
-push 50
-push HASH("ItemSteelIngot")     # 8: steel
-push 0090010000
-push 0100010000
-push 200
-push HASH("ItemInvarIngot")     # 9: alloys
-push 0120001500
-push 1800020000
-push 100
-push HASH("ItemSolderIngot")    # 10
-push 0035000550
-push 0100010000
-push 100
-push HASH("ItemElectrumIngot")  # 11
-push 0060010000
-push 0080002350
-push 100
-push HASH("ItemConstantanIngot") # 12
-push 0100010000
-push 2000055000
-push 100
-push HASH("ItemWaspaloyIngot")  # 13: super-alloys, 4 Reagents an ingot
-push 0040000800
-push 5000055000
-push 200
-push HASH("ItemInconelIngot")   # 14
-push 0060010000
-push 2350023800
-push 200
-push HASH("ItemAstroloyIngot")  # 15
-push 0100010000
-push 3000040000
-push 200
-push HASH("ItemHastelloyIngot") # 16
-push 0095001000
-push 2500030000
-push 200
-push HASH("ItemStelliteIngot")  # 17
-push 0180010000
-push 1000019500
-push 200
+alias next r15           # the next recipe's number
 
-# Into the drive, last recipe first
-div r15 r16 4
-add r15 r15 FIRST
-sub r15 r15 1            # r15: the last recipe's number
-move r14 r15             # r14: the one being written
-row:                     # a recipe a tick
-yield
-pop r6                   # Reagents per step
-pop r0                   # kPa pair
-div r4 r0 PAIR
-trunc r4 r4
-mod r5 r0 PAIR
-pop r0                   # K pair
-div r2 r0 PAIR
-trunc r2 r2
-mod r3 r0 PAIR
-pop r1                   # the ingot
-mul r13 r14 ROW
-move r7 1
-cell:                    # r1 to r6 into the row's cells 0 to 5
-put db r13 rr7
-add r13 r13 1
-add r7 r7 1
-ble r7 6 cell
-sub r14 r14 1
-bgtz r16 row             # until the stack (sp) is empty
+start:
+tmsi 511 0
+move next FIRST
+# Basic ingots
+tmjc r0 recipe HASH("ItemIronIngot") 0095010000 0010010000 50       # 1
+tmjc r0 recipe HASH("ItemCopperIngot") 0095010000 0100010000 50     # 2
+tmjc r0 recipe HASH("ItemGoldIngot") 0095010000 0100010000 50       # 3
+tmjc r0 recipe HASH("ItemSiliconIngot") 0095010000 0100010000 50    # 4
+tmjc r0 recipe HASH("ItemSilverIngot") 0095010000 0100010000 50     # 5
+tmjc r0 recipe HASH("ItemLeadIngot") 0095010000 0100010000 50       # 6
+tmjc r0 recipe HASH("ItemNickelIngot") 0095010000 0100010000 50     # 7
+# Steel
+tmjc r0 recipe HASH("ItemSteelIngot") 0090010000 0100010000 200     # 8
+# Alloys
+tmjc r0 recipe HASH("ItemInvarIngot") 0120001500 1800020000 100     # 9
+tmjc r0 recipe HASH("ItemSolderIngot") 0035000550 0100010000 100    # 10
+tmjc r0 recipe HASH("ItemElectrumIngot") 0060010000 0080002350 100  # 11
+tmjc r0 recipe HASH("ItemConstantanIngot") 0100010000 2000055000 100 # 12
+# Super-alloys, 4 Reagents an ingot
+tmjc r0 recipe HASH("ItemWaspaloyIngot") 0040000800 5000055000 200  # 13
+tmjc r0 recipe HASH("ItemInconelIngot") 0060010000 2350023800 200   # 14
+tmjc r0 recipe HASH("ItemAstroloyIngot") 0100010000 3000040000 200  # 15
+tmjc r0 recipe HASH("ItemHastelloyIngot") 0095001000 2500030000 200 # 16
+tmjc r0 recipe HASH("ItemStelliteIngot") 0180010000 1000019500 200  # 17
+sub r1 next 1            # r1: the last recipe's number
 get r0 db COUNT
-max r0 r0 r15
+max r0 r0 r1
 put db COUNT r0
 
-# Again, until the drive keeps them: in bay 1, MEM WR on, not locked
-mul r0 r15 ROW
+# Again, until the drive keeps them: in bay 1, MEM WR on, not locked.
+# The first recipe went in first: if it's there, they all are.
+mul r0 FIRST ROW
 get r0 db r0
 beqz r0 retry
 get r0 db COUNT
-blt r0 r15 retry
+blt r0 r1 retry
 done:
 yield
 j done
 retry:
 yield
 j start
+
+recipe:                  # (ingot, K pair, kPa pair, Reagents a step): a tick
+yield
+move r6 r3               # Reagents a step
+mod r5 r2 PAIR           # max kPa
+div r4 r2 PAIR
+trunc r4 r4              # min kPa
+mod r3 r1 PAIR           # max K
+div r2 r1 PAIR
+trunc r2 r2              # min K
+move r1 r0               # the ingot
+mul r13 next ROW
+move r7 1
+cell:                    # r1 to r6 into the row's cells 0 to 5
+put db r13 rr7
+add r13 r13 1
+add r7 r7 1
+ble r7 6 cell
+add next next 1
+tmjr

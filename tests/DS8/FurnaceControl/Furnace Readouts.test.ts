@@ -49,6 +49,13 @@ describe("Furnace Readouts (DS-8)", () => {
 		expect(world.chip("readouts")).toHaveNoErrors();
 	});
 
+	it("returns from every call, so the call stack (tmz-opext's) stays where tmsi put it", async () => {
+		const world = await fit();
+		await world.runTicks(10);
+		expect(world.chip("readouts")).toHaveRegister("ra", 509);
+		expect(world.chip("readouts")).toHaveNoErrors();
+	});
+
 	it("waits, without errors, until its devices are on their ports", async () => {
 		const world = await fit({ without: ["sensor"] });
 		await world.runTicks(5);
