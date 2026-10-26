@@ -19,6 +19,7 @@
 	"devDependencies": {
 		"@tasermonkey/ic10-bench": "file:../ic10-bench/packages/ic10-bench",
 		"@tasermonkey/ic10-bench-ds8": "file:../ic10-bench/packages/ic10-bench-ds8",
+		"@tasermonkey/ic10-bench-opext": "file:../ic10-bench/packages/ic10-bench-opext",
 		"@tasermonkey/ic10-link": "file:../ic10-bench/packages/ic10-link",
 		"@tasermonkey/ic10-lint": "file:../ic10-bench/packages/ic10-lint",
 		"@types/node": "^26.2.0",

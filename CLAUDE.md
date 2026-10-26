@@ -7,7 +7,7 @@ here for people browsing; this is for changing it.
 
 | Path | What's in it |
 | --- | --- |
-| `ic10/<Category>/*.ic10` | The scripts: the source of truth, sent to the game from here. Each folder's README says what its scripts do; `ic10/Tests/` is for trying out ic10-link. |
+| `ic10/<Category>/*.ic10` | The scripts: the source of truth, sent to the game from here. Each folder's README says what its scripts do; `ic10/Tests/` is for trying out ic10-link and the tmz-opext opcodes. |
 | `ic10/DS8/<Category>/*.ic10` | Scripts that need the DS-8 Server Rack mod: they run in the rack's sockets. Each has a `<script>.ic10.json` with `"host": "StructureServerRack"`, so its idle check runs it in a rack. |
 | `tests/<Category>/<Script>.test.ts` | A script's tests, on IC10 Bench. `tests/support/` has the shared helpers (`REPO_ROOT`, `readRepoScript`). DS-8 tests are in `tests/DS8/<Category>/`, on `@tasermonkey/ic10-bench-ds8` (`serverRack`). |
 | `tests/scripts.test.ts` | Every script, with no test of its own needed: lint, and a 50-tick run with nothing connected. |
@@ -15,7 +15,7 @@ here for people browsing; this is for changing it.
 | `stations/<station>.json` | Per save game, chip id → script, for ic10-link. A chip's id is the number in brackets in its file's name in the game's chipdata folder. |
 | `# link-per-chip` | On a `define` line: the value belongs to each chip (a room's name, a limit), so ic10-link neither overwrites a chip's value nor copies one back into the script. `<script>.ic10.json` with `{ "perChip": { "byDefineName": [...] } }` does the same without the comment; `npx ic10-link per-chip "<script>" <NAME...>` writes it. |
 | `# link-per-chip {` … `}` | On two lines of code, like `push 0` and `poke 0 sp` around a stack list: the lines between belong to each chip, as many as it has. Jump to labels after one, never line numbers (lint warns). In the `.json`: `"byBlock": [{ "from": "push 0", "to": "poke 0 sp" }]`; `npx ic10-link per-chip "<script>" --from "push 0" --to "poke 0 sp"` writes it. |
-| `ic10-lint.json` | Which lint rules are errors, and the scripts allowed over a limit (with why). A script that breaks a rule on purpose, like an in-game audit of the game's errors, gets an override turning that rule off; a key with `*` covers a folder (`"ic10/Audit/**"`). The same file decides `npm test`, `npm run lint`, and whether ic10-link sends a script. |
+| `ic10-lint.json` | Which lint rules are errors, and the scripts allowed over a limit (with why). A script that breaks a rule on purpose, like an in-game audit of the game's errors, gets an override turning that rule off; a key with `*` covers a folder (`"ic10/Audit/**"`). Its `"extensions"` load mods' opcodes (`@tasermonkey/ic10-bench-opext`) everywhere. The same file decides `npm test`, `npm run lint`, and whether ic10-link sends a script. |
 | `ic10-mods/` | The modded devices the scripts talk to, so the tests can use them. |
 | `local/` | Not committed, on this machine only. `local/instructions.md` is the IC10 instruction reference, from the wiki. |
 
@@ -29,12 +29,15 @@ here for people browsing; this is for changing it.
 - Only the Diode, the console LEDs and the Beacon have `Color`.
 - Reading a logic type a device doesn't have halts the chip. `npx ic10-bench props <prefab>` lists
   what a device has.
+- `tmsi`, `tmjc` and `tmjr` are the tmz-opext mod's call opcodes (`../stationeers.tmz-opext`, its
+  REFERENCE.md). They keep the call stack's pointer in `ra` (r17), so a script using them can't use
+  `jal` while a call is open.
 
 ## The tools
 
-IC10 Bench, ic10-link, ic10-lint and ic10-bench-ds8 are linked from the `../ic10-bench`
-checkout (`file:` in `package.json`), on its `ds8-rack-extension` branch, until the rack
-extension is published. After changing the checkout, build it there (`npm run build`). Then
+IC10 Bench, ic10-link, ic10-lint, ic10-bench-ds8 and ic10-bench-opext are linked from the
+`../ic10-bench` checkout (`file:` in `package.json`), on its `ds8-rack-extension` branch, until
+the rack and opcode extensions are published. After changing the checkout, build it there (`npm run build`). Then
 switch back to the npm versions.
 
 ## Commands

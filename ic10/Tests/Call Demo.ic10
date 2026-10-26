@@ -1,0 +1,21 @@
+# Call Demo: the tmz-opext mod's call opcodes (tmsi, tmjc, tmjr). Needs the mod.
+# db Setting: fooCalc(43, 80, 8, 2) = (80 + 8) * 2 = 176; r0-r3, r13-r15 as set.
+tmsi 511 16
+start:
+move r0 42
+move r1 43
+move r2 44
+move r3 45
+move r13 2
+move r14 8
+move r15 80
+tmjc r0 fooCalc r1 r15 r14 r13
+s db Setting r0
+yield
+j start
+fooCalc:
+add r15 r1 r2
+mul r15 r15 r3
+move r2 999
+move r3 998
+tmjr r15

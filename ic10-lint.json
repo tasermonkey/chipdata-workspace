@@ -1,6 +1,7 @@
 {
 	"$schema": "./node_modules/@tasermonkey/ic10-lint/schema.json",
 	"dir": "ic10",
+	"extensions": ["@tasermonkey/ic10-bench-opext"],
 	"rules": {
 		"max-lines": "error",
 		"max-columns": "error",
